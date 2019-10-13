@@ -3,7 +3,7 @@ Draftsman-EE Schematic Viewer
 
 ## Abstract
 This C# project is being written as a way to view and print Draftsman-EE Schematic (.SCH) files on
-a modern PC running Microsft Windows (r). As of this writing, it is a work in progress.
+a modern PC running Microsft Windows (r). The Draftsman-EE software may also be known as DMEE, DC-CAD, DCCAD, or DC/CAD IV. As of this writing, the viewer is a work in progress.
 
 ## Status
 The present version is an early work-in-progress that does not yet support schematics with multiple pages, printing, or handling modules from libraries or other files. It also doesn't yet handle drawing arcs or routes. Text is drawn using Microsoft fonts instead drawing them using Draftsman-EE's vector drawn character library. Most significantly (or most annoying) is that it does not yet include automatic or manual support for scaling and centering the file to fit the viewing screen. These capabilities are all under development.
@@ -22,7 +22,7 @@ Design Computation, Inc. It was offered from the late 1980's to early 1990's.
 Both the software and thecompany went away before the early days of the internet.
 Also, the software was also not widely advertised. Consequently, internet searches turn up
 almost zero references the company or its Draftsman-EE software, let alone any publicly available
-archives of the software.
+archives of the software. 
 
 ##  Overview of the software
 The Draftsman-EE schematic files, and much of the associated library files, consist of
