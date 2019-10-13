@@ -30,6 +30,6 @@ lines of printable ASCII text. The text present a series of "command lines" that
 parameters such as coordinates, color, and scaling factors, along with whether additional 'modules' should be included from another file
 or library. The viewer program parses these commands and their parameters in order to draw the content to the screen. 
 
-## DEVELOPMENT ENVIRONMENT AND EXECUTABLES
+## Development Environment and Executables
 The project is presently being developed and tested as a Windows "Forms" application using C#
 and .NET Framework 4.6.1 using Microsoft Visual Studio Community Edition, 2017 on Windows 10 64-bit.
