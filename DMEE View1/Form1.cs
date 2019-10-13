@@ -465,9 +465,15 @@ namespace DMEEView1
             smallestX = 10000;
             smallestY = 10000;
             textScalingList.Clear();
-            System.IO.StreamReader file = new System.IO.StreamReader(fname);
             String line;
             textBox3.Clear();
+            System.IO.StreamReader file; 
+
+            if (fname != "")
+            {
+               file = new System.IO.StreamReader(fname);
+            }
+            else return;
 
             int j = 0;
             for (int i = 0; i < 2000; i++)
