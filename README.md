@@ -19,10 +19,15 @@ Draftsman-EE version 4.09 running on MS-DOS.
 
 Draftsman-EE was a PC-based schematic editor and PCB layout software package by
 Design Computation, Inc. It was offered from the late 1980's to early 1990's.
-Both the software and thecompany went away before the early days of the internet.
-Also, the software was also not widely advertised. Consequently, internet searches turn up
-almost zero references the company or its Draftsman-EE software, let alone any publicly available
+Both the software and thecompany went away before the early days of the internet and the software was not widely advertised or reviewed. Consequently, internet searches turn up
+almost no references to the company or the Draftsman-EE software, let alone any publicly available
 archives of the software. 
+
+According to _Choosing A PCB Layout System_, MICRO CORNUCOPIA, #45, Jan-Feb 1989, the software was available in multiple levels using different names and prices (10/1988 pricing shown) based mainly on the inclusion of an autorouter and the autorouter's capabilities. The base package did not include any autorouting capability.
+- Draftsman E.E. $695.00
+- DC Design $1195.00
+- DC 810 $1995.00
+- DC CAD $3495.00
 
 ##  Overview of the software
 The Draftsman-EE schematic files, and much of the associated library files, consist of
