@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Drawing.Text;
 using System.Windows.Forms;
 
@@ -427,6 +428,7 @@ namespace DMEEView1
             public int unk2=0;
             public int unk3=0;
             public String strText="";  // all string text fields in file begin with "#". Done for parsing to allow strings to have spaces in them.
+                                       // # serves double-duty as start of a comment line
         }
 
         private class DcCircle
@@ -444,7 +446,7 @@ namespace DMEEView1
             public String name = "-unassigned-";
             public int number = 0;
         }
-               
+
         private void parseFile()
         {
             String fname = Properties.Settings.Default.FNAME;
@@ -467,13 +469,16 @@ namespace DMEEView1
             textScalingList.Clear();
             String line;
             textBox3.Clear();
-            System.IO.StreamReader file; 
+            System.IO.StreamReader file;
 
-            if (fname != "")
+            if (File.Exists(fname))
             {
-               file = new System.IO.StreamReader(fname);
+                file = new System.IO.StreamReader(fname);
             }
-            else return;
+            else {
+                MessageBox.Show("File not found. Please select a file using Open from the File menu");
+                return;
+            }
 
             int j = 0;
             for (int i = 0; i < 2000; i++)
