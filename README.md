@@ -16,8 +16,8 @@ Program development is first focusing on drawing schematic and part files. Conse
 Select an .SCH or other drawing file using the file menu and press the "Parse" button. The hide/show info button provides some additional information about the file. A few example files are provided in Sample Drawing Files directory to demonstrate the present level of development.
 
 ##  Background
-I started developing this project to view some schematics that I created in the early 1990's using
-Draftsman-EE version 4.09 running on MS-DOS with the goal of also being able to print and archive them as .pdf files.
+I started developing this project to view, print, and archive as .pdf files some schematics that I created in the early 1990's using
+Draftsman-EE version 4.09 running on MS-DOS. After looking at the schematic and library data files it looked like it would be feasible (and potentially less frustrating) to reverse engineer the format enough to create a Windows 10 program for viewing and printing them rather than trying to get the software and its outdated video and printer drivers running under something like DOSBox or VirtualBox.
 
 Draftsman-EE was a PC-based schematic editor and PCB layout software package by
 Design Computation, Inc. It was offered from the late 1980's to early 1990's.
