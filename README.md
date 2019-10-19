@@ -8,7 +8,7 @@ a modern PC running Microsft Windows (r). The Draftsman-EE software may also be 
 ## Status
 The present version is an early work-in-progress that does not yet support schematics with multiple pages, printing, or inserting modules (parts) from libraries or other files. The Oct. 19, 2019 update added support for drawing arcs and locating pins along with a simple set of zoom levels under the File menu. 
 
-Text is drawn using Microsoft fonts instead drawing them using Draftsman-EE's vector drawn character library. It does not yet include support for scaling and centering the file to fit the viewing area. These capabilities are all under development.
+Text is presently drawn using Microsoft fonts instead of using Draftsman-EE's vector drawn character library. It does not yet include support for scaling and centering the file to fit the viewing area. These capabilities are all under development.
 
 Program development is first focusing on drawing schematic and part files. Consequently, it does not handle drawing routes or handle layers. Since the program also doesn't insert modules from libraries (such as pad definitions) if you try to draw any PCB files you're likely to find them pretty empty except for a view of the lines and text from all layers simultaneously. 
 
@@ -25,6 +25,7 @@ Both the software and thecompany went away before the early days of the internet
 almost no references to the company or the Draftsman-EE software, let alone any publicly available
 archives of the software. 
 
+### What was offered back in the day
 According to _Choosing A PCB Layout System_, MICRO CORNUCOPIA, #45, Jan-Feb 1989, the software was available in multiple levels using different names and prices (10/1988 pricing shown) based mainly on the inclusion of an autorouter and the autorouter's capabilities. The base package did not include any autorouting capability.
 - Draftsman E.E. $695.00
 - DC Design $1195.00
