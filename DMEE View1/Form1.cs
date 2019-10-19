@@ -14,6 +14,9 @@ namespace DMEEView1
     {
         Single biggestX = 0, biggestY = 0;
         Single smallestX = 10000, smallestY = 10000;
+        Single ZoomFactor = 1;
+
+        public Form2 folderConfigurationForm = new Form2();
 
         public Form1()
         {
@@ -63,101 +66,34 @@ namespace DMEEView1
                 pen1.Width = 1;
                 pen1.Color = Color.Black;
 
-                gs.TranslateTransform(25F+smallestX, biggestY + 125F); // Move the origin "down".
-                gs.ScaleTransform(0.5F, 0.5F, MatrixOrder.Append);
+                gs.TranslateTransform(25F-smallestX, biggestY + 125F); // Move the origin "down".
+                gs.ScaleTransform(ZoomFactor, ZoomFactor, MatrixOrder.Append);
 
+                pen1.Color = Color.LightGray;
                 gs.DrawLine(pen1, biggestX - 5, -biggestY, biggestX + 5, -biggestY);
                 gs.DrawLine(pen1, biggestX, -biggestY - 5, biggestX, -biggestY + 5);
 
                 // draw crossed lines at origin
                 gs.DrawLine(pen1, 0 - 5, 0, 0 + 5, 0);
                 gs.DrawLine(pen1, 0, 0 - 5, 0, 0 + 5);
+                pen1.Color = Color.Black;
 
                 // My B-SIZE DRAWING IS 15-7/8" x 10-15/16", Inner border is ~9-1/2" x ~15-1/2"
                 // At present drawing scale 1937 -> 15” = .00774" per unit
                 // units = inches / .00774
                 // draw a 15.5" line from 3/16", 3/16"
-                Single factor = .00785F;
-                Single x1, y1, x2, y2;
-
+                //Single factor = .00785F;
+                //Single x1, y1, x2, y2;
                 // draw a line from origin to 16"
-                gs.DrawLine(pen1, 0, 0, 16F / factor, 0);
+                //gs.DrawLine(pen1, 0, 0, 16F / factor, 0);
 
-                x1 = 5F / 16F / factor;
-                y1 = 5F / 16F / factor;
-                x2 = x1 + (15.5F / factor);
-                y2 = y1;
-
-                gs.DrawLine(pen1, x1, -y1, x2, -y2);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x1, y1, x2, y2);
-
-                gs.DrawLine(pen1, x1, -(y1 + (9.5F / factor)), x1, -y1);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x1, (y1 + (9.5F / factor)), x1, y1);
-
-                gs.DrawLine(pen1, x1, -(y1 + (9.5F / factor)), x2, -(y1 + (9.5F / factor)));
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3} dx={4}", x1, y1 + (9.5F / factor), x2, y1 + (9.5F / factor), x2-x1);
-
-                gs.DrawLine(pen1, x2, -y1, x2, -(y1 + (9.5F / factor)));
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x2, y1, x2, y1 + (9.5F / factor));
-                
-                x1 = x2 - (3F + 3F / 8F) / factor;
-                gs.DrawLine(pen1, x1, -y1, x2, -y1);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3} dx={4}", x1, y1, x2, y1, x2-x1);
-
-                y1 += (3F / 16F) / factor;
-                gs.DrawLine(pen1, x1, -y1, x2, -y1);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x1, y1, x2, y1);
-
-                y1 += (0.5F) / factor;
-                gs.DrawLine(pen1, x1, -y1, x2, -y1);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x1, y1, x2, y1);
-
-                y1 += (0.5F) / factor;
-                gs.DrawLine(pen1, x1, -y1, x2, -y1);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x1, y1, x2, y1);
-
-                y1 += (0.5F) / factor;
-                gs.DrawLine(pen1, x1, -y1, x2, -y1);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x1, y1, x2, y1);
-
-                y2 = y1;
-                y1 = 5F / 16F / factor;
-                gs.DrawLine(pen1, x1, -y1, x1, -y2);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x1, y1, x2, y2);
-
-                x1 = x2 - (1.4F / factor);
-                y1 = 5F / 16F / factor;
-                y2 = y1 + (3F / 16F / factor);
-                gs.DrawLine(pen1, x1, -y1, x1, -y2);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x1, y1, x2, y2);
-
-                x1 = x2 - (0.5F / factor);
-                y1 += 3F / 16F / factor;
-                y2 += 0.5F / factor;
-                gs.DrawLine(pen1, x1, -y1, x1, -y2);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x1, y1, x2, y2);
-
-                y1 = 5F / 16F / factor;
-                y2 = y1 + (3F / 16F / factor);
-                x1 = x2 - ((2F+3F/8F) / factor);
-                y1 += 3F / 16F / factor;
-                y2 += 0.5F / factor;
-                gs.DrawLine(pen1, x1, -y1, x1, -y2);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x1, y1, x2, y2);
-
-                y1 = 5F / 16F / factor;
-                y2 = y1 + (3F / 16F / factor);
-                x1 = x2 - ((2F + 7F / 8F) / factor);
-                y1 += 3F / 16F / factor;
-                y2 += 0.5F / factor;
-                gs.DrawLine(pen1, x1, -y1, x1, -y2);
-                if (!debugWritten) Console.WriteLine("l {0} {1} {2} {3}", x1, y1, x2, y2);
-
-                debugWritten = true;
+                Type objType;
 
                 for (int i=0; i<drawList.Count; i++)
                 {
-                    if (drawList[i].GetType() == typeof(DcDrawItem))
+                    objType = drawList[i].GetType();
+
+                    if (objType == typeof(DcDrawItem))
                     {
                         dcDrawItem = (DcDrawItem)drawList[i];
 
@@ -185,13 +121,13 @@ namespace DMEEView1
                     }
                     else
                     {
-                        if (drawList[i].GetType() == typeof(DcText))
+                        if (objType == typeof(DcText))
                         {
                             DcText dct = (DcText)drawList[i];
                             PointF pt = new PointF
                             {
                                 X = Convert.ToInt32(dct.X1),
-                                Y = Convert.ToInt32(- dct.Y1)
+                                Y = Convert.ToInt32(-dct.Y1)
                             };
                             String text = dct.dcStr.strText;
                             text = text.TrimStart('#');
@@ -203,7 +139,7 @@ namespace DMEEView1
                             // Calculate font scale factor
                             Single fontSize = 10.5F * dct.scale / 0.039063F;
 
-                            Font the_font = new Font(fontFamily, fontSize) ;
+                            Font the_font = new Font(fontFamily, fontSize);
                             SizeF textSize = gs.MeasureString(text, the_font);
 
                             Single ascent = the_font.FontFamily.GetCellAscent(FontStyle.Regular);
@@ -215,7 +151,7 @@ namespace DMEEView1
 
                             if (dct.rotation != 0)
                             {
-                                DrawRotatedTextAt(e.Graphics, -dct.rotation, text, (int)(pt.X), (int)(pt.Y), the_font, new SolidBrush (color));
+                                DrawRotatedTextAt(e.Graphics, -dct.rotation, text, (int)(pt.X), (int)(pt.Y), the_font, new SolidBrush(color));
                                 //gs.DrawLine(pen1, pt.X - 5, pt.Y, pt.X + 5, pt.Y);
                                 //gs.DrawLine(pen1, pt.X, pt.Y - 5, pt.X, pt.Y + 5);
                             }
@@ -224,6 +160,23 @@ namespace DMEEView1
                                 pt.Y -= (cellHeightPixel);
                                 gs.DrawString(text, the_font, new SolidBrush(color), pt);
                             }
+                        }
+                        else if (objType == typeof(DcArc))
+                        {
+                            DcArc dArc = (DcArc)drawList[i];
+                            floatPoint center = new floatPoint(dArc.centerX, -dArc.centerY);
+                            floatPoint p1 = new floatPoint(dArc.X1, -dArc.Y1);
+                            floatPoint p2 = new floatPoint(dArc.X2, -dArc.Y2);
+                            DcDrawArc(gs, pen1, center, p1, p2);
+                        }
+                        else if (objType == typeof(DcPin))
+                        {
+                            DcPin dPin = (DcPin)drawList[i];
+                            // draw a small square to identify the pin location.
+                            float width = pen1.Width;
+                            pen1.Width = 0.5F;
+                            gs.DrawRectangle(pen1, dPin.X1 - 2, -(dPin.Y1 + 2), 4, 4);
+                            pen1.Width = width;
                         }
                     }
                 }
@@ -290,7 +243,47 @@ namespace DMEEView1
             gr.Restore(state);
         }
 
-        private enum DcItemType { line, wire, circle, arc, pin, str, text, undefined };
+        private class floatPoint
+        {
+            public float X = 0;
+            public float Y = 0;
+
+            public floatPoint(float x, float y)
+            {
+                X = x;
+                Y = y;
+            }
+        }
+
+        private static float DcDrawArc(Graphics gr, Pen pen, floatPoint centerPt, floatPoint p1, floatPoint p2)
+        {
+            // Calculate radius as distance from center to p1
+            float radius = (float)Math.Sqrt((centerPt.X - p1.X) * (centerPt.X - p1.X) + (centerPt.Y - p1.Y) * (centerPt.Y - p1.Y));
+            Console.WriteLine("radius: " + radius);
+
+            // Calculate rectangle for DrawArc
+            float xxB = centerPt.X - radius;
+            float yyB = centerPt.Y - radius;
+            float width = 2 * radius;
+            float height = 2 * radius;
+
+            // Determine angles for DrawArc
+            float startAngle2 = (float)((180 / Math.PI) * Math.Atan2(p1.Y - centerPt.Y, p1.X - centerPt.X));
+            float endAngle2 = (float)((180 / Math.PI) * Math.Atan2(p2.Y - centerPt.Y, p2.X - centerPt.X));
+
+            // Draw the arc
+            gr.DrawArc(pen, xxB, yyB, width, height, startAngle2, endAngle2 - startAngle2);
+
+            return radius;
+        }
+
+        private static void DrawCross(Graphics gr, Pen pen, floatPoint point)
+        {
+            gr.DrawLine(pen, point.X - 5, point.Y, point.X + 5, point.Y);
+            gr.DrawLine(pen, point.X, point.Y - 5, point.X, point.Y + 5);
+        }
+
+        private enum DcItemType { line, wire, circle, arc, module, pin, str, text, undefined };
 
         DcItemType getDcType(object obj)
         {
@@ -299,6 +292,7 @@ namespace DMEEView1
             if (obj.GetType() == typeof(DcText)) return DcItemType.text;
             if (obj.GetType() == typeof(DcCircle)) return DcItemType.circle;
             if (obj.GetType() == typeof(DcString)) return DcItemType.str;
+            if (obj.GetType() == typeof(DcPin)) return DcItemType.pin;
             return DcItemType.undefined;
         }
 
@@ -370,8 +364,8 @@ namespace DMEEView1
             public Single Y1 = 0;
             public Single X2 = 0;
             public Single Y2 = 0;
-            public Single textSize = 0;  // text size in points
-            public String text = "";
+            public Single TextSize = 0;  // text size in points
+            public String Text = "";
         }
 
         private List<Object> drawList = new List<Object>();
@@ -379,18 +373,45 @@ namespace DMEEView1
         private List<Object> drawList2 = new List<object>();
 
         private bool drawListLoaded = false;
-        private bool debugWritten = false;
+
+        private class DcArc
+        {
+            // Draw arc given coordinates of the center of a circle and two points on the circle that define the arc.
+            // Calculating the coordinates of the center given two arbitrary points and a radius is an interesting problem
+            // for the software that generates the file. Fortunately, it's fairly straightforward to draw the arc once 
+            // the points have been calculated.
+            public DcItemType recordType = DcItemType.arc;     //Arc (a) - e.g. "a  6 -38.641014 10 -4 -10 -4 30"
+            public int color = 0;
+            public Single centerX = 0;
+            public Single centerY = 0;
+            public Single X1 = 0;
+            public Single Y1 = 0;
+            public Single X2 = 0;
+            public Single Y2 = 0;
+        }
+
+        private class DcPin
+        {   // a pin may have an associated s record. The record defines the pin number, e.g. s 1 0 #2
+            public DcItemType recordType = DcItemType.pin;     //Pin (p) - e.g. "p  15 60 10 60 10 1"
+            public int color = 0;
+            public Single X1 = 0;
+            public Single Y1 = 0;
+            public Single unk1 = 0;
+            public Single unk2 = 0;
+            public Single unk3 = 0;
+            public String Text = "";
+        }
 
         private class DcLine
         {
             public DcItemType recordType = DcItemType.line;    //Line (l)
-            public int color=0;
-            public Single X1=0;
-            public Single Y1=0;
-            public Single X2=0;
-            public Single Y2=0;
-            public int unk1=0;
-            public int unk2=0;
+            public int color = 0;
+            public Single X1 = 0;
+            public Single Y1 = 0;
+            public Single X2 = 0;
+            public Single Y2 = 0;
+            public int unk1 = 0;        // I've found some 2.10 library modules that have only 6 fields instead of seven (no unk2)
+            public int unk2 = 0;
         }
 
         private class DcWire
@@ -403,7 +424,7 @@ namespace DMEEView1
             public Single Y2 = 0;
             public int unk1 = 0;
             public int unk2 = 0;
-            public int net = 0;         //Lines do not include net and unk3 values
+            public int net = 0;         //Lines and wires are similar but lines do not include net and unk3 values
             public int unk3 = 0;
             public DcString dcStr = new DcString();
         }
@@ -411,43 +432,61 @@ namespace DMEEView1
         private class DcText
         {
             public DcItemType recordType = DcItemType.text;     //Text (t)
-            public int color=0;
-            public Single X1=0;
-            public Single Y1=0;
-            public Single scale=0;     // scaling factor for the font
-            public Single rotation=0;
-            public int unk1=0;
-            public int unk2=0;
+            public int color = 0;
+            public Single X1 = 0;
+            public Single Y1 = 0;
+            public Single scale = 0;     // scaling factor for the font
+            public Single rotation = 0;
+            public int unk1 = 0;
+            public int unk2 = 0;
             public DcString dcStr = new DcString();
         }
 
          private class DcString
         {
             public DcItemType recordType = DcItemType.str;     // String/symbol name (s)
-            public int unk1=0;
-            public int unk2=0;
-            public int unk3=0;
-            public String strText="";  // all string text fields in file begin with "#". Done for parsing to allow strings to have spaces in them.
-                                       // # serves double-duty as start of a comment line
+            public int unk1 = 0;
+            public int unk2 = 0;
+            public int unk3 = 0;
+            public String strText="";  // all string text fields in file begin with "#".
+                                       // Done for parsing to allow strings to have spaces in them.
+                                       // # serves double-duty as start of a comment or comment line
         }
 
         private class DcCircle
         {
             public DcItemType recordType = DcItemType.circle;  //Circle (c)
-            public int color = 0;
+            public int color = 0;       // color or layer
             public Single X1 = 0;
             public Single Y1 = 0;
             public Single X2 = 0;
             public Single Y2 = 0;
         }
 
-        private class DcNet
+        private class DcNet 
         {
             public String name = "-unassigned-";
             public int number = 0;
         }
 
-        private void parseFile()
+        private class DcModule //include Module (m)  -- e.g. m  15 0 0 1.25 0 0 bsize 0 0 0 0 0
+        {
+            public DcItemType recordType = DcItemType.module; // [0] (m)
+            public int color = 0;           // [1] color or layer
+            public int unk2 = 0;
+            public int unk3 = 0;
+            public Single scaleFactor = 0;  // [4]
+            public int unk5 = 0;
+            public int unk6 = 0;
+            public String name = "";        // [7]
+            public int unk8 = 0;
+            public int unk9 = 0;
+            public int unk10 = 0;
+            public int unk11 = 0;
+            public int unk12 = 0;
+        }
+
+        private void DcDrawFile()
         {
             String fname = Properties.Settings.Default.FNAME;
             String[] fields;
@@ -459,7 +498,6 @@ namespace DMEEView1
             int strItemCount = 0;
 
             drawListLoaded = false;
-            debugWritten = false;
 
             drawList.Clear();
             biggestX = -10000;
@@ -502,33 +540,109 @@ namespace DMEEView1
                     
                     switch (fields[0])
                     {
-                        case "t": recordType = DcItemType.text; break;
-                        case "s": recordType = DcItemType.str; break;
-                        case "w": recordType = DcItemType.wire; break;
-                        case "l": recordType = DcItemType.line; break;
+                        case "a": recordType = DcItemType.arc; break;
                         case "c": recordType = DcItemType.circle; break;
+                        case "s": recordType = DcItemType.str; break;
+                        case "t": recordType = DcItemType.text; break;
+                        case "l": recordType = DcItemType.line; break;
+                        case "m": recordType = DcItemType.module; break;
+                        case "p": recordType = DcItemType.pin; break;
+                        case "w": recordType = DcItemType.wire; break;
                         default: recordType = DcItemType.undefined; break;
                     }
 
                     switch (recordType)  // create a record object for line and add it to draw list
                     {
-                        case DcItemType.text:
-                            DcText dcText = new DcText
+                        case DcItemType.arc:
+                            DcArc dArc = new DcArc()
+                            {
+                                color = Convert.ToInt16(fields[1]),
+                                centerX = Convert.ToSingle(fields[2]),
+                                centerY = Convert.ToSingle(fields[3]),
+                                X1 = Convert.ToSingle(fields[4]),
+                                Y1 = Convert.ToSingle(fields[5]),
+                                X2 = Convert.ToSingle(fields[6]),
+                                Y2 = Convert.ToSingle(fields[7])
+                            };
+                            drawList.Add(dArc);
+                            break;
+
+                        case DcItemType.circle:
+                            DcCircle dcCircle = new DcCircle
                             {
                                 color = Convert.ToInt16(fields[1]),
                                 X1 = Convert.ToSingle(fields[2]),
                                 Y1 = Convert.ToSingle(fields[3]),
-                                scale = Convert.ToSingle(fields[4]),
-                                rotation = Convert.ToSingle(fields[5]),
+                                X2 = Convert.ToSingle(fields[4]),
+                                Y2 = Convert.ToSingle(fields[5])
+                            };
+
+                            DcDrawItem dCircle = new DcDrawItem
+                            {
+                                itemType = DcItemType.circle,
+                                color = dcCircle.color,
+                                X1 = dcCircle.X1,
+                                Y1 = dcCircle.Y1,
+                                X2 = dcCircle.X2,
+                                Y2 = dcCircle.Y2
+                            };
+                            drawList.Add(dCircle);
+                            break;
+
+                        case DcItemType.line:
+                            DcLine dcLine = new DcLine
+                            {
+                                color = Convert.ToInt16(fields[1]),
+                                X1 = Convert.ToSingle(fields[2]),
+                                Y1 = Convert.ToSingle(fields[3]),
+                                X2 = Convert.ToSingle(fields[4]),
+                                Y2 = Convert.ToSingle(fields[5]),
                                 unk1 = Convert.ToInt16(fields[6]),
                                 unk2 = Convert.ToInt16(fields[7])
                             };
-                            textItemCount++;
-                            drawList.Add(dcText);
-                            if (!textScalingList.Contains(dcText.scale))
+
+                            if (dcLine.X1 > biggestX) biggestX = dcLine.X1;
+                            if (dcLine.X1 < smallestX) smallestX = dcLine.X1;
+
+                            if (dcLine.Y1 > biggestY) biggestY = dcLine.Y1;
+                            if (dcLine.Y2 < smallestY) smallestY = dcLine.Y1;
+
+                            if (dcLine.X2 > biggestX) biggestX = dcLine.X2;
+                            if (dcLine.X2 < smallestX) smallestX = dcLine.X2;
+
+                            if (dcLine.Y2 > biggestY) biggestY = dcLine.Y2;
+                            if (dcLine.Y2 < smallestY) smallestY = dcLine.Y2;
+
+                            DcDrawItem dLine = new DcDrawItem
                             {
-                                textScalingList.Add(dcText.scale);
-                            }
+                                itemType = DcItemType.line,
+                                color = dcLine.color,
+                                X1 = dcLine.X1,
+                                Y1 = dcLine.Y1,
+                                X2 = dcLine.X2,
+                                Y2 = dcLine.Y2
+                            };
+
+                            drawList.Add(dLine);
+                            break;
+
+                        case DcItemType.module:
+                            DcModule dcModule = new DcModule()
+                            {
+                                color = Convert.ToInt16(fields[1]),
+                                scaleFactor = Convert.ToSingle(fields[4]),
+                                name = Convert.ToString(fields[7])
+                            };
+                            break;
+
+                        case DcItemType.pin:
+                            DcPin dcPin = new DcPin()
+                            {
+                                color = Convert.ToInt16(fields[1]),
+                                X1 = Convert.ToSingle(fields[2]),
+                                Y1 = Convert.ToSingle(fields[3])
+                            };
+                            drawList.Add(dcPin);
                             break;
 
                         case DcItemType.str:
@@ -536,9 +650,13 @@ namespace DMEEView1
                             {
                                 unk1 = Convert.ToInt16(fields[1]),
                                 unk2 = Convert.ToInt16(fields[2]),
-                                unk3 = Convert.ToInt16(fields[3]),
                                 strText = fieldStr
                             };
+
+                            // I discovered some string commands only have two leading fields. E.g. "s 1 0 #TYPE"
+                            // while others have three E.g. "s 1 0 1 #CA31:2
+                            if (fields.Length > 3) dcStr.unk3 = Convert.ToInt16(fields[3]);
+
                             strItemCount++;
 
                             // Set String in previous record
@@ -557,6 +675,25 @@ namespace DMEEView1
                                         dcw.dcStr = dcStr;
                                     }
                                 }
+                            }
+                            break;
+
+                        case DcItemType.text:
+                            DcText dcText = new DcText
+                            {
+                                color = Convert.ToInt16(fields[1]),
+                                X1 = Convert.ToSingle(fields[2]),
+                                Y1 = Convert.ToSingle(fields[3]),
+                                scale = Convert.ToSingle(fields[4]),
+                                rotation = Convert.ToSingle(fields[5]),
+                                unk1 = Convert.ToInt16(fields[6]),
+                                unk2 = Convert.ToInt16(fields[7])
+                            };
+                            textItemCount++;
+                            drawList.Add(dcText);
+                            if (!textScalingList.Contains(dcText.scale))
+                            {
+                                textScalingList.Add(dcText.scale);
                             }
                             break;
 
@@ -598,65 +735,6 @@ namespace DMEEView1
                             j++;
                             break;
 
-                        case DcItemType.line:
-                            DcLine dcLine = new DcLine
-                            {
-                                color = Convert.ToInt16(fields[1]),
-                                X1 = Convert.ToSingle(fields[2]),
-                                Y1 = Convert.ToSingle(fields[3]),
-                                X2 = Convert.ToSingle(fields[4]),
-                                Y2 = Convert.ToSingle(fields[5]),
-                                unk1 = Convert.ToInt16(fields[6]),
-                                unk2 = Convert.ToInt16(fields[7])
-                            };
-
-                            if (dcLine.X1 > biggestX) biggestX = dcLine.X1;
-                            if (dcLine.X1 < smallestX) smallestX = dcLine.X1;
-
-                            if (dcLine.Y1 > biggestY) biggestY = dcLine.Y1;
-                            if (dcLine.Y2 < smallestY) smallestY = dcLine.Y1;
-
-                            if (dcLine.X2 > biggestX) biggestX = dcLine.X2;
-                            if (dcLine.X2 < smallestX) smallestX = dcLine.X2;
-
-                            if (dcLine.Y2 > biggestY) biggestY = dcLine.Y2;
-                            if (dcLine.Y2 < smallestY) smallestY = dcLine.Y2;
-
-                            DcDrawItem dLine = new DcDrawItem
-                            {
-                                itemType = DcItemType.line,
-                                color = dcLine.color,
-                                X1 = dcLine.X1,
-                                Y1 = dcLine.Y1,
-                                X2 = dcLine.X2,
-                                Y2 = dcLine.Y2
-                            };
-
-                            drawList.Add(dLine);
-                            break;
-
-                        case DcItemType.circle:
-                            DcCircle dcCircle = new DcCircle
-                            {
-                                color = Convert.ToInt16(fields[1]),
-                                X1 = Convert.ToSingle(fields[2]),
-                                Y1 = Convert.ToSingle(fields[3]),
-                                X2 = Convert.ToSingle(fields[4]),
-                                Y2 = Convert.ToSingle(fields[5])
-                            };
-
-                            DcDrawItem dCircle = new DcDrawItem
-                            {
-                                itemType = DcItemType.circle,
-                                color = dcCircle.color,
-                                X1 = dcCircle.X1,
-                                Y1 = dcCircle.Y1,
-                                X2 = dcCircle.X2,
-                                Y2 = dcCircle.Y2
-                            };
-                            drawList.Add(dCircle);
-                            break;
-
                         default: break;
                     }
                     prevRecordType = recordType;
@@ -667,11 +745,11 @@ namespace DMEEView1
             textBox3.Text += "Biggest Y: " + biggestY.ToString() + "\r\n";
             textBox3.Text += "Smallest X: " + smallestX.ToString() + "\r\n";
             textBox3.Text += "Smallest Y: " + smallestY.ToString() + "\r\n";
-            textBox3.Text += "Text Item Count: " + textItemCount.ToString() + "\r\n";
-            textBox3.Text += "String Item Count: " + strItemCount.ToString() + "\r\n";
-            textBox3.Text += "Draw List segments: " + drawList.Count.ToString() + "\r\n";
+            textBox3.Text += "Text Entries Count: " + textItemCount.ToString() + "\r\n";
+            textBox3.Text += "String Entries Count: " + strItemCount.ToString() + "\r\n";
 
             drawListLoaded = true;
+            Console.WriteLine(folderConfigurationForm.libraryFolder);
             foreach(Single scale in textScalingList)
             {
                 Console.WriteLine(scale.ToString());
@@ -701,9 +779,38 @@ namespace DMEEView1
             this.Close();
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void foldersToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            parseFile();
+            folderConfigurationForm.Show();
+        }
+
+        private void toolStripMenuZoom50_Click(object sender, EventArgs e)
+        {
+            ZoomFactor = 0.5F;
+            DcDrawFile();
+        }
+
+        private void toolStripMenuZoom100_Click(object sender, EventArgs e)
+        {
+            ZoomFactor = 1.0F;
+            DcDrawFile();
+        }
+
+        private void toolStripMenuZoom150_Click(object sender, EventArgs e)
+        {
+            ZoomFactor = 1.5F;
+            DcDrawFile();
+        }
+
+        private void toolStripMenuZoom200_Click(object sender, EventArgs e)
+        {
+            ZoomFactor = 2.0F;
+            DcDrawFile();
+        }
+
+        private void DrawFileButton_Click(object sender, EventArgs e)
+        {
+            DcDrawFile();
         }
 
         private void button2_Click(object sender, EventArgs e)
