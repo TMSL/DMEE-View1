@@ -3,7 +3,7 @@ Draftsman-EE Schematic Viewer
 
 ## Abstract
 This C# project is being written as a way to view and print Draftsman-EE "DMEE" Schematic (.SCH) and other DMEE drawing files on
-a modern PC running Microsft Windows (r). The Draftsman-EE software may also be known as DMEE, DC-CAD, DCCAD, or DC/CAD IV. As of this writing, the viewer is a work in progress.
+a modern PC running Microsft Windows (r). The Draftsman-EE software may also be known as or associated with the names DMEE, DC-CAD, DCCAD, DC Design, DC 810, or DC/CAD IV. As of this writing, the viewer is a work in progress.
 
 ## Status
 The present version is an early work-in-progress that does not yet support schematics with multiple pages, printing, or inserting modules (parts) from libraries or other files. The Oct. 19, 2019 update added support for drawing arcs and locating pins along with a simple set of zoom levels under the File menu. 
