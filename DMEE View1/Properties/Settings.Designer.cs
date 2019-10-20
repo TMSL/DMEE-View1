@@ -46,5 +46,29 @@ namespace DMEEView1.Properties {
                 this["ShowInfo"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LibFolder {
+            get {
+                return ((string)(this["LibFolder"]));
+            }
+            set {
+                this["LibFolder"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string WorkFolder {
+            get {
+                return ((string)(this["WorkFolder"]));
+            }
+            set {
+                this["WorkFolder"] = value;
+            }
+        }
     }
 }

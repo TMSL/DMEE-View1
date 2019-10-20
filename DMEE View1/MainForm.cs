@@ -10,15 +10,15 @@ using System.Windows.Forms;
 
 namespace DMEEView1
 {
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
-        Single biggestX = 0, biggestY = 0;
-        Single smallestX = 10000, smallestY = 10000;
+        Single biggestX = -100000, biggestY = -100000;
+        Single smallestX = 100000, smallestY = 100000;
         Single ZoomFactor = 1;
 
-        public Form2 folderConfigurationForm = new Form2();
+        public FolderConfigForm folderConfigForm = new FolderConfigForm();
 
-        public Form1()
+        public MainForm()
         {
             InitializeComponent();
             menuStrip1.Select();
@@ -57,7 +57,8 @@ namespace DMEEView1
             int windowHeight = this.Height;
             
             gs.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-            
+            gs.SmoothingMode = SmoothingMode.AntiAlias;
+
             if (drawListLoaded)
             {
                 Point pt1 = new Point();
@@ -66,7 +67,7 @@ namespace DMEEView1
                 pen1.Width = 1;
                 pen1.Color = Color.Black;
 
-                gs.TranslateTransform(25F-smallestX, biggestY + 125F); // Move the origin "down".
+                gs.TranslateTransform(25F-smallestX, biggestY + 125F/ZoomFactor); // Move the origin "down".
                 gs.ScaleTransform(ZoomFactor, ZoomFactor, MatrixOrder.Append);
 
                 pen1.Color = Color.LightGray;
@@ -259,7 +260,6 @@ namespace DMEEView1
         {
             // Calculate radius as distance from center to p1
             float radius = (float)Math.Sqrt((centerPt.X - p1.X) * (centerPt.X - p1.X) + (centerPt.Y - p1.Y) * (centerPt.Y - p1.Y));
-            Console.WriteLine("radius: " + radius);
 
             // Calculate rectangle for DrawArc
             float xxB = centerPt.X - radius;
@@ -310,7 +310,7 @@ namespace DMEEView1
                 pen = new Pen(brush) { Width = 2F };
             }
 
-            public void Draw (DcLine dcLine)
+            public void Draw(DcLine dcLine)
             {
                 Point pt1 = new Point();
                 Point pt2 = new Point();
@@ -601,17 +601,10 @@ namespace DMEEView1
                                 unk2 = Convert.ToInt16(fields[7])
                             };
 
-                            if (dcLine.X1 > biggestX) biggestX = dcLine.X1;
-                            if (dcLine.X1 < smallestX) smallestX = dcLine.X1;
-
-                            if (dcLine.Y1 > biggestY) biggestY = dcLine.Y1;
-                            if (dcLine.Y2 < smallestY) smallestY = dcLine.Y1;
-
-                            if (dcLine.X2 > biggestX) biggestX = dcLine.X2;
-                            if (dcLine.X2 < smallestX) smallestX = dcLine.X2;
-
-                            if (dcLine.Y2 > biggestY) biggestY = dcLine.Y2;
-                            if (dcLine.Y2 < smallestY) smallestY = dcLine.Y2;
+                            BiggestSmallestX(dcLine.X1);
+                            BiggestSmallestX(dcLine.X2);
+                            BiggestSmallestY(dcLine.Y1);
+                            BiggestSmallestY(dcLine.Y2);
 
                             DcDrawItem dLine = new DcDrawItem
                             {
@@ -641,7 +634,9 @@ namespace DMEEView1
                                 color = Convert.ToInt16(fields[1]),
                                 X1 = Convert.ToSingle(fields[2]),
                                 Y1 = Convert.ToSingle(fields[3])
-                            };
+                            }; ;
+                            BiggestSmallestX(dcPin.X1);
+                            BiggestSmallestY(dcPin.Y1);
                             drawList.Add(dcPin);
                             break;
 
@@ -662,7 +657,11 @@ namespace DMEEView1
                             // Set String in previous record
                             if (prevRecordType == DcItemType.text)
                             {
-                                if (drawList.Count > 0) ((DcText)drawList[drawList.Count-1]).dcStr = dcStr;
+                                if (drawList.Count > 0)
+                                {
+                                    DcText dText = (DcText)drawList[drawList.Count - 1];
+                                    dText.dcStr = dcStr;
+                                }
                             }
 
                             if (prevRecordType == DcItemType.wire)
@@ -689,6 +688,8 @@ namespace DMEEView1
                                 unk1 = Convert.ToInt16(fields[6]),
                                 unk2 = Convert.ToInt16(fields[7])
                             };
+                            BiggestSmallestX(dcText.X1);
+                            BiggestSmallestY(dcText.Y1);
                             textItemCount++;
                             drawList.Add(dcText);
                             if (!textScalingList.Contains(dcText.scale))
@@ -706,22 +707,15 @@ namespace DMEEView1
                                 X2 = Convert.ToSingle(fields[4]),
                                 Y2 = Convert.ToSingle(fields[5]),
                                 unk1 = Convert.ToInt16(fields[6]),
-                                unk2 = Convert.ToInt16(fields[7]),
-                                net = Convert.ToInt16(fields[8]),
-                                unk3 = Convert.ToInt16(fields[9])
+                                unk2 = Convert.ToInt16(fields[7])
                             };
+                            if (fields.Length > 8) dcWire.net = Convert.ToInt16(fields[8]);
+                            if (fields.Length > 9) dcWire.unk3 = Convert.ToInt16(fields[9]);
 
-                            if (dcWire.X1 > biggestX) biggestX = dcWire.X1;
-                            if (dcWire.X1 < smallestX) smallestX = dcWire.X1;
-
-                            if (dcWire.Y1 > biggestY) biggestY = dcWire.Y1;
-                            if (dcWire.Y1 < smallestY) smallestY = dcWire.Y1;
-
-                            if (dcWire.X2 > biggestX) biggestX = dcWire.X2;
-                            if (dcWire.X2 < smallestX) smallestX = dcWire.X2;
-
-                            if (dcWire.Y2 > biggestY) biggestY = dcWire.Y2;
-                            if (dcWire.Y2 < smallestY) smallestY = dcWire.Y2;
+                            BiggestSmallestX(dcWire.X1);
+                            BiggestSmallestY(dcWire.Y1);
+                            BiggestSmallestX(dcWire.X2);
+                            BiggestSmallestY(dcWire.Y2);
 
                             DcDrawItem dWire = new DcDrawItem
                             {
@@ -749,7 +743,7 @@ namespace DMEEView1
             textBox3.Text += "String Entries Count: " + strItemCount.ToString() + "\r\n";
 
             drawListLoaded = true;
-            Console.WriteLine(folderConfigurationForm.libraryFolder);
+            Console.WriteLine(folderConfigForm.libraryFolder);
             foreach(Single scale in textScalingList)
             {
                 Console.WriteLine(scale.ToString());
@@ -758,12 +752,34 @@ namespace DMEEView1
             file.Close();
         }
 
+        private void BiggestSmallestX(float X)
+        {
+            if (X > biggestX) biggestX = X;
+            if (X < smallestX) smallestX = X;
+        }
+
+        private void BiggestSmallestY(float Y)
+        {
+            if (Y > biggestY) biggestY = Y;
+            if (Y < smallestY) smallestY = Y;
+        }
+        
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            openFileDialog1.FileName = Properties.Settings.Default.FNAME;
-            openFileDialog1.ShowDialog();
+            string fullName = Properties.Settings.Default.FNAME;
+            string fName = "";
+            string fDir = "";
+
             textBox1.Text = Properties.Settings.Default.FNAME;
             textBox1.Update();
+
+            fName = fullName.Substring(fullName.LastIndexOf(@"\") + 1);
+            fDir = fullName.Substring(0, fullName.LastIndexOf(@"\"));
+
+            openFileDialog1.InitialDirectory = fDir;
+            openFileDialog1.FileName = fName;
+            openFileDialog1.ShowDialog();
+
             if (openFileDialog1.FileName != "")
             {
                 Properties.Settings.Default.FNAME = openFileDialog1.FileName;
@@ -781,7 +797,7 @@ namespace DMEEView1
 
         private void foldersToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            folderConfigurationForm.Show();
+            folderConfigForm.ShowDialog();
         }
 
         private void toolStripMenuZoom50_Click(object sender, EventArgs e)
@@ -806,6 +822,11 @@ namespace DMEEView1
         {
             ZoomFactor = 2.0F;
             DcDrawFile();
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Properties.Settings.Default.Save();
         }
 
         private void DrawFileButton_Click(object sender, EventArgs e)
