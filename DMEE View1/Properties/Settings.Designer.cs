@@ -26,12 +26,12 @@ namespace DMEEView1.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string FNAME {
+        public string fileName {
             get {
-                return ((string)(this["FNAME"]));
+                return ((string)(this["fileName"]));
             }
             set {
-                this["FNAME"] = value;
+                this["fileName"] = value;
             }
         }
         
@@ -68,6 +68,18 @@ namespace DMEEView1.Properties {
             }
             set {
                 this["WorkFolder"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string fileFolder {
+            get {
+                return ((string)(this["fileFolder"]));
+            }
+            set {
+                this["fileFolder"] = value;
             }
         }
     }

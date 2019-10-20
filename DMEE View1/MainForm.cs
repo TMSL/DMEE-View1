@@ -22,7 +22,7 @@ namespace DMEEView1
         {
             InitializeComponent();
             menuStrip1.Select();
-            textBox1.Text = Properties.Settings.Default.FNAME;
+            textBox1.Text = Properties.Settings.Default.fileName;
             this.Width = Convert.ToInt32(2250 * 0.55);
             this.Height = Convert.ToInt32(1375 * 0.55);
             if (Properties.Settings.Default.ShowInfo == true)
@@ -488,7 +488,7 @@ namespace DMEEView1
 
         private void DcDrawFile()
         {
-            String fname = Properties.Settings.Default.FNAME;
+            String fname = Properties.Settings.Default.fileName;
             String[] fields;
             String fieldStr = "";
             DcItemType recordType = DcItemType.undefined;
@@ -496,6 +496,8 @@ namespace DMEEView1
             int strIndex = 0;
             int textItemCount = 0;
             int strItemCount = 0;
+            int pinItemCount = 0;
+            int moduleItemCount = 0;
 
             drawListLoaded = false;
 
@@ -638,6 +640,7 @@ namespace DMEEView1
                             BiggestSmallestX(dcPin.X1);
                             BiggestSmallestY(dcPin.Y1);
                             drawList.Add(dcPin);
+                            pinItemCount++;
                             break;
 
                         case DcItemType.str:
@@ -739,8 +742,10 @@ namespace DMEEView1
             textBox3.Text += "Biggest Y: " + biggestY.ToString() + "\r\n";
             textBox3.Text += "Smallest X: " + smallestX.ToString() + "\r\n";
             textBox3.Text += "Smallest Y: " + smallestY.ToString() + "\r\n";
+            textBox3.Text += "Module Entries Count: " + moduleItemCount.ToString() + "\r\n";
             textBox3.Text += "Text Entries Count: " + textItemCount.ToString() + "\r\n";
             textBox3.Text += "String Entries Count: " + strItemCount.ToString() + "\r\n";
+            textBox3.Text += "Pin Entries Count: " + pinItemCount.ToString() + "\r\n";
 
             drawListLoaded = true;
             Console.WriteLine(folderConfigForm.libraryFolder);
@@ -766,15 +771,15 @@ namespace DMEEView1
         
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string fullName = Properties.Settings.Default.FNAME;
+            string fullName = Properties.Settings.Default.fileName;
             string fName = "";
             string fDir = "";
 
-            textBox1.Text = Properties.Settings.Default.FNAME;
+            textBox1.Text = Properties.Settings.Default.fileName;
             textBox1.Update();
 
             fName = fullName.Substring(fullName.LastIndexOf(@"\") + 1);
-            fDir = fullName.Substring(0, fullName.LastIndexOf(@"\"));
+            if (fDir != "") fDir = fullName.Substring(0, fullName.LastIndexOf(@"\"));
 
             openFileDialog1.InitialDirectory = fDir;
             openFileDialog1.FileName = fName;
@@ -782,7 +787,7 @@ namespace DMEEView1
 
             if (openFileDialog1.FileName != "")
             {
-                Properties.Settings.Default.FNAME = openFileDialog1.FileName;
+                Properties.Settings.Default.fileName = openFileDialog1.FileName;
                 Properties.Settings.Default.Save();
                 textBox1.Text = openFileDialog1.FileName;
                 textBox1.Update();

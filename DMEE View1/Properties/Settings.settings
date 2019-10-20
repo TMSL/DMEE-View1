@@ -2,7 +2,7 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="DMEEView1.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="FNAME" Type="System.String" Scope="User">
+    <Setting Name="fileName" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="ShowInfo" Type="System.Boolean" Scope="User">
@@ -12,6 +12,9 @@
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="WorkFolder" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="fileFolder" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
   </Settings>
