@@ -36,8 +36,8 @@
             this.buttonChangeWorkingFolder = new System.Windows.Forms.Button();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.SaveButton = new System.Windows.Forms.Button();
-            this.CancelButton = new System.Windows.Forms.Button();
             this.folderBrowserDialog2 = new System.Windows.Forms.FolderBrowserDialog();
+            this.Cancel_Button = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // LibraryFolderTextBox
@@ -104,24 +104,26 @@
             this.SaveButton.UseVisualStyleBackColor = true;
             this.SaveButton.Click += new System.EventHandler(this.SaveButton_Click);
             // 
-            // CancelButton
+            // Cancel_Button
             // 
-            this.CancelButton.Location = new System.Drawing.Point(468, 109);
-            this.CancelButton.Name = "CancelButton";
-            this.CancelButton.Size = new System.Drawing.Size(83, 29);
-            this.CancelButton.TabIndex = 2;
-            this.CancelButton.Text = "cancel";
-            this.CancelButton.UseVisualStyleBackColor = true;
-            this.CancelButton.Click += new System.EventHandler(this.CancelButton_Click);
+            this.Cancel_Button.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this.Cancel_Button.Location = new System.Drawing.Point(468, 109);
+            this.Cancel_Button.Name = "Cancel_Button";
+            this.Cancel_Button.Size = new System.Drawing.Size(83, 29);
+            this.Cancel_Button.TabIndex = 2;
+            this.Cancel_Button.Text = "cancel";
+            this.Cancel_Button.UseVisualStyleBackColor = true;
+            this.Cancel_Button.Click += new System.EventHandler(this.CancelButton_Click);
             // 
             // FolderConfigForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.CancelButton = this.Cancel_Button;
             this.ClientSize = new System.Drawing.Size(566, 152);
+            this.Controls.Add(this.Cancel_Button);
             this.Controls.Add(this.SaveButton);
             this.Controls.Add(this.buttonChangeWorkingFolder);
-            this.Controls.Add(this.CancelButton);
             this.Controls.Add(this.buttonChangeLibraryFolder);
             this.Controls.Add(this.labelWorkingFolder);
             this.Controls.Add(this.labelLibraryFolder);
@@ -151,7 +153,7 @@
         private System.Windows.Forms.Button buttonChangeWorkingFolder;
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
         private System.Windows.Forms.Button SaveButton;
-        private System.Windows.Forms.Button CancelButton;
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog2;
+        private System.Windows.Forms.Button Cancel_Button;
     }
 }

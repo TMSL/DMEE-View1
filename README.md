@@ -40,4 +40,4 @@ or library. The viewer program parses these commands and their parameters in ord
 
 ## Development Environment and Executables
 The project is presently being developed and tested as a Windows "Forms" application using C#
-and .NET Framework 4.6.1 using Microsoft Visual Studio Community Edition, 2017 on Windows 10 64-bit.
+and .NET Framework 4.6.1 and built using Microsoft Visual Studio Community Edition, 2017 on Windows 10 64-bit.

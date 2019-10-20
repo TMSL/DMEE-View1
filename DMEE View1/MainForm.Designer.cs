@@ -43,7 +43,7 @@
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.DrawFileButton = new System.Windows.Forms.Button();
             this.textBox3 = new System.Windows.Forms.TextBox();
-            this.button2 = new System.Windows.Forms.Button();
+            this.HideNShowInfoButton = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -77,35 +77,35 @@
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
             this.openToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
             this.openToolStripMenuItem.Text = "Open";
-            this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
+            this.openToolStripMenuItem.Click += new System.EventHandler(this.OpenToolStripMenuItem_Click);
             // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
             this.toolStripMenuItem1.Size = new System.Drawing.Size(137, 22);
             this.toolStripMenuItem1.Text = "Zoom 50%";
-            this.toolStripMenuItem1.Click += new System.EventHandler(this.toolStripMenuZoom50_Click);
+            this.toolStripMenuItem1.Click += new System.EventHandler(this.ToolStripMenuZoom50_Click);
             // 
             // toolStripMenuItem2
             // 
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
             this.toolStripMenuItem2.Size = new System.Drawing.Size(137, 22);
             this.toolStripMenuItem2.Text = "Zoom 100%";
-            this.toolStripMenuItem2.Click += new System.EventHandler(this.toolStripMenuZoom100_Click);
+            this.toolStripMenuItem2.Click += new System.EventHandler(this.ToolStripMenuZoom100_Click);
             // 
             // toolStripMenuItem4
             // 
             this.toolStripMenuItem4.Name = "toolStripMenuItem4";
             this.toolStripMenuItem4.Size = new System.Drawing.Size(137, 22);
             this.toolStripMenuItem4.Text = "Zoom 150%";
-            this.toolStripMenuItem4.Click += new System.EventHandler(this.toolStripMenuZoom150_Click);
+            this.toolStripMenuItem4.Click += new System.EventHandler(this.ToolStripMenuZoom150_Click);
             // 
             // toolStripMenuItem3
             // 
             this.toolStripMenuItem3.Name = "toolStripMenuItem3";
             this.toolStripMenuItem3.Size = new System.Drawing.Size(137, 22);
             this.toolStripMenuItem3.Text = "Zoom 200%";
-            this.toolStripMenuItem3.Click += new System.EventHandler(this.toolStripMenuZoom200_Click);
+            this.toolStripMenuItem3.Click += new System.EventHandler(this.ToolStripMenuZoom200_Click);
             // 
             // exitToolStripMenuItem
             // 
@@ -113,7 +113,7 @@
             this.exitToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
             this.exitToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
             this.exitToolStripMenuItem.Text = "Exit";
-            this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
+            this.exitToolStripMenuItem.Click += new System.EventHandler(this.ExitToolStripMenuItem_Click);
             // 
             // configurationToolStripMenuItem
             // 
@@ -129,7 +129,7 @@
             this.libraryFilesDirectoryToolStripMenuItem.Name = "libraryFilesDirectoryToolStripMenuItem";
             this.libraryFilesDirectoryToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
             this.libraryFilesDirectoryToolStripMenuItem.Text = "Folders";
-            this.libraryFilesDirectoryToolStripMenuItem.Click += new System.EventHandler(this.foldersToolStripMenuItem_Click);
+            this.libraryFilesDirectoryToolStripMenuItem.Click += new System.EventHandler(this.FoldersToolStripMenuItem_Click);
             // 
             // colorPaletteToolStripMenuItem
             // 
@@ -170,15 +170,15 @@
             this.textBox3.Size = new System.Drawing.Size(233, 165);
             this.textBox3.TabIndex = 5;
             // 
-            // button2
+            // HideNShowInfoButton
             // 
-            this.button2.Location = new System.Drawing.Point(743, 0);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(75, 23);
-            this.button2.TabIndex = 6;
-            this.button2.Text = "hide info";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
+            this.HideNShowInfoButton.Location = new System.Drawing.Point(743, 0);
+            this.HideNShowInfoButton.Name = "HideNShowInfoButton";
+            this.HideNShowInfoButton.Size = new System.Drawing.Size(75, 23);
+            this.HideNShowInfoButton.TabIndex = 6;
+            this.HideNShowInfoButton.Text = "hide info";
+            this.HideNShowInfoButton.UseVisualStyleBackColor = true;
+            this.HideNShowInfoButton.Click += new System.EventHandler(this.HideNShowInfoButton_Click);
             // 
             // button3
             // 
@@ -197,7 +197,7 @@
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(900, 450);
             this.Controls.Add(this.button3);
-            this.Controls.Add(this.button2);
+            this.Controls.Add(this.HideNShowInfoButton);
             this.Controls.Add(this.textBox3);
             this.Controls.Add(this.DrawFileButton);
             this.Controls.Add(this.textBox1);
@@ -224,7 +224,7 @@
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.Button DrawFileButton;
         private System.Windows.Forms.TextBox textBox3;
-        private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.Button HideNShowInfoButton;
         private System.Windows.Forms.ToolStripMenuItem configurationToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem libraryFilesDirectoryToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem colorPaletteToolStripMenuItem;
