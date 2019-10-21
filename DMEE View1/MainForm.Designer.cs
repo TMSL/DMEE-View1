@@ -44,7 +44,6 @@
             this.DrawFileButton = new System.Windows.Forms.Button();
             this.textBox3 = new System.Windows.Forms.TextBox();
             this.HideNShowInfoButton = new System.Windows.Forms.Button();
-            this.button3 = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -162,7 +161,7 @@
             // 
             // textBox3
             // 
-            this.textBox3.Location = new System.Drawing.Point(56, 41);
+            this.textBox3.Location = new System.Drawing.Point(655, 29);
             this.textBox3.Multiline = true;
             this.textBox3.Name = "textBox3";
             this.textBox3.ReadOnly = true;
@@ -180,15 +179,6 @@
             this.HideNShowInfoButton.UseVisualStyleBackColor = true;
             this.HideNShowInfoButton.Click += new System.EventHandler(this.HideNShowInfoButton_Click);
             // 
-            // button3
-            // 
-            this.button3.Location = new System.Drawing.Point(824, 0);
-            this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(75, 23);
-            this.button3.TabIndex = 6;
-            this.button3.Text = "library";
-            this.button3.UseVisualStyleBackColor = true;
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -196,7 +186,6 @@
             this.AutoScroll = true;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(900, 450);
-            this.Controls.Add(this.button3);
             this.Controls.Add(this.HideNShowInfoButton);
             this.Controls.Add(this.textBox3);
             this.Controls.Add(this.DrawFileButton);
@@ -228,7 +217,6 @@
         private System.Windows.Forms.ToolStripMenuItem configurationToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem libraryFilesDirectoryToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem colorPaletteToolStripMenuItem;
-        private System.Windows.Forms.Button button3;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem3;

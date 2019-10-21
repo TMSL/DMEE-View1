@@ -15,6 +15,8 @@ namespace DMEEView1
         Single biggestX = -100000, biggestY = -100000;
         Single smallestX = 100000, smallestY = 100000;
         Single ZoomFactor = 1;
+
+        private List <DcLibEntry> moduleLibrary = new List<DcLibEntry>();
         private List<DcDrawItem> drawList = new List<DcDrawItem>();
         private List<Single> textScalingList = new List<Single>();
 
@@ -121,11 +123,12 @@ namespace DMEEView1
                             pt2.Y = Convert.ToInt32(-dLine.Y2);
                             gs.DrawLine(pen1, pt1, pt2);
                             break;
-                        case DcItemType.module: break;
+                        case DcItemType.module:
+                            DcModule dModule = (DcModule)drawList[i];
+                            break;
                         case DcItemType.pin:
                             DcPin dPin = (DcPin)drawList[i];
                             // draw a small square to identify the pin location.
-                            Console.WriteLine(dPin.Type);
                             float width = pen1.Width; // save width
                             pen1.Width = 0.5F;
                             gs.DrawRectangle(pen1, dPin.X1 - 2, -(dPin.Y1 + 2), 4, 4);
@@ -290,7 +293,7 @@ namespace DMEEView1
             gr.DrawLine(pen, point.X, point.Y - 5, point.X, point.Y + 5);
         }
 
-        private enum DcItemType { line, wire, circle, arc, module, pin, str, text, undefined };
+        private enum DcItemType { line, wire, circle, drawing, arc, module, pin, str, text, undefined };
 
         DcItemType getDcType(object obj)
         {
@@ -366,8 +369,8 @@ namespace DMEEView1
             public Single Y1 = 0;
             public Single scale = 0;     // scaling factor for the font
             public Single rotation = 0;
-            public int unk1 = 0;
-            public int unk2 = 0;
+            public int unk6 = 0;         // [6]
+            public int unk7 = 0;         // [7]
             public DcString dcStr = new DcString();
         }
 
@@ -415,6 +418,29 @@ namespace DMEEView1
             public int unk12 = 0;
         }
 
+        private class DcDrawing : DcDrawItem    // (d) drawing / display -- e.g.
+                                                //                   D2BLKDIA:   d  4.09 1  1751  588  1        0 0 0 0 0   5 0
+        {                                       //                   CONN62.100: d  3.00 1 -1514 -131  0.291667 0 0 0 0 0 100 0
+            public DcItemType recordType = DcItemType.drawing;
+            public float version = 0;       // [1]
+            public int unk2 = 0;            // [2]
+            public float X1 = 0;            // [3]
+            public float Y1 = 0;            // [4]
+            public float scaleFactor = 0;   // [5]
+            public int unk6 = 0;            // [6]
+            public int unk7 = 0;            // [7]
+            public int unk8 = 0;            // [8]
+            public int unk9 = 0;            // [9]
+            public int unk10 = 0;           // [10]
+            public int unk11 = 0;           // [11]
+            public int unk12 = 0;           // [12]
+        }
+
+        private class DcLibEntry
+        {
+            public string moduleName= "";
+        }
+
         private void DcMakeDrawList()
         {
             String fname = Properties.Settings.Default.fileName;
@@ -431,6 +457,7 @@ namespace DMEEView1
             drawListLoaded = false;
 
             drawList.Clear();
+            moduleLibrary.Clear();
             biggestX = -10000;
             biggestY = -10000;
             smallestX = 10000;
@@ -540,7 +567,15 @@ namespace DMEEView1
                                 name = Convert.ToString(fields[7])
                             };
                             moduleItemCount++;
-                            Console.WriteLine(dcModule.name);
+                            DcLibEntry result = moduleLibrary.Find(x => x.moduleName == dcModule.name); 
+                            if (result == null || moduleLibrary.Count == 0)
+                            {
+                                DcLibEntry libEntry = new DcLibEntry()
+                                {
+                                    moduleName = dcModule.name
+                                };
+                                moduleLibrary.Add(libEntry);
+                            }
                             break;
 
                         case DcItemType.pin:
@@ -604,8 +639,8 @@ namespace DMEEView1
                                 Y1 = Convert.ToSingle(fields[3]),
                                 scale = Convert.ToSingle(fields[4]),
                                 rotation = Convert.ToSingle(fields[5]),
-                                unk1 = Convert.ToInt16(fields[6]),
-                                unk2 = Convert.ToInt16(fields[7])
+                                unk6 = Convert.ToInt16(fields[6]),
+                                unk7 = Convert.ToInt16(fields[7])
                             };
                             BiggestSmallestX(dcText.X1);
                             BiggestSmallestY(dcText.Y1);
@@ -654,9 +689,15 @@ namespace DMEEView1
             textBox3.Text += "Text Entries Count: " + textItemCount.ToString() + "\r\n";
             textBox3.Text += "String Entries Count: " + strItemCount.ToString() + "\r\n";
             textBox3.Text += "Pin Entries Count: " + pinItemCount.ToString() + "\r\n";
+            textBox3.Text += "Module Library Entries Count: " + moduleLibrary.Count;
 
             drawListLoaded = true;
             Console.WriteLine(folderConfigForm.libraryFolder);
+            Console.WriteLine("Modules in internal library:");
+            foreach (DcLibEntry dle in moduleLibrary)
+            {
+                Console.WriteLine(dle.moduleName);
+            }
             foreach(Single scale in textScalingList)
             {
                 Console.WriteLine(scale.ToString());

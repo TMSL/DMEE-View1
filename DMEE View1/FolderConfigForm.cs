@@ -1,46 +1,52 @@
 ﻿using System;
 using System.IO;
 using System.Windows.Forms;
+using System.Collections.Generic;
 
 namespace DMEEView1
 {
     public partial class FolderConfigForm : Form
     {
         public String libraryFolder = "";
+        public List<string> libraryFileList = new List<string>();
         public String workingFolder = "";
 
         public FolderConfigForm()
         {
             InitializeComponent();
             this.ControlBox = false;
-            string folder = Properties.Settings.Default.LibFolder;
-            if (Directory.Exists(folder))
+            libraryFolder = Properties.Settings.Default.LibFolder;
+            if (Directory.Exists(libraryFolder))
             {
                 libraryFolder = Properties.Settings.Default.LibFolder;
-                LibraryFolderTextBox.Text = libraryFolder;
-                LibraryFolderTextBox.Select(0, 0);
+                IEnumerable<string> libFiles = Directory.EnumerateFiles(libraryFolder, "*.lbr", SearchOption.TopDirectoryOnly);
+                libraryFileList.Clear();
+                foreach (string ss in libFiles) libraryFileList.Add(ss);
             }
             else
             {
                 Properties.Settings.Default.LibFolder = "";
                 libraryFolder = "";
             }
+            LibraryFolderTextBox.Text = libraryFolder;
+            LibraryFolderTextBox.Select(0, 0);
 
-            folder = Properties.Settings.Default.WorkFolder;
-            if (Directory.Exists(folder))
+            workingFolder = Properties.Settings.Default.WorkFolder;
+            if (Directory.Exists(workingFolder))
             {
                 workingFolder = Properties.Settings.Default.WorkFolder;
-                WorkingFolderTextBox.Text = workingFolder;
-                WorkingFolderTextBox.Select(0, 0);
             }
             else
             {
                 Properties.Settings.Default.WorkFolder = "";
                 workingFolder = "";
             }
+            WorkingFolderTextBox.Text = workingFolder;
+            WorkingFolderTextBox.Select(0, 0);
+
             LibraryFolderTextBox.Select();
         }
-               
+
         private void ChangeLibraryFolderButton_Click(object sender, EventArgs e)
         {
             folderBrowserDialog1.ShowNewFolderButton = false;
@@ -49,11 +55,13 @@ namespace DMEEView1
             {
                 folderBrowserDialog1.SelectedPath = libraryFolder;
             }
-
             if (result == DialogResult.OK)
             {
                 libraryFolder = folderBrowserDialog1.SelectedPath;
-                LibraryFolderTextBox.Text = folderBrowserDialog1.SelectedPath;
+                LibraryFolderTextBox.Text = libraryFolder;
+                IEnumerable<string> libFiles = Directory.EnumerateFiles(libraryFolder, "*.lbr", SearchOption.TopDirectoryOnly);
+                libraryFileList.Clear();
+                foreach (string ss in libFiles) libraryFileList.Add(ss);
             }
         }
 
