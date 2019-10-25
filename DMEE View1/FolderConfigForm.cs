@@ -7,9 +7,9 @@ namespace DMEEView1
 {
     public partial class FolderConfigForm : Form
     {
-        public String libraryFolder = "";
+        public string libraryFolder = "";
         public List<string> libraryFileList = new List<string>();
-        public String workingFolder = "";
+        public string workingFolder = "";
 
         public FolderConfigForm()
         {
