@@ -23,7 +23,8 @@ namespace DMEEView1
         const string crlf = "\r\n";
 
         private List <DcLibEntry> moduleLibrary = new List<DcLibEntry>();
-        private Module module = new Module();
+        private Module moduleX = new Module();
+        private List<Module> moduleList = new List<Module>();
         private string libraryFolder = "";
         private string workingFolder = "";
         private List<string> libraryFiles = new List<string>();
@@ -54,8 +55,6 @@ namespace DMEEView1
             public List<Single> textScalingList = new List<Single>();
         }
 
-        private List<Module> ModuleList = new List<Module>();
-
         private class DcDrawItem  // base class for the various draw command objects
         {
             public DcItemType Type = DcItemType.undefined;
@@ -74,14 +73,15 @@ namespace DMEEView1
             if (Properties.Settings.Default.ShowInfo == true)
             {
                 HideNShowInfoButton.Text = "hide info";
-                textBox3.Show();
+                InfoTextBox.Show();
             }
             else
             {
                 HideNShowInfoButton.Text = "show info";
-                textBox3.Hide();
+                InfoTextBox.Hide();
             }
 
+            moduleList.Add(new Module());
             libraryFolder = Properties.Settings.Default.LibFolder;
             workingFolder = Properties.Settings.Default.WorkFolder;
         }
@@ -98,117 +98,145 @@ namespace DMEEView1
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
             Graphics gs = e.Graphics;
-            float biggestX = -100000, biggestY = -100000;
-            float smallestX = 100000, smallestY = 100000;
-            biggestX = module.stats.biggestX;
-            biggestY= module.stats.biggestY;
-            smallestX = module.stats.smallestX;
-            smallestY = module.stats.smallestY;
-
-            //Create brush object
-            Brush brush1 = new SolidBrush(Color.Black);
-
-            //Create pen objects
-            Pen pen1 = new Pen(Color.Black);
-
+            Module module = moduleList[0];
+            float biggestX = module.stats.biggestX;
+            float biggestY= module.stats.biggestY;
+            float smallestX = module.stats.smallestX;
+            float smallestY = module.stats.smallestY;
             float dpiX = gs.DpiX;
             float dpiY = gs.DpiY;
             int windowWidth = this.Width;
             int windowHeight = this.Height;
-            
+
+            //Create pen objects
+            Pen pen1 = new Pen(Color.Black);
+
+            gs.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+            if (ZoomFactor >= 1.0F)
+            {
+                gs.SmoothingMode = SmoothingMode.AntiAlias;
+                gs.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            }
+
             if (module.loaded)
             {
-                Point pt1 = new Point();
-                Point pt2 = new Point();
-                pen1.Width = 1;
-                pen1.Color = Color.Black;
-
-                gs.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-
-                if (ZoomFactor >= 1.0F)
-                {
-                    gs.SmoothingMode = SmoothingMode.AntiAlias;
-                    gs.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                }
-
-                gs.TranslateTransform(25F-smallestX, biggestY + 80F/ZoomFactor); // Move the origin "down".
+                gs.TranslateTransform(25F - smallestX, biggestY + 80F / ZoomFactor); // Move the origin "down".
                 gs.ScaleTransform(ZoomFactor, ZoomFactor, MatrixOrder.Append);
 
-                pen1.Color = Color.LightGray;
-                gs.DrawLine(pen1, biggestX - 5, -biggestY, biggestX + 5, -biggestY);
-                gs.DrawLine(pen1, biggestX, -biggestY - 5, biggestX, -biggestY + 5);
+                Point origin = new Point(0, 0);
+                pen1.Width = 1;
 
                 // draw crossed lines at origin
-                gs.DrawLine(pen1, 0 - 5, 0, 0 + 5, 0);
-                gs.DrawLine(pen1, 0, 0 - 5, 0, 0 + 5);
-                pen1.Color = Color.Black;
+                pen1.Color = Color.Red;
+                DrawCropMark(gs, pen1, origin);
+                DrawCropMark(gs, pen1, new Point((int)biggestX, (int)-biggestY));
 
-                List<DcDrawItem> drawList = module.drawList;
-                for (int i=0; i<drawList.Count; i++)
+                PaintDcDrawList(gs, module.drawList, origin);
+
+                ModuleInfoTextBox(module);
+
+                Console.WriteLine(folderConfigForm.libraryFolder);
+                Console.WriteLine("Modules in internal library:");
+                foreach (DcLibEntry dle in moduleLibrary)
                 {
-                    switch (drawList[i].Type)
-                    {
-                        case DcItemType.arc:
-                            DcArc dArc = (DcArc)drawList[i];
-                            FloatPt arcCenter = new FloatPt(dArc.centerX, -dArc.centerY);
-                            FloatPt p1 = new FloatPt(dArc.X1, -dArc.Y1);
-                            FloatPt p2 = new FloatPt(dArc.X2, -dArc.Y2);
-                            DcDrawArc(gs, pen1, arcCenter, p1, p2);
-                            break;
-                        case DcItemType.circle:
-                            DcCircle dCircle = (DcCircle)drawList[i];
-                            pt1.X = Convert.ToInt32(dCircle.X1);
-                            pt1.Y = Convert.ToInt32(-dCircle.Y1);
-                            pt2.X = Convert.ToInt32(dCircle.X2);
-                            float radius = Math.Abs(pt1.X - pt2.X);
-                            float diameter = 2F * radius;
-                            float center = pt1.X;
-                            gs.DrawEllipse(pen1, center - radius, pt1.Y - radius, diameter, diameter);
-                            break;
-                        case DcItemType.drawing:
-                            break;
-                        case DcItemType.line:
-                            DcLine dLine = (DcLine)drawList[i];
-                            pt1.X = Convert.ToInt32(dLine.X1);
-                            pt1.Y = Convert.ToInt32(-dLine.Y1);
-                            pt2.X = Convert.ToInt32(dLine.X2);
-                            pt2.Y = Convert.ToInt32(-dLine.Y2);
-                            gs.DrawLine(pen1, pt1, pt2);
-                            break;
-                        case DcItemType.module:
-                            DcModule dModule = (DcModule)drawList[i];
-                            break;
-                        case DcItemType.pin:
-                            DcPin dPin = (DcPin)drawList[i];
-                            // draw a small square to identify the pin location.
-                            float width = pen1.Width; // save width
-                            pen1.Width = 0.5F;
-                            gs.DrawRectangle(pen1, dPin.X1 - 2, -(dPin.Y1 + 2), 4, 4);
-                            pen1.Width = width;  // restore width
-                            break;
-                        case DcItemType.str: break;
-                        case DcItemType.text:
-                            DcText dct = (DcText)drawList[i];
-                            DcDrawText(gs, pen1, dct);
-                            break;
-                        case DcItemType.wire:
-                            DcWire dWire = (DcWire)drawList[i];
-                            pt1.X = Convert.ToInt32(dWire.X1);
-                            pt1.Y = Convert.ToInt32(-dWire.Y1);
-                            pt2.X = Convert.ToInt32(dWire.X2);
-                            pt2.Y = Convert.ToInt32(-dWire.Y2);
-                            gs.DrawLine(pen1, pt1, pt2);
-                            break;
-                        case DcItemType.undefined:
-                            break;
-                        default:
-                            break;
-                    }
+                    Console.WriteLine(dle.moduleName);
                 }
             }
             pen1.Dispose();
-            brush1.Dispose();
-            //gs.Dispose();
+        }
+
+        private void ModuleInfoTextBox(Module module)
+        {
+            InfoTextBox.Clear();
+            InfoTextBox.Text += "Library Folder: " + libraryFolder + crlf;
+            InfoTextBox.Text += "Working Folder: " + workingFolder + crlf;
+            InfoTextBox.Text += "Biggest X: " + module.stats.biggestX.ToString() + crlf;
+            InfoTextBox.Text += "Biggest Y: " + module.stats.biggestY.ToString() + crlf;
+            InfoTextBox.Text += "Smallest X: " + module.stats.smallestX.ToString() + crlf;
+            InfoTextBox.Text += "Smallest Y: " + module.stats.smallestY.ToString() + crlf;
+            InfoTextBox.Text += "Module (m) Entries Count: " + moduleItemCount + crlf;
+            InfoTextBox.Text += "Text (t) Entries Count: " + textItemCount + crlf;
+            InfoTextBox.Text += "String (s) Entries Count: " + strItemCount + crlf;
+            InfoTextBox.Text += "Pin (p) Entries Count: " + pinItemCount + crlf;
+            InfoTextBox.Text += "Drawing/display (d) Entries Count: " + drawingItemCount + crlf;
+            InfoTextBox.Text += "Module Library Entries Count: " + moduleLibrary.Count;
+        }
+
+        private static Point DrawCropMark(Graphics gs, Pen pen, Point center)
+        {
+            gs.DrawLine(pen, center.X - 5, center.Y, center.X + 5, center.Y);
+            gs.DrawLine(pen, center.X, center.Y - 5, center.X, center.Y + 5);
+            return center;
+        }
+
+        private void PaintDcDrawList(Graphics gs, List<DcDrawItem> drawList, Point origin)
+        {
+            Point pt1 = new Point();
+            Point pt2 = new Point();
+            Pen pen = new Pen(Color.Black);
+
+            for (int i = 0; i < drawList.Count; i++)
+            {
+                switch (drawList[i].Type)
+                {
+                    case DcItemType.arc:
+                        DcArc dArc = (DcArc)drawList[i];
+                        FloatPt arcCenter = new FloatPt(dArc.centerX, -dArc.centerY);
+                        FloatPt p1 = new FloatPt(dArc.X1, -dArc.Y1);
+                        FloatPt p2 = new FloatPt(dArc.X2, -dArc.Y2);
+                        DcDrawArc(gs, pen, arcCenter, p1, p2);
+                        break;
+                    case DcItemType.circle:
+                        DcCircle dCircle = (DcCircle)drawList[i];
+                        pt1.X = Convert.ToInt32(dCircle.X1);
+                        pt1.Y = Convert.ToInt32(-dCircle.Y1);
+                        pt2.X = Convert.ToInt32(dCircle.X2);
+                        float radius = Math.Abs(pt1.X - pt2.X);
+                        float diameter = 2F * radius;
+                        float center = pt1.X;
+                        gs.DrawEllipse(pen, center - radius, pt1.Y - radius, diameter, diameter);
+                        break;
+                    case DcItemType.drawing:
+                        break;
+                    case DcItemType.line:
+                        DcLine dLine = (DcLine)drawList[i];
+                        pt1.X = Convert.ToInt32(dLine.X1);
+                        pt1.Y = Convert.ToInt32(-dLine.Y1);
+                        pt2.X = Convert.ToInt32(dLine.X2);
+                        pt2.Y = Convert.ToInt32(-dLine.Y2);
+                        gs.DrawLine(pen, pt1, pt2);
+                        break;
+                    case DcItemType.module:
+                        DcModule dModule = (DcModule)drawList[i];
+                        break;
+                    case DcItemType.pin:
+                        DcPin dPin = (DcPin)drawList[i];
+                        // draw a small square to identify the pin location.
+                        float width = pen.Width; // save width
+                        pen.Width = 0.5F;
+                        gs.DrawRectangle(pen, dPin.X1 - 2, -(dPin.Y1 + 2), 4, 4);
+                        pen.Width = width;  // restore width
+                        break;
+                    case DcItemType.str: break;
+                    case DcItemType.text:
+                        DcText dct = (DcText)drawList[i];
+                        DcDrawText(gs, pen, dct);
+                        break;
+                    case DcItemType.wire:
+                        DcWire dWire = (DcWire)drawList[i];
+                        pt1.X = Convert.ToInt32(dWire.X1);
+                        pt1.Y = Convert.ToInt32(-dWire.Y1);
+                        pt2.X = Convert.ToInt32(dWire.X2);
+                        pt2.Y = Convert.ToInt32(-dWire.Y2);
+                        gs.DrawLine(pen, pt1, pt2);
+                        break;
+                    case DcItemType.undefined:
+                        break;
+                    default:
+                        break;
+                }
+            }
+            pen.Dispose();
         }
 
         private void DcDrawText(Graphics gs, Pen pen1, DcText dct)
@@ -520,18 +548,9 @@ namespace DMEEView1
             string line;
             FileStream file;
 
-            module.stats = new ModuleStats();
-
-            textItemCount = 0;
-            strItemCount = 0;
-            pinItemCount = 0;
-            moduleItemCount = 0;
-            drawingItemCount = 0;
-
+            module.stats = new ModuleStats();  // clears all module stats
             module.drawList.Clear();
             moduleLibrary.Clear();
-            module.stats.textScalingList.Clear();
-            textBox3.Clear();
 
             if (File.Exists(fname))
             {
@@ -564,29 +583,6 @@ namespace DMEEView1
             module.fileName = fname;
             module.processed = false;   // module has not been processed for sub-modules
 
-            textBox3.Text += "Library Folder: " + libraryFolder + crlf;
-            textBox3.Text += "Working Folder: " + workingFolder + crlf;
-            textBox3.Text += "Biggest X: " + module.stats.biggestX.ToString() + crlf;
-            textBox3.Text += "Biggest Y: " + module.stats.biggestY.ToString() + crlf;
-            textBox3.Text += "Smallest X: " + module.stats.smallestX.ToString() + crlf;
-            textBox3.Text += "Smallest Y: " + module.stats.smallestY.ToString() + crlf;
-            textBox3.Text += "Module (m) Entries Count: " + moduleItemCount + crlf;
-            textBox3.Text += "Text (t) Entries Count: " + textItemCount + crlf;
-            textBox3.Text += "String (s) Entries Count: " + strItemCount + crlf;
-            textBox3.Text += "Pin (p) Entries Count: " + pinItemCount + crlf;
-            textBox3.Text += "Drawing/display (d) Entries Count: " + drawingItemCount + crlf;
-            textBox3.Text += "Module Library Entries Count: " + moduleLibrary.Count;
-
-            Console.WriteLine(folderConfigForm.libraryFolder);
-            Console.WriteLine("Modules in internal library:");
-            foreach (DcLibEntry dle in moduleLibrary)
-            {
-                Console.WriteLine(dle.moduleName);
-            }
-            foreach(float scale in module.stats.textScalingList)
-            {
-                Console.WriteLine(scale.ToString());
-            }
             this.Refresh();
             file.Close();
         }
@@ -598,6 +594,7 @@ namespace DMEEView1
             string[] fields;
             string fieldStr = "";
             string rawLine = line;
+            Module module = moduleList[0];
 
             // extract comment / string field from the line, if any
             int strIndex = line.IndexOf('#');
@@ -659,7 +656,7 @@ namespace DMEEView1
                     break;
 
                 case DcItemType.drawing:
-                    textBox3.Text += rawLine + crlf;
+                    InfoTextBox.Text += rawLine + crlf;
                     DcDrawing dcDrawing = new DcDrawing()
                     {
                         Type = DcItemType.drawing,
@@ -690,7 +687,7 @@ namespace DMEEView1
                     break;
 
                 case DcItemType.module:
-                    textBox3.Text += (rawLine + crlf);
+                    InfoTextBox.Text += (rawLine + crlf);
                     DcModule dcModule = new DcModule()
                     {
                         Type = DcItemType.module,
@@ -701,6 +698,8 @@ namespace DMEEView1
                         name = Convert.ToString(fields[7])
                     };
                     moduleItemCount++;
+                    BiggestSmallestXY(dcModule.X1, dcModule.Y1, ref stats);
+
                     DcLibEntry result = moduleLibrary.Find(x => x.moduleName == dcModule.name);
                     if (result == null || moduleLibrary.Count == 0)
                     {
@@ -859,29 +858,30 @@ namespace DMEEView1
         private void ToolStripMenuZoom50_Click(object sender, EventArgs e)
         {
             ZoomFactor = 0.5F;
-            DcMakeDrawListFromFile(ref module);
+            this.Refresh();
         }
 
         private void ToolStripMenuZoom100_Click(object sender, EventArgs e)
         {
             ZoomFactor = 1.0F;
-            DcMakeDrawListFromFile(ref module);
+            this.Refresh();
         }
 
         private void ToolStripMenuZoom150_Click(object sender, EventArgs e)
         {
             ZoomFactor = 1.5F;
-            DcMakeDrawListFromFile(ref module);
+            this.Refresh();
         }
 
         private void ToolStripMenuZoom200_Click(object sender, EventArgs e)
         {
             ZoomFactor = 2.0F;
-            DcMakeDrawListFromFile(ref module);
+            this.Refresh();
         }
 
         private void DrawFileButton_Click(object sender, EventArgs e)
         {
+            Module module = moduleList[0];
             DcMakeDrawListFromFile(ref module);
         }
 
@@ -907,14 +907,14 @@ namespace DMEEView1
 
         private void HideNShowInfoButton_Click(object sender, EventArgs e)
         {
-            if (textBox3.Visible == true)
+            if (InfoTextBox.Visible == true)
             {
-                textBox3.Hide();
+                InfoTextBox.Hide();
                 HideNShowInfoButton.Text = "show info";
                 Properties.Settings.Default.ShowInfo = false;
             } else
             {
-                textBox3.Show();
+                InfoTextBox.Show();
                 HideNShowInfoButton.Text = "hide info";
                 Properties.Settings.Default.ShowInfo = true;
             }
@@ -925,6 +925,5 @@ namespace DMEEView1
         {
             Properties.Settings.Default.Save();
         }
-
     }
 }

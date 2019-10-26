@@ -47,7 +47,7 @@
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.DrawFileButton = new System.Windows.Forms.Button();
-            this.textBox3 = new System.Windows.Forms.TextBox();
+            this.InfoTextBox = new System.Windows.Forms.TextBox();
             this.HideNShowInfoButton = new System.Windows.Forms.Button();
             this.printDocument1 = new System.Drawing.Printing.PrintDocument();
             this.printDialog1 = new System.Windows.Forms.PrintDialog();
@@ -204,13 +204,13 @@
             // 
             // textBox3
             // 
-            this.textBox3.Location = new System.Drawing.Point(471, 29);
-            this.textBox3.Multiline = true;
-            this.textBox3.Name = "textBox3";
-            this.textBox3.ReadOnly = true;
-            this.textBox3.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.textBox3.Size = new System.Drawing.Size(417, 229);
-            this.textBox3.TabIndex = 5;
+            this.InfoTextBox.Location = new System.Drawing.Point(471, 29);
+            this.InfoTextBox.Multiline = true;
+            this.InfoTextBox.Name = "textBox3";
+            this.InfoTextBox.ReadOnly = true;
+            this.InfoTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.InfoTextBox.Size = new System.Drawing.Size(417, 229);
+            this.InfoTextBox.TabIndex = 5;
             // 
             // HideNShowInfoButton
             // 
@@ -238,7 +238,7 @@
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(900, 450);
             this.Controls.Add(this.HideNShowInfoButton);
-            this.Controls.Add(this.textBox3);
+            this.Controls.Add(this.InfoTextBox);
             this.Controls.Add(this.DrawFileButton);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.menuStrip1);
@@ -263,7 +263,7 @@
         private System.Windows.Forms.OpenFileDialog openFileDialog1;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.Button DrawFileButton;
-        private System.Windows.Forms.TextBox textBox3;
+        private System.Windows.Forms.TextBox InfoTextBox;
         private System.Windows.Forms.Button HideNShowInfoButton;
         private System.Windows.Forms.ToolStripMenuItem configurationToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem libraryFilesDirectoryToolStripMenuItem;
