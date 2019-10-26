@@ -22,12 +22,12 @@ namespace DMEEView1
         float ZoomFactor = 1;
         const string crlf = "\r\n";
 
-        private List <DcLibEntry> moduleLibrary = new List<DcLibEntry>();
-        private Module moduleX = new Module();
         private List<Module> moduleList = new List<Module>();
         private string libraryFolder = "";
         private string workingFolder = "";
-        private List<string> libraryFiles = new List<string>();
+        private List<string> libraryFolderFiles = new List<string>();
+        private List<string> workingFolderFiles = new List<string>();
+        private DcDictionary dictionary = new DcDictionary();
 
         private class Module
         {
@@ -53,6 +53,23 @@ namespace DMEEView1
             public int moduleItemCount = 0;
             public int drawingItemCount = 0;
             public List<Single> textScalingList = new List<Single>();
+        }
+
+        private class DictionaryEntry
+        {
+            public String name = "";
+            public String extension = "";
+            public long filePos = 0;
+            public int recordOffset = 0;
+            public int elementSize = 0;
+        }
+
+        private class DcDictionary
+        {
+            public String fileName = ""; // full path to the library file from which the dictionary was read.
+            public int entryCount = 0;
+            public int size = 0;
+            public List<DictionaryEntry> entries = new List<DictionaryEntry>();
         }
 
         private class DcDrawItem  // base class for the various draw command objects
@@ -83,9 +100,7 @@ namespace DMEEView1
 
             moduleList.Add(new Module());
             libraryFolder = Properties.Settings.Default.LibFolder;
-            workingFolder = Properties.Settings.Default.WorkFolder;
         }
-
         // My B-SIZE DRAWING IS 15-7/8" x 10-15/16", Inner border is ~9-1/2" x ~15-1/2"
         // At present drawing scale 1937 -> 15” = .00774" per unit
         // units = inches / .00774
@@ -137,9 +152,9 @@ namespace DMEEView1
 
                 Console.WriteLine(folderConfigForm.libraryFolder);
                 Console.WriteLine("Modules in internal library:");
-                foreach (DcLibEntry dle in moduleLibrary)
+                foreach (Module m in moduleList)
                 {
-                    Console.WriteLine(dle.moduleName);
+                    Console.WriteLine(m.name);
                 }
             }
             pen1.Dispose();
@@ -159,7 +174,7 @@ namespace DMEEView1
             InfoTextBox.Text += "String (s) Entries Count: " + strItemCount + crlf;
             InfoTextBox.Text += "Pin (p) Entries Count: " + pinItemCount + crlf;
             InfoTextBox.Text += "Drawing/display (d) Entries Count: " + drawingItemCount + crlf;
-            InfoTextBox.Text += "Module Library Entries Count: " + moduleLibrary.Count;
+            InfoTextBox.Text += "Module List Entries Count: " + moduleList.Count;
         }
 
         private static Point DrawCropMark(Graphics gs, Pen pen, Point center)
@@ -541,6 +556,20 @@ namespace DMEEView1
             return str;
         }
 
+        // CREATE LIST CONTAINING LIBRARY DIRECTORIES IN LIBRARY FOLDER AND A LIST OF FILES IN WORKING DIRECTORY
+        // Add top module entry to module list and mark as unprocessed.
+        // 1. get unprocessed module entry from module list. If none found then done. (since top module is initially the only
+        //    module in the list, processing will always start with top module.)
+        // 2. search for module in working directory, then in library directories (top module name comes from "open file" so
+        //    top module will actually just respond to a "file exists" check.)
+        // 3. If module found, extract display list for module else mark module as processed-not-found and back to (1)
+        // 4. Search module display list for sub modules
+        // 5. for each submodule
+        // 5.1      Add sub module entries to module list if not already present in list (marked as unprocessed)
+        // 5.5      Set index for "m" drawItem in drawlist to point to module entry in list
+        // 6. mark module as processed
+        // back to (1)
+
         private void DcMakeDrawListFromFile(ref Module module)
         {
             string fname = Properties.Settings.Default.fileName;
@@ -550,7 +579,7 @@ namespace DMEEView1
 
             module.stats = new ModuleStats();  // clears all module stats
             module.drawList.Clear();
-            moduleLibrary.Clear();
+            moduleList.Clear();    // TBD: modify so that list is only cleared when new TOP MODULE is specified ??
 
             if (File.Exists(fname))
             {
@@ -562,6 +591,8 @@ namespace DMEEView1
                 return;
             }
 
+            moduleList.Add(module);  // create a new module on the list if the file exists
+
             for (int i = 0; i < 10000; i++) // 10,000 line files
             {
                 if (file.Position == file.Length) break;
@@ -572,7 +603,8 @@ namespace DMEEView1
 
                 if (line != null)
                 {
-                    ParseDcCommandLine(ref prevRecordType, ref line, ref module.drawList, ref module.stats);
+                    ParseDcCommandLine(ref prevRecordType, ref line, ref module);
+                    module.processed = true;  // indicates any sub-modules have been added to module list and marked as unprocessed
                 }
                 else break;
             }
@@ -587,14 +619,14 @@ namespace DMEEView1
             file.Close();
         }
 
-        private DcItemType ParseDcCommandLine(ref DcItemType prevRecordType, ref string line, ref List<DcDrawItem> drawList,
-                                              ref ModuleStats stats)
+        private DcItemType ParseDcCommandLine(ref DcItemType prevRecordType, ref string line, ref Module module)
         {
             DcItemType recordType = DcItemType.undefined;         
             string[] fields;
             string fieldStr = "";
             string rawLine = line;
-            Module module = moduleList[0];
+            List<DcDrawItem> drawList = module.drawList;
+            ModuleStats stats = module.stats;
 
             // extract comment / string field from the line, if any
             int strIndex = line.IndexOf('#');
@@ -700,14 +732,19 @@ namespace DMEEView1
                     moduleItemCount++;
                     BiggestSmallestXY(dcModule.X1, dcModule.Y1, ref stats);
 
-                    DcLibEntry result = moduleLibrary.Find(x => x.moduleName == dcModule.name);
-                    if (result == null || moduleLibrary.Count == 0)
+                    // Add unprocessed to module entry to module list if not already present
+                    Module result = moduleList.Find(x => x.name == dcModule.name);
+                    if (result == null || moduleList.Count == 0)
                     {
-                        DcLibEntry libEntry = new DcLibEntry()
+                        Module mm = new Module()
                         {
-                            moduleName = dcModule.name
+                            processed = false,   // module has not been processed for sub-modules
+                            name = dcModule.name,
+                            fromLibrary = false,
+                            fileName = "",
                         };
-                        moduleLibrary.Add(libEntry);
+
+                        moduleList.Add(mm);
                     }
                     break;
 
@@ -858,19 +895,19 @@ namespace DMEEView1
         private void ToolStripMenuZoom50_Click(object sender, EventArgs e)
         {
             ZoomFactor = 0.5F;
-            this.Refresh();
+            this.Invalidate();
         }
 
         private void ToolStripMenuZoom100_Click(object sender, EventArgs e)
         {
             ZoomFactor = 1.0F;
-            this.Refresh();
+            this.Invalidate();
         }
 
         private void ToolStripMenuZoom150_Click(object sender, EventArgs e)
         {
             ZoomFactor = 1.5F;
-            this.Refresh();
+            this.Invalidate();
         }
 
         private void ToolStripMenuZoom200_Click(object sender, EventArgs e)
@@ -881,7 +918,7 @@ namespace DMEEView1
 
         private void DrawFileButton_Click(object sender, EventArgs e)
         {
-            Module module = moduleList[0];
+            Module module = new Module();
             DcMakeDrawListFromFile(ref module);
         }
 
