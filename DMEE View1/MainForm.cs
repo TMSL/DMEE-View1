@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Drawing.Text;
 using System.Windows.Forms;
+using System.Text;
 
 // TMS - started September 17, 2019
 
@@ -13,21 +14,15 @@ namespace DMEEView1
 {
     public partial class MainForm : Form
     {
-        int textItemCount = 0;
-        int strItemCount = 0;
-        int pinItemCount = 0;
-        int moduleItemCount = 0;
-        int drawingItemCount = 0;
-
+        string topFileName = "";
+        string libraryFolder = "";
+        string workingFolder = "";
         float ZoomFactor = 1;
         const string crlf = "\r\n";
 
         private List<Module> moduleList = new List<Module>();
-        private string libraryFolder = "";
-        private string workingFolder = "";
-        private List<string> libraryFolderFiles = new List<string>();
-        private List<string> workingFolderFiles = new List<string>();
         private DcDictionary dictionary = new DcDictionary();
+        private List<DcDictionary> DcDictionaryList = new List<DcDictionary>();
 
         private class Module
         {
@@ -83,7 +78,9 @@ namespace DMEEView1
         {
             InitializeComponent();
             menuStrip1.Select();
-            textBox1.Text = Properties.Settings.Default.fileName;
+            topFileName = Properties.Settings.Default.fileName;
+            textBox1.Text = topFileName;
+
             this.Width = Convert.ToInt32(2250 * 0.55);
             this.Height = Convert.ToInt32(1375 * 0.55);
 
@@ -100,6 +97,13 @@ namespace DMEEView1
 
             moduleList.Add(new Module());
             libraryFolder = Properties.Settings.Default.LibFolder;
+            workingFolder = Properties.Settings.Default.WorkFolder;
+
+            if (!Directory.Exists(workingFolder))
+            {
+                workingFolder = "";
+                Properties.Settings.Default.WorkFolder = workingFolder;
+            }
         }
         // My B-SIZE DRAWING IS 15-7/8" x 10-15/16", Inner border is ~9-1/2" x ~15-1/2"
         // At present drawing scale 1937 -> 15” = .00774" per unit
@@ -149,13 +153,6 @@ namespace DMEEView1
                 PaintDcDrawList(gs, module.drawList, origin);
 
                 ModuleInfoTextBox(module);
-
-                Console.WriteLine(folderConfigForm.libraryFolder);
-                Console.WriteLine("Modules in internal library:");
-                foreach (Module m in moduleList)
-                {
-                    Console.WriteLine(m.name);
-                }
             }
             pen1.Dispose();
         }
@@ -169,11 +166,11 @@ namespace DMEEView1
             InfoTextBox.Text += "Biggest Y: " + module.stats.biggestY.ToString() + crlf;
             InfoTextBox.Text += "Smallest X: " + module.stats.smallestX.ToString() + crlf;
             InfoTextBox.Text += "Smallest Y: " + module.stats.smallestY.ToString() + crlf;
-            InfoTextBox.Text += "Module (m) Entries Count: " + moduleItemCount + crlf;
-            InfoTextBox.Text += "Text (t) Entries Count: " + textItemCount + crlf;
-            InfoTextBox.Text += "String (s) Entries Count: " + strItemCount + crlf;
-            InfoTextBox.Text += "Pin (p) Entries Count: " + pinItemCount + crlf;
-            InfoTextBox.Text += "Drawing/display (d) Entries Count: " + drawingItemCount + crlf;
+            InfoTextBox.Text += "Module (m) Entries Count: " + module.stats.moduleItemCount + crlf;
+            InfoTextBox.Text += "Text (t) Entries Count: " + module.stats.textItemCount + crlf;
+            InfoTextBox.Text += "String (s) Entries Count: " + module.stats.strItemCount + crlf;
+            InfoTextBox.Text += "Pin (p) Entries Count: " + module.stats.pinItemCount + crlf;
+            InfoTextBox.Text += "Drawing/display (d) Entries Count: " + module.stats.drawingItemCount + crlf;
             InfoTextBox.Text += "Module List Entries Count: " + moduleList.Count;
         }
 
@@ -572,14 +569,12 @@ namespace DMEEView1
 
         private void DcMakeDrawListFromFile(ref Module module)
         {
-            string fname = Properties.Settings.Default.fileName;
+            string fname = module.fileName;
             DcItemType prevRecordType = DcItemType.undefined;
             string line;
             FileStream file;
 
             module.stats = new ModuleStats();  // clears all module stats
-            module.drawList.Clear();
-            moduleList.Clear();    // TBD: modify so that list is only cleared when new TOP MODULE is specified ??
 
             if (File.Exists(fname))
             {
@@ -590,8 +585,6 @@ namespace DMEEView1
                 MessageBox.Show("File not found. Please select a file using Open from the File menu");
                 return;
             }
-
-            moduleList.Add(module);  // create a new module on the list if the file exists
 
             for (int i = 0; i < 10000; i++) // 10,000 line files
             {
@@ -613,7 +606,7 @@ namespace DMEEView1
             module.name = fname.Substring(fname.LastIndexOf("\\")+1);
             module.fromLibrary = false;
             module.fileName = fname;
-            module.processed = false;   // module has not been processed for sub-modules
+            module.processed = true;   // module has been processed for sub-modules
 
             this.Refresh();
             file.Close();
@@ -697,7 +690,7 @@ namespace DMEEView1
                         Y1 = Convert.ToSingle(fields[4]),
                         scaleFactor = Convert.ToSingle(fields[5])
                     };
-                    drawingItemCount++;
+                    module.stats.drawingItemCount++;
                     drawList.Add(dcDrawing);
                     break;
 
@@ -729,10 +722,10 @@ namespace DMEEView1
                         scaleFactor = Convert.ToSingle(fields[4]),
                         name = Convert.ToString(fields[7])
                     };
-                    moduleItemCount++;
+                    module.stats.moduleItemCount++;
                     BiggestSmallestXY(dcModule.X1, dcModule.Y1, ref stats);
 
-                    // Add unprocessed to module entry to module list if not already present
+                    // Add unprocessed module entry to module list if not already present
                     Module result = moduleList.Find(x => x.name == dcModule.name);
                     if (result == null || moduleList.Count == 0)
                     {
@@ -743,7 +736,6 @@ namespace DMEEView1
                             fromLibrary = false,
                             fileName = "",
                         };
-
                         moduleList.Add(mm);
                     }
                     break;
@@ -758,7 +750,7 @@ namespace DMEEView1
                     };
                     BiggestSmallestXY(dcPin.X1, dcPin.Y1, ref stats);
                     drawList.Add(dcPin);
-                    pinItemCount++;
+                    module.stats.pinItemCount++;
                     break;
 
                 case DcItemType.str:
@@ -774,7 +766,7 @@ namespace DMEEView1
                     // while others have three E.g. "s 1 0 1 #CA31:2
                     if (fields.Length > 3) dcStr.unk3 = Convert.ToInt16(fields[3]);
 
-                    strItemCount++;
+                    module.stats.strItemCount++;
 
                     // Set String in previous record
                     if (prevRecordType == DcItemType.text)
@@ -812,7 +804,7 @@ namespace DMEEView1
                         unk7 = Convert.ToInt16(fields[7])
                     };
                     BiggestSmallestXY(dcText.X1, dcText.Y1, ref stats);
-                    textItemCount++;
+                    module.stats.textItemCount++;
                     drawList.Add(dcText);
                     if (!module.stats.textScalingList.Contains(dcText.scaleFactor))
                     {
@@ -853,14 +845,57 @@ namespace DMEEView1
             if (Y > stats.biggestY) stats.biggestY = Y;
             if (Y < stats.smallestY) stats.smallestY = Y;
         }
-        
+
+        private int GetDictionary(FileStream inFile, DcDictionary dictionary)
+        {
+            Byte[] buffer = new Byte[100];
+            String str = "";
+            int entryCount = 0;
+            int recordStartOffset = 0;
+            int recordSizeInBytes = 0;
+
+            dictionary.entries.Clear();
+
+            inFile.Read(buffer, 0, 32);
+
+            // Assumes that two-byte binary values in the dictionary portion of the library are 16-bit and little endian.
+            // All records in the library start and end on 128-byte boundaries, including the dictionary itself.
+            // buffer[14] and [15] are the file offset (in multiples of 128 bytes) to the NEXT record in the library.
+            // The first occurrence of the offset thus corresponds to the amount of space taken by the dictionary itself.
+            int recordsStart = 128 * Convert.ToInt16(buffer[14] + buffer[15] * 256);
+
+            for (int i = 32; i < recordsStart; i += 32)
+            {
+                DictionaryEntry entry = new DictionaryEntry();
+                long filePos = inFile.Position;
+                inFile.Read(buffer, 0, 32);
+                if (buffer[0] == 0xFF) break; // no more dictionary entries
+
+                recordStartOffset = 128 * Convert.ToInt16(buffer[12] + buffer[13] * 256);
+                recordSizeInBytes = 128 * Convert.ToInt16(buffer[14] + buffer[15] * 256);
+
+                str = Encoding.ASCII.GetString(buffer, 1, 11);
+                entry.name = str;
+                entry.extension = str.Substring(8, 3).TrimEnd(' '); // extension is last 3 alphanumeric characters, if any.
+                entry.recordOffset = recordStartOffset;
+                entry.elementSize = recordSizeInBytes;
+                entry.filePos = filePos;
+                dictionary.entries.Add(entry);
+
+                entryCount++;
+            }
+            dictionary.fileName = inFile.Name;
+            dictionary.size = recordsStart;
+            dictionary.entryCount = entryCount;
+            return entryCount;
+        }
+
         private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
         {
             string fullName = Properties.Settings.Default.fileName;
             string fName = "";
             string fDir = "";
-
-            textBox1.Text = Properties.Settings.Default.fileName;
+            textBox1.Text = fullName;
             textBox1.Update();
 
             fName = fullName.Substring(fullName.LastIndexOf(@"\") + 1);
@@ -872,11 +907,12 @@ namespace DMEEView1
 
             if (openFileDialog1.FileName != "")
             {
-                Properties.Settings.Default.fileName = openFileDialog1.FileName;
-                Properties.Settings.Default.Save();
-                textBox1.Text = openFileDialog1.FileName;
+                topFileName = openFileDialog1.FileName;
+                textBox1.Text = topFileName;
                 textBox1.Update();
                 menuStrip1.Select();
+                Properties.Settings.Default.fileName = topFileName;
+                Properties.Settings.Default.Save();
             }
         }
 
@@ -918,8 +954,55 @@ namespace DMEEView1
 
         private void DrawFileButton_Click(object sender, EventArgs e)
         {
-            Module module = new Module();
+            moduleList.Clear();
+            Module module = new Module  // create entry for top module
+            {
+                fileName = topFileName,
+                stats = new ModuleStats()
+            };
+            moduleList.Add(module);
             DcMakeDrawListFromFile(ref module);
+
+            // read dictionaries from each library (.LBR) file in library folder
+            if (Directory.Exists(libraryFolder))
+            {
+                DcDictionaryList.Clear();
+                int entryCount = 0;
+                string[] libFiles = Directory.GetFiles(libraryFolder, "*.lbr");
+                foreach (string fName in libFiles)
+                {
+                    FileStream libFile = new FileStream(fName, FileMode.Open, FileAccess.Read);
+                    DcDictionary dictionary = new DcDictionary();
+                    entryCount = GetDictionary(libFile, dictionary);
+                    DcDictionaryList.Add(dictionary);
+                    libFile.Close();
+                }
+            }
+
+            foreach (Module m in moduleList)
+            {
+                Console.WriteLine(m.name + " processed: " + m.processed);
+                if (!m.processed)
+                {
+                    // first check for name in working directory
+                    string[] s = Directory.GetFiles(workingFolder, m.name);
+
+                    if (s.Length > 0)  // file name found in working folder
+                    {
+                        module.fromLibrary = false;
+                        module.fileName = s[0];
+                        Console.WriteLine("file found");
+                    }
+                    else  // else check for name in libraries
+                    {
+                        // find name among dictionaries in dictionary list
+                        foreach (DcDictionary dictionary in DcDictionaryList)
+                        {
+
+                        }
+                    }
+                }
+            } 
         }
 
         // The PrintPage event is raised for each page to be printed.
