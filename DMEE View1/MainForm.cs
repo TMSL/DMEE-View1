@@ -19,6 +19,7 @@ namespace DMEEView1
         string workingFolder = "";
         float ZoomFactor = 1;
         const string crlf = "\r\n";
+        bool modulesLoaded = false;
 
         private List<Module> moduleList = new List<Module>();
         private DcDictionary dictionary = new DcDictionary();
@@ -26,12 +27,10 @@ namespace DMEEView1
 
         private class Module
         {
-            public bool loaded = false;
             public bool processed = false;
             public bool fromLibrary = false;
             public string name = "";
             public string fileName = "";
-            public float scaleFactor = 1.0F;  // factor for scaling all coordinates and scale factors when creating the draw list for the module
             public List<DcDrawItem> drawList = new List<DcDrawItem>();
             public ModuleStats stats = new ModuleStats();
         }
@@ -137,7 +136,7 @@ namespace DMEEView1
                 gs.PixelOffsetMode = PixelOffsetMode.HighQuality;
             }
 
-            if (module.loaded)
+            if (modulesLoaded)
             {
                 gs.TranslateTransform(25F - smallestX, biggestY + 80F / ZoomFactor); // Move the origin "down".
                 gs.ScaleTransform(ZoomFactor, ZoomFactor, MatrixOrder.Append);
@@ -150,9 +149,9 @@ namespace DMEEView1
                 DrawCropMark(gs, pen1, origin);
                 DrawCropMark(gs, pen1, new Point((int)biggestX, (int)-biggestY));
 
-                PaintDcDrawList(gs, module.drawList, origin);
+                PaintDcDrawList(gs, moduleList[0].drawList, origin);
 
-                ModuleInfoTextBox(module);
+                ModuleInfoTextBox(moduleList[0]);
             }
             pen1.Dispose();
         }
@@ -220,6 +219,13 @@ namespace DMEEView1
                         break;
                     case DcItemType.module:
                         DcModule dModule = (DcModule)drawList[i];
+
+                        // get drawlist for module from moduleList
+
+                        // draw the module at specified location with given scalefactor
+                        float scaleFactor = dModule.scaleFactor;
+                        FloatPt location = new FloatPt(dModule.X1, dModule.Y1);
+
                         break;
                     case DcItemType.pin:
                         DcPin dPin = (DcPin)drawList[i];
@@ -487,6 +493,7 @@ namespace DMEEView1
         private class DcModule : DcDrawItem //include Module (m)  -- e.g. m  15 0 0 1.25 0 0 bsize 0 0 0 0 0
         {
             public DcItemType recordType = DcItemType.module; // [0] (m)
+            public int moduleListIndex = -1;    // index to entry for module in moduleList
             public int color = 0;          // [1] color or layer
             public float X1 = 0;           // [2] X coordinate (offset) to place module's origin
             public float Y1 = 0;           // [3] Y coordinate (offset) to place module's origin
@@ -567,7 +574,7 @@ namespace DMEEView1
         // 6. mark module as processed
         // back to (1)
 
-        private void DcMakeDrawListFromFile(ref Module module)
+        private void DcMakeDrawListFromFile(ref Module module, long startPos)
         {
             string fname = module.fileName;
             DcItemType prevRecordType = DcItemType.undefined;
@@ -578,7 +585,6 @@ namespace DMEEView1
 
             if (File.Exists(fname))
             {
-                //file = new System.IO.StreamReader(fname);
                 file = new FileStream(fname, FileMode.Open, FileAccess.Read);
             }
             else {
@@ -586,7 +592,7 @@ namespace DMEEView1
                 return;
             }
 
-            for (int i = 0; i < 10000; i++) // 10,000 line files
+            for (int i = 0; i < 20000; i++) // 20,000 line files  TBD: Make this configurable ???
             {
                 if (file.Position == file.Length) break;
 
@@ -602,13 +608,12 @@ namespace DMEEView1
                 else break;
             }
 
-            module.loaded = true;
             module.name = fname.Substring(fname.LastIndexOf("\\")+1);
             module.fromLibrary = false;
             module.fileName = fname;
             module.processed = true;   // module has been processed for sub-modules
 
-            this.Refresh();
+            this.Invalidate();
             file.Close();
         }
 
@@ -713,6 +718,8 @@ namespace DMEEView1
 
                 case DcItemType.module:
                     InfoTextBox.Text += (rawLine + crlf);
+
+                    // CREATE COMMAND OBJECT FOR MODULE
                     DcModule dcModule = new DcModule()
                     {
                         Type = DcItemType.module,
@@ -725,19 +732,28 @@ namespace DMEEView1
                     module.stats.moduleItemCount++;
                     BiggestSmallestXY(dcModule.X1, dcModule.Y1, ref stats);
 
-                    // Add unprocessed module entry to module list if not already present
+                    // Search to see if an entry for the module is already in the module list.
                     Module result = moduleList.Find(x => x.name == dcModule.name);
-                    if (result == null || moduleList.Count == 0)
+
+                    if (result != null)  // Link module command to existing entry in module list
                     {
-                        Module mm = new Module()
+                        dcModule.moduleListIndex = moduleList.IndexOf(result);  // set module command to point to entry
+                    }
+                    else    // if not in list, create a new entr, point the module command to it, and add it to the list.
+                    {
+                        Module mm = new Module() // create entry that will hold drawlist for module
                         {
                             processed = false,   // module has not been processed for sub-modules
                             name = dcModule.name,
                             fromLibrary = false,
                             fileName = "",
                         };
-                        moduleList.Add(mm);
+                        moduleList.Add(mm);     // add new entry to module list
+                        dcModule.moduleListIndex = moduleList.IndexOf(mm);     // set module command to point to new entry
                     }
+
+                    // Lastly, add module command to present drawlist
+                    drawList.Add(dcModule);
                     break;
 
                 case DcItemType.pin:
@@ -890,6 +906,35 @@ namespace DMEEView1
             return entryCount;
         }
 
+        public enum MatchType { partial, full };
+
+        // search dictionary entries for name (case insensitive) starting from startIndex in dictionary and returning
+        // index of entry if match found. Return -1 if match not found.
+        // Setting startIndex to 0 will return index of first match.
+        private int FindModuleInDictionary(DcDictionary dictionary, String moduleName, int startIndex, MatchType matchType)
+        {
+            int index;
+            bool found = false;
+            moduleName = moduleName.ToUpper();  // do all comparisons in uppercase
+
+            for (index = startIndex; index < dictionary.entries.Count; index++)
+            {
+                string name = dictionary.entries[index].name.ToUpper();
+                if (matchType == MatchType.full && name == moduleName)
+                {
+                    found = true;
+                    break;
+                }
+                else if (matchType == MatchType.partial && name.Contains(moduleName))
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return -1;
+            return index;
+        }
+
         private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
         {
             string fullName = Properties.Settings.Default.fileName;
@@ -961,7 +1006,7 @@ namespace DMEEView1
                 stats = new ModuleStats()
             };
             moduleList.Add(module);
-            DcMakeDrawListFromFile(ref module);
+            DcMakeDrawListFromFile(ref module, 0);
 
             // read dictionaries from each library (.LBR) file in library folder
             if (Directory.Exists(libraryFolder))
@@ -981,8 +1026,9 @@ namespace DMEEView1
 
             foreach (Module m in moduleList)
             {
+                module = m;
                 Console.WriteLine(m.name + " processed: " + m.processed);
-                if (!m.processed)
+                if (!module.processed)
                 {
                     // first check for name in working directory
                     string[] s = Directory.GetFiles(workingFolder, m.name);
@@ -991,18 +1037,45 @@ namespace DMEEView1
                     {
                         module.fromLibrary = false;
                         module.fileName = s[0];
-                        Console.WriteLine("file found");
+                        Console.WriteLine("Module \"" + module.name + "\" found in working folder");
+                        DcMakeDrawListFromFile(ref module, 0);
                     }
                     else  // else check for name in libraries
                     {
-                        // find name among dictionaries in dictionary list
-                        foreach (DcDictionary dictionary in DcDictionaryList)
+                        // convert name to 11 character format used in .LBR files
+                        string name = module.name;
+                        int n = name.IndexOf('.');
+                        if (n > 0)
                         {
-
+                            string ext = name.Substring(n+1);
+                            name = name.Substring(0, name.IndexOf('.'));
+                            name = name.PadRight(8, ' '); // pad to 8 characters
+                            name += ext;
                         }
+                        name = name.PadRight(11, ' '); // pad to 11 total characters
+                        int index = -1;
+                        DcDictionary dictionary = new DcDictionary();
+
+                        // find name among dictionaries in dictionary list
+                        foreach (DcDictionary d in DcDictionaryList)
+                        {
+                            index = FindModuleInDictionary(d, name, 0, MatchType.full);
+                            if (index >= 0)
+                            {
+                                dictionary = d;
+                                break;
+                            }
+                        }
+                        // load draw commands from file if module found
+                        if (index >= 0)
+                        {
+                            Console.WriteLine("Module \"" + m.name + "\" found in library: " + dictionary.fileName);
+                        }
+                        else Console.WriteLine("Module \"" + m.name + "\" not found in libraries. ");
                     }
                 }
-            } 
+            }
+            modulesLoaded = true;
         }
 
         // The PrintPage event is raised for each page to be printed.
