@@ -55,7 +55,7 @@ namespace DMEEView1
             public String extension = "";
             public long filePos = 0;
             public int recordOffset = 0;
-            public int elementSize = 0;
+            public int recordSize = 0;
         }
 
         private class DcDictionary
@@ -104,14 +104,6 @@ namespace DMEEView1
                 Properties.Settings.Default.WorkFolder = workingFolder;
             }
         }
-        // My B-SIZE DRAWING IS 15-7/8" x 10-15/16", Inner border is ~9-1/2" x ~15-1/2"
-        // At present drawing scale 1937 -> 15” = .00774" per unit
-        // units = inches / .00774
-        // draw a 15.5" line from 3/16", 3/16"
-        //Single factor = .00785F;
-        //Single x1, y1, x2, y2;
-        // draw a line from origin to 16"
-        //gs.DrawLine(pen1, 0, 0, 16F / factor, 0);
 
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
@@ -141,16 +133,15 @@ namespace DMEEView1
                 gs.TranslateTransform(25F - smallestX, biggestY + 80F / ZoomFactor); // Move the origin "down".
                 gs.ScaleTransform(ZoomFactor, ZoomFactor, MatrixOrder.Append);
 
-                Point origin = new Point(0, 0);
+                PointF location = new PointF(0, 0);
                 pen1.Width = 1;
 
                 // draw crossed lines at origin
                 pen1.Color = Color.Red;
-                DrawCropMark(gs, pen1, origin);
+                DrawCropMark(gs, pen1, new Point((int)location.X, (int)location.Y));
                 DrawCropMark(gs, pen1, new Point((int)biggestX, (int)-biggestY));
 
-                PaintDcDrawList(gs, moduleList[0].drawList, origin);
-
+                PaintDcDrawList(gs, moduleList[0].drawList, location, 1.0F);
                 ModuleInfoTextBox(moduleList[0]);
             }
             pen1.Dispose();
@@ -180,11 +171,24 @@ namespace DMEEView1
             return center;
         }
 
-        private void PaintDcDrawList(Graphics gs, List<DcDrawItem> drawList, Point origin)
+        private void PaintDcDrawList(Graphics gs, List<DcDrawItem> drawList, PointF location, float scaleFactor)
         {
             Point pt1 = new Point();
             Point pt2 = new Point();
             Pen pen = new Pen(Color.Black);
+            Pen savedPen = new Pen(Color.Black);
+
+            GraphicsState gsSaved = gs.Save();
+
+            if (scaleFactor > 1.0F) // set scale factor
+            {
+                gs.ScaleTransform(scaleFactor, scaleFactor);
+            }
+
+            // transform location
+            // Translate the origin to be at the target x, y position.
+            float x = location.X;
+            float y = location.Y;
 
             for (int i = 0; i < drawList.Count; i++)
             {
@@ -192,77 +196,103 @@ namespace DMEEView1
                 {
                     case DcItemType.arc:
                         DcArc dArc = (DcArc)drawList[i];
-                        FloatPt arcCenter = new FloatPt(dArc.centerX, -dArc.centerY);
-                        FloatPt p1 = new FloatPt(dArc.X1, -dArc.Y1);
-                        FloatPt p2 = new FloatPt(dArc.X2, -dArc.Y2);
+                        PointF arcCenter = new PointF(dArc.centerX, -dArc.centerY);
+                        PointF p1 = new PointF(dArc.X1, -dArc.Y1);
+                        PointF p2 = new PointF(dArc.X2, -dArc.Y2);
                         DcDrawArc(gs, pen, arcCenter, p1, p2);
                         break;
+
+                    case DcItemType.bus:
+                        DcBus dBus = (DcBus)drawList[i];
+                        pt1.X = Convert.ToInt32(dBus.X1 + x);
+                        pt1.Y = Convert.ToInt32(-dBus.Y1 - y);
+                        pt2.X = Convert.ToInt32(dBus.X2 + x);
+                        pt2.Y = Convert.ToInt32(-dBus.Y2 - y);
+                        savedPen = (Pen)pen.Clone();
+                        pen.Width = dBus.width;
+                        gs.DrawLine(pen, pt1, pt2);
+                        pen = savedPen;
+                        break;
+
                     case DcItemType.circle:
                         DcCircle dCircle = (DcCircle)drawList[i];
-                        pt1.X = Convert.ToInt32(dCircle.X1);
-                        pt1.Y = Convert.ToInt32(-dCircle.Y1);
-                        pt2.X = Convert.ToInt32(dCircle.X2);
+                        pt1.X = Convert.ToInt32(dCircle.X1+x);
+                        pt1.Y = Convert.ToInt32(-dCircle.Y1-y);
+                        pt2.X = Convert.ToInt32(dCircle.X2+x);
                         float radius = Math.Abs(pt1.X - pt2.X);
+                        if (radius == 0) radius = Math.Abs(pt1.Y - pt2.Y);
                         float diameter = 2F * radius;
                         float center = pt1.X;
                         gs.DrawEllipse(pen, center - radius, pt1.Y - radius, diameter, diameter);
                         break;
+
                     case DcItemType.drawing:
                         break;
+
                     case DcItemType.line:
                         DcLine dLine = (DcLine)drawList[i];
-                        pt1.X = Convert.ToInt32(dLine.X1);
-                        pt1.Y = Convert.ToInt32(-dLine.Y1);
-                        pt2.X = Convert.ToInt32(dLine.X2);
-                        pt2.Y = Convert.ToInt32(-dLine.Y2);
+                        pt1.X = Convert.ToInt32(dLine.X1 + x);
+                        pt1.Y = Convert.ToInt32(-dLine.Y1 - y);
+                        pt2.X = Convert.ToInt32(dLine.X2 + x);
+                        pt2.Y = Convert.ToInt32(-dLine.Y2 - y);
                         gs.DrawLine(pen, pt1, pt2);
                         break;
+
                     case DcItemType.module:
                         DcModule dModule = (DcModule)drawList[i];
-
+                        int mIndex = dModule.moduleListIndex;
                         // get drawlist for module from moduleList
-
+                        List<DcDrawItem> mDrawList;
+                        mDrawList = moduleList[mIndex].drawList;
                         // draw the module at specified location with given scalefactor
-                        float scaleFactor = dModule.scaleFactor;
-                        FloatPt location = new FloatPt(dModule.X1, dModule.Y1);
-
+                        float mScaleFactor = dModule.scaleFactor;
+                        PointF mLocation = new PointF(dModule.X1, dModule.Y1);
+                        PaintDcDrawList(gs, mDrawList, mLocation, mScaleFactor);
                         break;
+
                     case DcItemType.pin:
                         DcPin dPin = (DcPin)drawList[i];
                         // draw a small square to identify the pin location.
                         float width = pen.Width; // save width
                         pen.Width = 0.5F;
-                        gs.DrawRectangle(pen, dPin.X1 - 2, -(dPin.Y1 + 2), 4, 4);
+                        gs.DrawRectangle(pen, dPin.X1 + x - 2, -(dPin.Y1 + y + 2), 4, 4);
                         pen.Width = width;  // restore width
                         break;
-                    case DcItemType.str: break;
+
+                    case DcItemType.str:
+                        break;
+
                     case DcItemType.text:
                         DcText dct = (DcText)drawList[i];
-                        DcDrawText(gs, pen, dct);
+                        DcDrawText(gs, pen, dct, x, y);
                         break;
+
                     case DcItemType.wire:
                         DcWire dWire = (DcWire)drawList[i];
-                        pt1.X = Convert.ToInt32(dWire.X1);
-                        pt1.Y = Convert.ToInt32(-dWire.Y1);
-                        pt2.X = Convert.ToInt32(dWire.X2);
-                        pt2.Y = Convert.ToInt32(-dWire.Y2);
+                        pt1.X = Convert.ToInt32(dWire.X1 + x);
+                        pt1.Y = Convert.ToInt32(-dWire.Y1 - y);
+                        pt2.X = Convert.ToInt32(dWire.X2 + x);
+                        pt2.Y = Convert.ToInt32(-dWire.Y2 - y);
                         gs.DrawLine(pen, pt1, pt2);
                         break;
+
                     case DcItemType.undefined:
                         break;
+
                     default:
                         break;
                 }
             }
             pen.Dispose();
+            gs.Restore(gsSaved);
         }
 
-        private void DcDrawText(Graphics gs, Pen pen1, DcText dct)
+        private void DcDrawText(Graphics gs, Pen pen1, DcText dct, float x, float y)
         {
-            PointF pt = new PointF
+            System.Drawing.PointF pt = new System.Drawing.PointF
             {
-                X = Convert.ToInt32(dct.X1),
-                Y = Convert.ToInt32(-dct.Y1)
+                X = Convert.ToInt32(dct.X1) + x,
+                Y = Convert.ToInt32(-dct.Y1) - y
             };
             string text = dct.dcStr.strText;
             text = text.TrimStart('#');
@@ -352,19 +382,7 @@ namespace DMEEView1
             gr.Restore(state);
         }
 
-        private class FloatPt
-        {
-            public float X = 0;
-            public float Y = 0;
-
-            public FloatPt(float x, float y)
-            {
-                X = x;
-                Y = y;
-            }
-        }
-
-        private static float DcDrawArc(Graphics gr, Pen pen, FloatPt centerPt, FloatPt p1, FloatPt p2)
+        private static float DcDrawArc(Graphics gr, Pen pen, PointF centerPt, PointF p1, PointF p2)
         {
             // Calculate radius as distance from center to p1
             float radius = (float)Math.Sqrt((centerPt.X - p1.X) * (centerPt.X - p1.X) + (centerPt.Y - p1.Y) * (centerPt.Y - p1.Y));
@@ -385,13 +403,13 @@ namespace DMEEView1
             return radius;
         }
 
-        private static void DrawCross(Graphics gr, Pen pen, FloatPt point)
+        private static void DrawCross(Graphics gr, Pen pen, PointF point)
         {
             gr.DrawLine(pen, point.X - 5, point.Y, point.X + 5, point.Y);
             gr.DrawLine(pen, point.X, point.Y - 5, point.X, point.Y + 5);
         }
 
-        private enum DcItemType { line, wire, circle, drawing, arc, module, pin, str, text, undefined };
+        private enum DcItemType { arc, bus, circle, drawing, line, module, pin, str, text, wire, undefined };
 
         private class DcArc : DcDrawItem
         {
@@ -409,6 +427,18 @@ namespace DMEEView1
             public float Y2 = 0;
         }
 
+        private class DcBus : DcDrawItem
+        {
+            public DcItemType recordType = DcItemType.bus;      //Bus (b) - e.g. "b  10 1810 1115 1810 400 0 2"
+            public int color = 0;       // [1]
+            public float X1 = 0;        // [2]
+            public float Y1 = 0;        // [3]
+            public float X2 = 0;        // [4]
+            public float Y2 = 0;        // [5]
+            public int unk1 = 0;        // [6]
+            public float width = 0;     // line weight??
+        }
+
         private class DcPin : DcDrawItem
         {   // a pin may have an associated s record. The record defines the pin number, e.g. s 1 0 #2
             public DcItemType recordType = DcItemType.pin;     //Pin (p) - e.g. "p  15 60 10 60 10 1"
@@ -424,7 +454,7 @@ namespace DMEEView1
         private class DcLine : DcDrawItem
         {
             public DcItemType recordType = DcItemType.line;    //Line (l)
-            public int color = 0;
+            public int color = 0;       // [1]
             public float X1 = 0;
             public float Y1 = 0;
             public float X2 = 0;
@@ -436,15 +466,15 @@ namespace DMEEView1
         private class DcWire : DcDrawItem
         {
             public DcItemType recordType = DcItemType.wire;    //Wire (w)
-            public int color = 0;
-            public float X1 = 0;
-            public float Y1 = 0;
-            public float X2 = 0;
-            public float Y2 = 0;
-            public int unk1 = 0;
-            public int unk2 = 0;
+            public int color = 0;       // [1]
+            public float X1 = 0;        // [2]
+            public float Y1 = 0;        // [3]
+            public float X2 = 0;        // [4]
+            public float Y2 = 0;        // [5]
+            public int unk1 = 0;        // [6]
+            public int unk2 = 0;        // [7]
             public int net = 0;         //Lines and wires are similar but lines do not include net and unk3 values
-            public int unk3 = 0;
+            public int unk3 = 0;        // [9]
             public DcString dcStr = new DcString();
         }
 
@@ -490,17 +520,21 @@ namespace DMEEView1
             public int number = 0;
         }
 
-        private class DcModule : DcDrawItem //include Module (m)  -- e.g. m  15 0 0 1.25 0 0 bsize 0 0 0 0 0
+        private class DcModule : DcDrawItem //include Module (m)
+                                            // -- e.g. m  15 0 0 1.25 0 0 bsize 0 0 0 0 0
+                                            //         m  15 1900 725 1 180 1 iowire 0 0 0 1 1 // horizontally flipped
+                                            //         m  15 1675 765 1 180 1 ls125  0 0 0 1 1  // horizontally flipped
+                                            //         m  15 1070 670 1 90  0 r      0 0 0 1 1  // 90 rotated?
         {
             public DcItemType recordType = DcItemType.module; // [0] (m)
             public int moduleListIndex = -1;    // index to entry for module in moduleList
-            public int color = 0;          // [1] color or layer
-            public float X1 = 0;           // [2] X coordinate (offset) to place module's origin
-            public float Y1 = 0;           // [3] Y coordinate (offset) to place module's origin
-            public float scaleFactor = 0;  // [4]
-            public int unk5 = 0;
-            public int unk6 = 0;
-            public string name = "";       // [7]
+            public int color = 0;           // [1] color or layer
+            public float X1 = 0;            // [2] X coordinate (offset) to place module's origin
+            public float Y1 = 0;            // [3] Y coordinate (offset) to place module's origin
+            public float scaleFactor = 0;   // [4]
+            public float rotation = 0;      // [5] Rotation in degrees
+            public int flip = 0;            // 0 = no flip, 1 = flip ??????
+            public string name = "";        // [7]
             public int unk8 = 0;
             public int unk9 = 0;
             public int unk10 = 0;
@@ -574,12 +608,13 @@ namespace DMEEView1
         // 6. mark module as processed
         // back to (1)
 
-        private void DcMakeDrawListFromFile(ref Module module, long startPos)
+        private void DcMakeDrawListFromFile(ref Module module, long startPos, int drawListSize)
         {
             string fname = module.fileName;
             DcItemType prevRecordType = DcItemType.undefined;
             string line;
             FileStream file;
+            long endPos = 0;
 
             module.stats = new ModuleStats();  // clears all module stats
 
@@ -592,9 +627,14 @@ namespace DMEEView1
                 return;
             }
 
-            for (int i = 0; i < 20000; i++) // 20,000 line files  TBD: Make this configurable ???
+            file.Position = startPos;
+            endPos = startPos + drawListSize;
+
+            for (int i = 0; i < 20000; i++) // 20,000 line limit.  TBD: Bad form. Add an 'abort'/cancel function in
+                                            // case someone loads a huge file that might be mistaken for a DMEE file.
             {
-                if (file.Position == file.Length) break;
+                if (file.Position == file.Length) break;  // reached end of file
+                if (endPos > 0 && file.Position >= endPos) break; // reached end of space reserved for drawlist in dictionary
 
                 long filePos = file.Position;
 
@@ -603,14 +643,10 @@ namespace DMEEView1
                 if (line != null)
                 {
                     ParseDcCommandLine(ref prevRecordType, ref line, ref module);
-                    module.processed = true;  // indicates any sub-modules have been added to module list and marked as unprocessed
                 }
                 else break;
             }
 
-            module.name = fname.Substring(fname.LastIndexOf("\\")+1);
-            module.fromLibrary = false;
-            module.fileName = fname;
             module.processed = true;   // module has been processed for sub-modules
 
             this.Invalidate();
@@ -644,6 +680,7 @@ namespace DMEEView1
             switch (fields[0])
             {
                 case "a": recordType = DcItemType.arc; break;
+                case "b": recordType = DcItemType.bus; break;
                 case "c": recordType = DcItemType.circle; break;
                 case "d": recordType = DcItemType.drawing; break;
                 case "s": recordType = DcItemType.str; break;
@@ -670,6 +707,20 @@ namespace DMEEView1
                         Y2 = Convert.ToSingle(fields[7])
                     };
                     drawList.Add(dArc);
+                    break;
+
+                case DcItemType.bus:
+                    DcBus dBus = new DcBus()
+                    {
+                        Type = DcItemType.bus,
+                        color = Convert.ToInt16(fields[1]),
+                        X1 = Convert.ToSingle(fields[2]),
+                        Y1 = Convert.ToSingle(fields[3]),
+                        X2 = Convert.ToSingle(fields[4]),
+                        Y2 = Convert.ToSingle(fields[5]),
+                        width = Convert.ToSingle(fields[7])
+                    };
+                    drawList.Add(dBus);
                     break;
 
                 case DcItemType.circle:
@@ -718,15 +769,14 @@ namespace DMEEView1
 
                 case DcItemType.module:
                     InfoTextBox.Text += (rawLine + crlf);
-
-                    // CREATE COMMAND OBJECT FOR MODULE
-                    DcModule dcModule = new DcModule()
+                    DcModule dcModule = new DcModule()  // CREATE COMMAND OBJECT FOR MODULE
                     {
                         Type = DcItemType.module,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
                         scaleFactor = Convert.ToSingle(fields[4]),
+                        rotation = Convert.ToSingle(fields[5]),
                         name = Convert.ToString(fields[7])
                     };
                     module.stats.moduleItemCount++;
@@ -739,7 +789,7 @@ namespace DMEEView1
                     {
                         dcModule.moduleListIndex = moduleList.IndexOf(result);  // set module command to point to entry
                     }
-                    else    // if not in list, create a new entr, point the module command to it, and add it to the list.
+                    else    // if not in list, create a new entry, point the module command to it, and add it to the list.
                     {
                         Module mm = new Module() // create entry that will hold drawlist for module
                         {
@@ -894,7 +944,7 @@ namespace DMEEView1
                 entry.name = str;
                 entry.extension = str.Substring(8, 3).TrimEnd(' '); // extension is last 3 alphanumeric characters, if any.
                 entry.recordOffset = recordStartOffset;
-                entry.elementSize = recordSizeInBytes;
+                entry.recordSize = recordSizeInBytes;
                 entry.filePos = filePos;
                 dictionary.entries.Add(entry);
 
@@ -1005,8 +1055,10 @@ namespace DMEEView1
                 fileName = topFileName,
                 stats = new ModuleStats()
             };
+            module.name = topFileName.Substring(topFileName.LastIndexOf("\\") + 1);
+            module.fromLibrary = false;
             moduleList.Add(module);
-            DcMakeDrawListFromFile(ref module, 0);
+            DcMakeDrawListFromFile(ref module, 0, 0);
 
             // read dictionaries from each library (.LBR) file in library folder
             if (Directory.Exists(libraryFolder))
@@ -1038,7 +1090,8 @@ namespace DMEEView1
                         module.fromLibrary = false;
                         module.fileName = s[0];
                         Console.WriteLine("Module \"" + module.name + "\" found in working folder");
-                        DcMakeDrawListFromFile(ref module, 0);
+                        DcMakeDrawListFromFile(ref module, 0, 0);
+                        Console.WriteLine(m.name + " processed: " + m.processed);
                     }
                     else  // else check for name in libraries
                     {
@@ -1070,6 +1123,11 @@ namespace DMEEView1
                         if (index >= 0)
                         {
                             Console.WriteLine("Module \"" + m.name + "\" found in library: " + dictionary.fileName);
+                            module.fromLibrary = true;
+                            module.fileName = dictionary.fileName;
+                            DictionaryEntry entry = dictionary.entries[index];
+                            DcMakeDrawListFromFile(ref module, entry.recordOffset, entry.recordSize);
+                            Console.WriteLine(m.name + " processed: " + m.processed);
                         }
                         else Console.WriteLine("Module \"" + m.name + "\" not found in libraries. ");
                     }
