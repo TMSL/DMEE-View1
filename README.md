@@ -6,11 +6,11 @@ This C# project is being written as a way to view and print Draftsman-EE "DMEE" 
 a modern PC running Microsft Windows (r). The Draftsman-EE software may also be known as or associated with the names DMEE, DC-CAD, DCCAD, DC Design, DC 810, or DC/CAD IV. As of this writing, the viewer is a work in progress, Refer to following for details.
 
 ## Status
-The present version is an early work-in-progress that does not yet support schematics with multiple pages, printing, or inserting modules (parts) from libraries or other files. The Oct. 19, 2019 update added support for drawing arcs and locating pins along with a simple set of zoom levels under the File menu. 
+The present version is still a work-in-progress that does not yet support schematics with multiple pages or printing. The Oct. 27, 2019 update added significant drawing functionality, including support for locating, extracting, and drawing 'sub modules' that come from library (.LBR) files and/or are specified as separate files in the working folder.
 
-Text is presently drawn using Microsoft fonts instead of using Draftsman-EE's vector drawn character library. It does not yet include support for scaling and centering the file to fit the viewing area. These capabilities are all under development.
+Text is presently drawn using Microsoft fonts instead of using Draftsman-EE's vector drawn character library. It does not yet include support for scaling and centering the file to fit the viewing area. These capabilities are all under development. The program does not yet handle drawing PCB routes. Part (module) rotation and colors are also under development.
 
-Program development is first focusing on drawing schematic and part files. Consequently, it does not handle drawing routes or handle layers. Since the program also doesn't insert modules from libraries (such as pad definitions) if you try to draw any PCB files you're likely to find them pretty empty except for a view of the lines and text from all layers simultaneously. 
+Program development prioirty is first focusing on drawing schematic and part files. Consequently, it does not handle drawing routes or handle layers. Thus, if you try to display any PCB files at this time you're likely to find them pretty empty except for a view of the lines and text from all layers simultaneously.
 
 ## Use
 Select an .SCH or other drawing file using the file menu and press the "Parse" button. The hide/show info button provides some additional information about the file. A few example files are provided in Sample Drawing Files directory to demonstrate the present level of development.
