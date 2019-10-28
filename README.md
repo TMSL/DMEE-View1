@@ -10,7 +10,7 @@ The present version is still a work-in-progress that does not yet support schema
 
 Text is presently drawn using Microsoft fonts instead of using Draftsman-EE's vector drawn character library. It does not yet include support for scaling and centering the file to fit the viewing area. These capabilities are all under development. The program does not yet handle drawing PCB routes. Part (module) rotation and colors are also under development.
 
-Program development prioirty is first focusing on drawing schematic and part files. Consequently, it does not handle drawing routes or handle layers. Thus, if you try to display any PCB files at this time you're likely to find them pretty empty except for a view of the lines and text from all layers simultaneously.
+Program development priority is first focusing on drawing schematic and part files. Consequently, it does not handle drawing routes or handle layers. Thus, if you try to display any PCB files at this time you're likely to find them pretty empty except for a view of the lines and text from all layers simultaneously.
 
 ## Use
 Select an .SCH or other drawing file using the file menu and press the "Parse" button. The hide/show info button provides some additional information about the file. A few example files are provided in Sample Drawing Files directory to demonstrate the present level of development.
