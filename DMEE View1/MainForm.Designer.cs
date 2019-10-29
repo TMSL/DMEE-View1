@@ -202,11 +202,11 @@
             this.DrawFileButton.UseVisualStyleBackColor = true;
             this.DrawFileButton.Click += new System.EventHandler(this.DrawFileButton_Click);
             // 
-            // textBox3
+            // InfoTextBox
             // 
             this.InfoTextBox.Location = new System.Drawing.Point(471, 29);
             this.InfoTextBox.Multiline = true;
-            this.InfoTextBox.Name = "textBox3";
+            this.InfoTextBox.Name = "InfoTextBox";
             this.InfoTextBox.ReadOnly = true;
             this.InfoTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.InfoTextBox.Size = new System.Drawing.Size(417, 229);
@@ -242,11 +242,12 @@
             this.Controls.Add(this.DrawFileButton);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.menuStrip1);
+            this.DoubleBuffered = true;
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MainForm";
             this.Text = "DMEE View";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
-            this.Paint += new System.Windows.Forms.PaintEventHandler(this.Form1_Paint);
+            this.Paint += new System.Windows.Forms.PaintEventHandler(this.MainForm_Paint);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.ResumeLayout(false);
