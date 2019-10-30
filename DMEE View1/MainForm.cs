@@ -277,29 +277,19 @@ namespace DMEEView1
         private void DcDrawText(Graphics gr, Pen pen, DcText dct, float x, float y)
         {
             FontFamily fontFamily = new FontFamily("MS GOTHIC");
-            string text = dct.dcStr.strText;
-            text = text.TrimStart('#');
+            string text = dct.dcStr.strText.TrimStart('#');
+
             // Calculate font scale factor
             float fontSize = 10.5F * dct.scaleFactor / 0.039063F;
             Font the_font = new Font(fontFamily, fontSize);
-            SizeF textSize = gr.MeasureString(text, the_font);
-            float ascent = the_font.FontFamily.GetCellAscent(FontStyle.Regular);
-            float descent = the_font.FontFamily.GetCellDescent(FontStyle.Regular);
-            float emHeight = the_font.FontFamily.GetEmHeight(FontStyle.Regular);
-            float cellHeight = ascent + descent;
-            float cellHeightPixel = the_font.Size * cellHeight / emHeight;
-            float sizeInPoints = the_font.SizeInPoints;  // = emHeight in points
-
             GraphicsState grSaved = gr.Save();
-            PointF pt = new PointF(0, 0);
 
             gr.ScaleTransform(1, -1);
             gr.TranslateTransform(dct.X1 + x, dct.Y1 + y);
             gr.ScaleTransform(1, -1); // undo flip
 
             gr.RotateTransform(-dct.rotation);
-            pt.Y -= (cellHeightPixel);
-            gr.DrawString(text, the_font, pen.Brush, pt);
+            gr.DrawString(text, the_font, pen.Brush, new PointF(0,0-fontSize));
 
             gr.Restore(grSaved);
         }
