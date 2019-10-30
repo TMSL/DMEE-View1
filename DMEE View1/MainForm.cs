@@ -182,6 +182,7 @@ namespace DMEEView1
                         DcArc dArc = (DcArc)drawList[i];
                         gr.ScaleTransform(1, -1);
                         gr.TranslateTransform(x, y);
+                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         PointF arcCenter = new PointF(dArc.centerX, dArc.centerY);
                         PointF p1 = new PointF(dArc.X1, dArc.Y1);
@@ -189,7 +190,7 @@ namespace DMEEView1
                         DcDrawArc(gr, pen, arcCenter, p1, p2);
                         break;
 
-                    case DcItemType.bus:
+                    case DcItemType.bus:  // TBD: Finish updating rotation and mirror for handling bus commands, check mirror on other commands
                         DcBus dBus = (DcBus)drawList[i];
                         pt1.X = Convert.ToInt32(dBus.X1 + x);
                         pt1.Y = Convert.ToInt32(-dBus.Y1 - y);
@@ -205,6 +206,7 @@ namespace DMEEView1
                         DcCircle dCircle = (DcCircle)drawList[i];
                         gr.ScaleTransform(1, -1);
                         gr.TranslateTransform(x, y);
+                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         ptf1.X = Convert.ToSingle(dCircle.X1);
                         ptf1.Y = Convert.ToSingle(dCircle.Y1);
@@ -223,6 +225,7 @@ namespace DMEEView1
                         DcLine dLine = (DcLine)drawList[i];
                         gr.ScaleTransform(1, -1);
                         gr.TranslateTransform(x, y);
+                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         pt1.X = Convert.ToInt32(dLine.X1);
                         pt1.Y = Convert.ToInt32(dLine.Y1);
