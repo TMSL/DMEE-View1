@@ -91,6 +91,13 @@ namespace DMEEView1
             this.Width = Convert.ToInt32(2250 * 0.55);
             this.Height = Convert.ToInt32(1375 * 0.55);
 
+            DrawPanel.Location = new Point(0, menuStrip1.Height);
+            DrawPanel.Width = this.Width-40;
+            DrawPanel.Height = this.Height - menuStrip1.Height - 40;
+            DrawPictureBox.Location = new Point(0, 0);
+            DrawPictureBox.Width = DrawPanel.Width-40;
+            DrawPictureBox.Height = DrawPanel.Height;
+            
             if (Properties.Settings.Default.ShowInfo == true)
             {
                 HideNShowInfoButton.Text = "hide info";
@@ -116,43 +123,7 @@ namespace DMEEView1
 
         private void MainForm_Paint(object sender, PaintEventArgs e)
         {
-            Graphics gs = e.Graphics;
-            ModuleListEntry module = moduleList[0];
-            float biggestX = module.stats.biggestX;
-            float biggestY= module.stats.biggestY;
-            float smallestX = module.stats.smallestX;
-            float smallestY = module.stats.smallestY;
-            float dpiX = gs.DpiX;
-            float dpiY = gs.DpiY;
-            int windowWidth = this.Width;
-            int windowHeight = this.Height;
 
-            //Create pen objects
-            Pen pen = new Pen(Color.Black);
-
-            gs.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-            if (ZoomFactor >= 1.0F)
-            {
-                gs.SmoothingMode = SmoothingMode.AntiAlias;
-                gs.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            }
-
-            if (modulesLoaded)
-            {
-                gs.TranslateTransform(25F - smallestX, biggestY + 80F / ZoomFactor); // Move the origin "down".
-                gs.ScaleTransform(ZoomFactor, ZoomFactor, MatrixOrder.Append);
-
-                pen.Width = 1;
-
-                // draw crossed lines at origin
-                pen.Color = Color.Red;
-                DrawCropMark(gs, pen, new PointF(topModuleCommand.X1, topModuleCommand.Y1));
-                DrawCropMark(gs, pen, new PointF(biggestX, -biggestY));              
-
-                PaintDcModule(gs, topModuleCommand);
-                ModuleInfoTextBox(moduleList[0]);
-            }
-            pen.Dispose();
         }
 
         private void ModuleInfoTextBox(ModuleListEntry module)
@@ -172,13 +143,13 @@ namespace DMEEView1
             InfoTextBox.Text += "Module List Entries Count: " + moduleList.Count;
         }
 
-        private void DrawCropMark(Graphics gs, Pen pen, PointF center)
+        private void DrawCropMark(Graphics gr, Pen pen, PointF center)
         {
-            gs.DrawLine(pen, center.X - 5, center.Y, center.X + 5, center.Y);
-            gs.DrawLine(pen, center.X, center.Y - 5, center.X, center.Y + 5);
+            gr.DrawLine(pen, center.X - 5, center.Y, center.X + 5, center.Y);
+            gr.DrawLine(pen, center.X, center.Y - 5, center.X, center.Y + 5);
         }
 
-        private void PaintDcModule(Graphics gs, DcModule moduleCommand)
+        private void PaintDcModule(Graphics gr, DcModule moduleCommand)
         {
             Point pt1 = new Point();
             Point pt2 = new Point();
@@ -190,11 +161,11 @@ namespace DMEEView1
             List<DcDrawItem> drawList = moduleList[moduleCommand.moduleListIndex].drawList;
             float scaleFactor = moduleCommand.scaleFactor;
 
-            GraphicsState gsSaved = gs.Save();
+            GraphicsState gsSaved = gr.Save();
 
             if (scaleFactor > 1.0F) // set scale factor
             {
-                gs.ScaleTransform(scaleFactor, scaleFactor);
+                gr.ScaleTransform(scaleFactor, scaleFactor);
             }
 
             // transform location
@@ -212,7 +183,7 @@ namespace DMEEView1
                         PointF arcCenter = new PointF(dArc.centerX + x, -dArc.centerY - y);
                         PointF p1 = new PointF(dArc.X1 + x, -dArc.Y1 - y);
                         PointF p2 = new PointF(dArc.X2 + x, -dArc.Y2 - y);
-                        DcDrawArc(gs, pen, arcCenter, p1, p2);
+                        DcDrawArc(gr, pen, arcCenter, p1, p2);
                         break;
 
                     case DcItemType.bus:
@@ -223,7 +194,7 @@ namespace DMEEView1
                         pt2.Y = Convert.ToInt32(-dBus.Y2 - y);
                         savedPen = (Pen)pen.Clone();
                         pen.Width = dBus.width;
-                        gs.DrawLine(pen, pt1, pt2);
+                        gr.DrawLine(pen, pt1, pt2);
                         pen = savedPen;
                         break;
 
@@ -237,7 +208,7 @@ namespace DMEEView1
                         float radius = (float) Math.Sqrt( Math.Pow(ptf1.X - ptf2.X, 2) + Math.Pow(ptf1.Y - ptf2.Y, 2));
                         float diameter = 2F * radius;
                         float center = ptf1.X;
-                        gs.DrawEllipse(pen, center - radius, ptf1.Y - radius, diameter, diameter);
+                        gr.DrawEllipse(pen, center - radius, ptf1.Y - radius, diameter, diameter);
                         break;
 
                     case DcItemType.drawing:
@@ -250,7 +221,7 @@ namespace DMEEView1
                         pt1.Y = Convert.ToInt32(-dLine.Y1 - y);
                         pt2.X = Convert.ToInt32(dLine.X2*mirror + x);
                         pt2.Y = Convert.ToInt32(-dLine.Y2 - y);
-                        gs.DrawLine(pen, pt1, pt2);
+                        gr.DrawLine(pen, pt1, pt2);
                         break;
 
                     case DcItemType.module:
@@ -262,7 +233,7 @@ namespace DMEEView1
                         // draw the module at specified location with given scalefactor
                         float mScaleFactor = dModule.scaleFactor;
                         PointF mLocation = new PointF(dModule.X1, dModule.Y1);
-                        PaintDcModule(gs, dModule);
+                        PaintDcModule(gr, dModule);
                         break;
 
                     case DcItemType.pin:
@@ -271,7 +242,7 @@ namespace DMEEView1
                         // draw a small square to identify the pin location.
                         float width = pen.Width; // save width
                         pen.Width = 0.5F;
-                        gs.DrawRectangle(pen, (dPin.X1)*mirror -2 + x, -(dPin.Y1 + y + 2), 4, 4);
+                        gr.DrawRectangle(pen, (dPin.X1)*mirror -2 + x, -(dPin.Y1 + y + 2), 4, 4);
                         pen.Width = width;  // restore width
                         break;
 
@@ -280,7 +251,7 @@ namespace DMEEView1
 
                     case DcItemType.text:
                         DcText dct = (DcText)drawList[i];
-                        DcDrawText(gs, pen, dct, x, y);
+                        DcDrawText(gr, pen, dct, x, y);
                         break;
 
                     case DcItemType.wire:
@@ -289,7 +260,7 @@ namespace DMEEView1
                         pt1.Y = Convert.ToInt32(-dWire.Y1 - y);
                         pt2.X = Convert.ToInt32(dWire.X2 + x);
                         pt2.Y = Convert.ToInt32(-dWire.Y2 - y);
-                        gs.DrawLine(pen, pt1, pt2);
+                        gr.DrawLine(pen, pt1, pt2);
                         break;
 
                     case DcItemType.undefined:
@@ -300,29 +271,18 @@ namespace DMEEView1
                 }
             }
             pen.Dispose();
-            gs.Restore(gsSaved);
+            gr.Restore(gsSaved);
         }
 
-        private void DcDrawText(Graphics gs, Pen pen1, DcText dct, float x, float y)
+        private void DcDrawText(Graphics gr, Pen pen, DcText dct, float x, float y)
         {
-            System.Drawing.PointF pt = new System.Drawing.PointF
-            {
-                X = Convert.ToInt32(dct.X1) + x,
-                Y = Convert.ToInt32(-dct.Y1) - y
-            };
+            FontFamily fontFamily = new FontFamily("MS GOTHIC");
             string text = dct.dcStr.strText;
             text = text.TrimStart('#');
-
-            Color color = pen1.Color;
-
-            FontFamily fontFamily = new FontFamily("MS GOTHIC");
-
             // Calculate font scale factor
             float fontSize = 10.5F * dct.scaleFactor / 0.039063F;
-
             Font the_font = new Font(fontFamily, fontSize);
-            SizeF textSize = gs.MeasureString(text, the_font);
-
+            SizeF textSize = gr.MeasureString(text, the_font);
             float ascent = the_font.FontFamily.GetCellAscent(FontStyle.Regular);
             float descent = the_font.FontFamily.GetCellDescent(FontStyle.Regular);
             float emHeight = the_font.FontFamily.GetEmHeight(FontStyle.Regular);
@@ -330,72 +290,18 @@ namespace DMEEView1
             float cellHeightPixel = the_font.Size * cellHeight / emHeight;
             float sizeInPoints = the_font.SizeInPoints;  // = emHeight in points
 
-            if (dct.rotation != 0)
-            {
-                DrawRotatedTextAt(gs, -dct.rotation, text, (int)(pt.X), (int)(pt.Y), the_font, new SolidBrush(color));
-            }
-            else
-            {
-                pt.Y -= (cellHeightPixel);
-                gs.DrawString(text, the_font, new SolidBrush(color), pt);
-            }
-        }
+            GraphicsState grSaved = gr.Save();
+            PointF pt = new PointF(0, 0);
 
-        private float DegreesToRadians(float degrees)
-        {
-            return (degrees * (float)Math.PI / 180F);
-        }
+            gr.ScaleTransform(1, -1);
+            gr.TranslateTransform(dct.X1 + x, dct.Y1 + y);
+            gr.ScaleTransform(1, -1); // undo flip
 
-        private float RadiansToDegrees(float radians)
-        {
-            return (180F * radians / (float)Math.PI);
-        }
+            gr.RotateTransform(-dct.rotation);
+            pt.Y -= (cellHeightPixel);
+            gr.DrawString(text, the_font, pen.Brush, pt);
 
-        // Draw a rotated string at specified location for the text origin.
-        // This routine assume the text's origin is specified at the lower lefthand corner of the text's box
-        // instead of the Microsoft way of having the origin in the upper left corner.
-        private void DrawRotatedTextAt(Graphics gr, float angle,
-            string txt, float x, float y, Font the_font, Brush the_brush)
-        {
-            Pen pen = new Pen(the_brush);
-
-            float ascent = the_font.FontFamily.GetCellAscent(FontStyle.Regular);
-            float descent = the_font.FontFamily.GetCellDescent(FontStyle.Regular);
-            float emHeight = the_font.FontFamily.GetEmHeight(FontStyle.Regular);
-            float cellHeight = ascent + descent;
-            float cellHeightPixel = the_font.Size * cellHeight / emHeight;
-
-            // Save the graphics state.
-            GraphicsState state = gr.Save();
-
-            Matrix transMatrix = gr.Transform;  // get the scaling factors from the transform matrix
-            float scaleX = transMatrix.Elements[0];
-            float scaleY = transMatrix.Elements[3];
-            transMatrix.Dispose();
-
-            y -= cellHeightPixel;   // adjust the y position to put the text origin at the lower lefthand corner
-
-            // Translate the origin to be at the target x, y position.
-            // Append the translations so they occur after the rotation.
-            // The translation needs to have the input parameters 'manually' scaled since the scaling
-            // factors in the translation matrix are not applied to the TranslateTransform
-            // input parameters themselves.
-            gr.TranslateTransform(scaleX * x, scaleY * y, MatrixOrder.Append);
-
-            if (angle != 0)
-            {
-                float CosAngle = (float)Math.Cos(DegreesToRadians(angle));
-                float SinAngle = (float)Math.Sin(DegreesToRadians(angle));
-                gr.TranslateTransform(SinAngle * cellHeightPixel, (1 - CosAngle) * cellHeightPixel);
-            }
-
-            // Rotate.
-            gr.RotateTransform(angle);
-
-            gr.DrawString(txt, the_font, the_brush, 0, 0);
-
-            // Restore the graphics state.
-            gr.Restore(state);
+            gr.Restore(grSaved);
         }
 
         private static float DcDrawArc(Graphics gr, Pen pen, PointF centerPt, PointF p1, PointF p2)
@@ -1187,6 +1093,57 @@ namespace DMEEView1
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             Properties.Settings.Default.Save();
+        }
+
+        private void DrawPictureBox_Paint(object sender, PaintEventArgs e)
+        {
+            Graphics gr = e.Graphics;
+            ModuleListEntry module = moduleList[0];
+            float biggestX = module.stats.biggestX;
+            float biggestY = module.stats.biggestY;
+            float smallestX = module.stats.smallestX;
+            float smallestY = module.stats.smallestY;
+            float dpiX = gr.DpiX;
+            float dpiY = gr.DpiY;
+            int windowWidth = this.Width;
+            int windowHeight = this.Height;
+
+            //Create pen objects
+            Pen pen = new Pen(Color.Black);
+
+            gr.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+            if (ZoomFactor >= 1.0F)
+            {
+                gr.SmoothingMode = SmoothingMode.AntiAlias;
+                gr.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            }
+
+            if (modulesLoaded)
+            {
+                DrawPictureBox.Width = (int)(ZoomFactor * (250 + moduleList[0].stats.biggestX - moduleList[0].stats.smallestX));
+                DrawPictureBox.Height = (int)(80 + ZoomFactor * (moduleList[0].stats.biggestY - moduleList[0].stats.smallestY));
+
+                gr.TranslateTransform(25F - smallestX, biggestY + 80F / ZoomFactor); // Move the origin "down".
+                gr.ScaleTransform(ZoomFactor, ZoomFactor, MatrixOrder.Append);
+
+                pen.Width = 1;
+
+                // draw crossed lines at origin
+                pen.Color = Color.Red;
+                DrawCropMark(gr, pen, new PointF(topModuleCommand.X1, topModuleCommand.Y1));
+                DrawCropMark(gr, pen, new PointF(biggestX, -biggestY));
+
+                PaintDcModule(gr, topModuleCommand);
+                ModuleInfoTextBox(moduleList[0]);
+            }
+            pen.Dispose();
+        }
+
+        private void MainForm_Resize(object sender, EventArgs e)
+        {
+            DrawPanel.Location = new Point(0, menuStrip1.Height);
+            DrawPanel.Width = this.Width - 40;
+            DrawPanel.Height = this.Height - menuStrip1.Height - 40;
         }
     }
 }

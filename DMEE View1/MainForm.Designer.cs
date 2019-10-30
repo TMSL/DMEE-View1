@@ -52,7 +52,11 @@
             this.printDocument1 = new System.Drawing.Printing.PrintDocument();
             this.printDialog1 = new System.Windows.Forms.PrintDialog();
             this.pageSetupDialog1 = new System.Windows.Forms.PageSetupDialog();
+            this.DrawPanel = new System.Windows.Forms.Panel();
+            this.DrawPictureBox = new System.Windows.Forms.PictureBox();
             this.menuStrip1.SuspendLayout();
+            this.DrawPanel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.DrawPictureBox)).BeginInit();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -230,13 +234,31 @@
             // 
             this.printDialog1.UseEXDialog = true;
             // 
+            // DrawPanel
+            // 
+            this.DrawPanel.AutoScroll = true;
+            this.DrawPanel.BackColor = System.Drawing.Color.Transparent;
+            this.DrawPanel.Controls.Add(this.DrawPictureBox);
+            this.DrawPanel.Location = new System.Drawing.Point(0, 28);
+            this.DrawPanel.Name = "DrawPanel";
+            this.DrawPanel.Size = new System.Drawing.Size(200, 100);
+            this.DrawPanel.TabIndex = 7;
+            // 
+            // DrawPictureBox
+            // 
+            this.DrawPictureBox.Location = new System.Drawing.Point(13, 4);
+            this.DrawPictureBox.Name = "DrawPictureBox";
+            this.DrawPictureBox.Size = new System.Drawing.Size(100, 50);
+            this.DrawPictureBox.TabIndex = 0;
+            this.DrawPictureBox.TabStop = false;
+            this.DrawPictureBox.Paint += new System.Windows.Forms.PaintEventHandler(this.DrawPictureBox_Paint);
+            // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.AutoScroll = true;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(900, 450);
+            this.Controls.Add(this.DrawPanel);
             this.Controls.Add(this.HideNShowInfoButton);
             this.Controls.Add(this.InfoTextBox);
             this.Controls.Add(this.DrawFileButton);
@@ -248,8 +270,11 @@
             this.Text = "DMEE View";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Paint += new System.Windows.Forms.PaintEventHandler(this.MainForm_Paint);
+            this.Resize += new System.EventHandler(this.MainForm_Resize);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
+            this.DrawPanel.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.DrawPictureBox)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -281,6 +306,8 @@
         private System.Windows.Forms.PrintDialog printDialog1;
         private System.Windows.Forms.PageSetupDialog pageSetupDialog1;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuPageSetup;
+        private System.Windows.Forms.Panel DrawPanel;
+        private System.Windows.Forms.PictureBox DrawPictureBox;
     }
 }
 
