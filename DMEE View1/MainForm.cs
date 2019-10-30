@@ -175,14 +175,17 @@ namespace DMEEView1
 
             for (int i = 0; i < drawList.Count; i++)
             {
-                int mirror = 1;
+                GraphicsState grSaved = gr.Save();
                 switch (drawList[i].Type)
                 {
                     case DcItemType.arc:
                         DcArc dArc = (DcArc)drawList[i];
-                        PointF arcCenter = new PointF(dArc.centerX + x, -dArc.centerY - y);
-                        PointF p1 = new PointF(dArc.X1 + x, -dArc.Y1 - y);
-                        PointF p2 = new PointF(dArc.X2 + x, -dArc.Y2 - y);
+                        gr.ScaleTransform(1, -1);
+                        gr.TranslateTransform(x, y);
+                        gr.RotateTransform(moduleCommand.rotation);
+                        PointF arcCenter = new PointF(dArc.centerX, dArc.centerY);
+                        PointF p1 = new PointF(dArc.X1, dArc.Y1);
+                        PointF p2 = new PointF(dArc.X2, dArc.Y2);
                         DcDrawArc(gr, pen, arcCenter, p1, p2);
                         break;
 
@@ -200,11 +203,13 @@ namespace DMEEView1
 
                     case DcItemType.circle:
                         DcCircle dCircle = (DcCircle)drawList[i];
-                        if (moduleCommand.rotation == 180) mirror = -1;
-                        ptf1.X = Convert.ToSingle(dCircle.X1*mirror + x);
-                        ptf1.Y = Convert.ToSingle(-dCircle.Y1 - y);
-                        ptf2.X = Convert.ToSingle(dCircle.X2*mirror + x);
-                        ptf2.Y = Convert.ToSingle(-dCircle.Y2 - y);
+                        gr.ScaleTransform(1, -1);
+                        gr.TranslateTransform(x, y);
+                        gr.RotateTransform(moduleCommand.rotation);
+                        ptf1.X = Convert.ToSingle(dCircle.X1);
+                        ptf1.Y = Convert.ToSingle(dCircle.Y1);
+                        ptf2.X = Convert.ToSingle(dCircle.X2);
+                        ptf2.Y = Convert.ToSingle(dCircle.Y2);
                         float radius = (float) Math.Sqrt( Math.Pow(ptf1.X - ptf2.X, 2) + Math.Pow(ptf1.Y - ptf2.Y, 2));
                         float diameter = 2F * radius;
                         float center = ptf1.X;
@@ -216,11 +221,13 @@ namespace DMEEView1
 
                     case DcItemType.line:
                         DcLine dLine = (DcLine)drawList[i];
-                        if (moduleCommand.rotation == 180) mirror = -1;
-                        pt1.X = Convert.ToInt32(dLine.X1*mirror + x);
-                        pt1.Y = Convert.ToInt32(-dLine.Y1 - y);
-                        pt2.X = Convert.ToInt32(dLine.X2*mirror + x);
-                        pt2.Y = Convert.ToInt32(-dLine.Y2 - y);
+                        gr.ScaleTransform(1, -1);
+                        gr.TranslateTransform(x, y);
+                        gr.RotateTransform(moduleCommand.rotation);
+                        pt1.X = Convert.ToInt32(dLine.X1);
+                        pt1.Y = Convert.ToInt32(dLine.Y1);
+                        pt2.X = Convert.ToInt32(dLine.X2);
+                        pt2.Y = Convert.ToInt32(dLine.Y2);
                         gr.DrawLine(pen, pt1, pt2);
                         break;
 
@@ -238,11 +245,14 @@ namespace DMEEView1
 
                     case DcItemType.pin:
                         DcPin dPin = (DcPin)drawList[i];
-                        if (moduleCommand.rotation == 180) mirror = -1;
                         // draw a small square to identify the pin location.
+                        gr.ScaleTransform(1, -1);
+                        gr.TranslateTransform(x, y);
+                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
+                        gr.RotateTransform(moduleCommand.rotation);
                         float width = pen.Width; // save width
                         pen.Width = 0.5F;
-                        gr.DrawRectangle(pen, (dPin.X1)*mirror -2 + x, -(dPin.Y1 + y + 2), 4, 4);
+                        gr.DrawRectangle(pen, dPin.X1-2, dPin.Y1-2, 4, 4);
                         pen.Width = width;  // restore width
                         break;
 
@@ -250,16 +260,22 @@ namespace DMEEView1
                         break;
 
                     case DcItemType.text:
+                        gr.ScaleTransform(1, -1);
+                        gr.TranslateTransform(x, y);
+                        gr.RotateTransform(moduleCommand.rotation);
                         DcText dct = (DcText)drawList[i];
-                        DcDrawText(gr, pen, dct, x, y);
+                        DcDrawText(gr, pen, dct);
                         break;
 
                     case DcItemType.wire:
                         DcWire dWire = (DcWire)drawList[i];
-                        pt1.X = Convert.ToInt32(dWire.X1 + x);
-                        pt1.Y = Convert.ToInt32(-dWire.Y1 - y);
-                        pt2.X = Convert.ToInt32(dWire.X2 + x);
-                        pt2.Y = Convert.ToInt32(-dWire.Y2 - y);
+                        gr.ScaleTransform(1, -1);
+                        gr.TranslateTransform(x, y);
+                        gr.RotateTransform(moduleCommand.rotation);
+                        pt1.X = Convert.ToInt32(dWire.X1);
+                        pt1.Y = Convert.ToInt32(dWire.Y1);
+                        pt2.X = Convert.ToInt32(dWire.X2);
+                        pt2.Y = Convert.ToInt32(dWire.Y2);
                         gr.DrawLine(pen, pt1, pt2);
                         break;
 
@@ -269,12 +285,13 @@ namespace DMEEView1
                     default:
                         break;
                 }
+                gr.Restore(grSaved);
             }
             pen.Dispose();
             gr.Restore(gsSaved);
         }
 
-        private void DcDrawText(Graphics gr, Pen pen, DcText dct, float x, float y)
+        private void DcDrawText(Graphics gr, Pen pen, DcText dct)
         {
             FontFamily fontFamily = new FontFamily("MS GOTHIC");
             string text = dct.dcStr.strText.TrimStart('#');
@@ -284,9 +301,9 @@ namespace DMEEView1
             Font the_font = new Font(fontFamily, fontSize);
             GraphicsState grSaved = gr.Save();
 
-            gr.ScaleTransform(1, -1);
-            gr.TranslateTransform(dct.X1 + x, dct.Y1 + y);
-            gr.ScaleTransform(1, -1); // undo flip
+            //gr.ScaleTransform(1, -1);
+            gr.TranslateTransform(dct.X1, dct.Y1);
+            gr.ScaleTransform(1, -1); // undo Y flip
 
             gr.RotateTransform(-dct.rotation);
             gr.DrawString(text, the_font, pen.Brush, new PointF(0,0-fontSize));
@@ -310,15 +327,16 @@ namespace DMEEView1
             float endAngle2 = (float)((180 / Math.PI) * Math.Atan2(p2.Y - centerPt.Y, p2.X - centerPt.X));
 
             // Draw the arc
-            gr.DrawArc(pen, x, y, width, height, startAngle2, endAngle2 - startAngle2);
+            if (endAngle2 - startAngle2 > 0)
+            {
+                gr.DrawArc(pen, x, y, width, height, startAngle2, endAngle2 - startAngle2);
+            }
+            else
+            {
+                gr.DrawArc(pen, x, y, width, height, startAngle2, startAngle2 - endAngle2);
+            }
 
             return radius;
-        }
-
-        private static void DrawCross(Graphics gr, Pen pen, PointF point)
-        {
-            gr.DrawLine(pen, point.X - 5, point.Y, point.X + 5, point.Y);
-            gr.DrawLine(pen, point.X, point.Y - 5, point.X, point.Y + 5);
         }
 
         private enum DcItemType { arc, bus, circle, drawing, line, module, pin, str, text, wire, undefined };
@@ -445,7 +463,7 @@ namespace DMEEView1
             public float Y1 = 0;            // [3] Y coordinate (offset) to place module's origin
             public float scaleFactor = 0;   // [4]
             public float rotation = 0;      // [5] Rotation in degrees
-            public int flip = 0;            // 0 = no flip, 1 = flip ??????
+            public int mirror = 0;          // [6] 0 = no mirror, 1 = mirror (horizontal mirror) ??????
             public string name = "";        // [7]
             public int unk8 = 0;
             public int unk9 = 0;
@@ -689,6 +707,7 @@ namespace DMEEView1
                         Y1 = Convert.ToSingle(fields[3]),
                         scaleFactor = Convert.ToSingle(fields[4]),
                         rotation = Convert.ToSingle(fields[5]),
+                        mirror = Convert.ToInt16(fields[6]),
                         name = Convert.ToString(fields[7])
                     };
                     module.stats.moduleItemCount++;
