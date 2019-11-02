@@ -669,7 +669,7 @@ namespace DMEEView1
         }
 
         private DcCommand.CommandType ParseDcCommandLine(ref DcCommand.CommandType prevCommandType, ref string line,
-                                              ref ModuleListEntry module, DcModule parentModule)
+                                              ref ModuleListEntry module, DcModule parentModuleCommand)
         {
             DcCommand.CommandType commandType = DcCommand.CommandType.undefined;         
             string[] fields;
@@ -782,6 +782,8 @@ namespace DMEEView1
                     InfoTextBox.Text += (rawLine + crlf);
                     DcModule dcModule = new DcModule()  // CREATE COMMAND OBJECT FOR MODULE
                     {
+                        parentRotation = parentModuleCommand.rotation + parentModuleCommand.parentRotation,
+                        parentScaleFactor = parentModuleCommand.scaleFactor * parentModuleCommand.parentScaleFactor,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
@@ -817,7 +819,7 @@ namespace DMEEView1
                     drawList.Add(dcModule);
 
                     Console.Write("module command - name: " + dcModule.name + " \t");
-                    if (dcModule.name.Length < 7) Console.Write("\t");
+                    if (dcModule.name.Length < 8) Console.Write("\t");
                     if (dcModule.name.Length < 4) Console.Write("\t");
                     Console.Write("parent rotation: " + dcModule.parentRotation + " ");
                     Console.Write("parent scale factor: " + dcModule.parentScaleFactor + " ");
