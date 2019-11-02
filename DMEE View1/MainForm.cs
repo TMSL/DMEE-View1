@@ -366,20 +366,24 @@ namespace DMEEView1
 
         private class DcCommand  // base class for the draw command classes
         {
-            public CommandType commandType = CommandType.undefined;
+            protected CommandType _cmdType = CommandType.undefined;
+            public CommandType commandType
+            {
+                get => _cmdType;
+            }
             public enum CommandType { arc, bus, circle, drawing, line, module, net, pin, str, text, wire, undefined };
         }
 
         //Arc (a) - e.g. "a  6 -38.641014 10 -4 -10 -4 30"
-        // Draw arc given coordinates of the center of a circle and two points on the circle that define the arc.
-        // Calculating the coordinates of the center given two arbitrary points and a radius is an interesting problem
-        // for the software that generates the file. Fortunately, it's fairly straightforward to draw the arc once 
-        // the points have been calculated.
+        // Command to draw an arc using coordinates of the center of a circle and two points on the circle to define the arc.
+        //      Aside: Calculating the coordinates of the center given two arbitrary points and a radius is an interesting problem
+        //      for the software that generates the file. Fortunately, it's fairly straightforward to draw the arc once 
+        //      the points have been calculated.
         private class DcArc : DcCommand
         {
             public DcArc()
             {
-                commandType = CommandType.arc;
+                _cmdType = CommandType.arc;
             }
             public int color = 0;      // [1]
             public float centerX = 0;  // [2]
@@ -395,7 +399,7 @@ namespace DMEEView1
         {
             public DcBus()
             {
-                commandType = CommandType.bus;
+                _cmdType = CommandType.bus;
             }
 
             public int color = 0;       // [1]
@@ -413,7 +417,7 @@ namespace DMEEView1
         {
             public DcPin()
             {
-                commandType = CommandType.pin;
+                _cmdType = CommandType.pin;
             }
             public int color = 0;       // [1]
             public float X1 = 0;        // [2]
@@ -429,7 +433,7 @@ namespace DMEEView1
         {
             public DcLine()
             {
-                commandType = CommandType.line;
+                _cmdType = CommandType.line;
             }
 
             public int color = 0;       // [1]
@@ -446,7 +450,7 @@ namespace DMEEView1
         {
             public DcWire()
             {
-                commandType = CommandType.wire;
+                _cmdType = CommandType.wire;
             }
 
             public int color = 0;       // [1]
@@ -466,7 +470,7 @@ namespace DMEEView1
         {
             public DcText()
             {
-                commandType = CommandType.text;
+                _cmdType = CommandType.text;
             }
 
             public int color = 0;           // [1]
@@ -488,7 +492,7 @@ namespace DMEEView1
         {
             public DcString()
             {
-                commandType = CommandType.str;
+                _cmdType = CommandType.str;
             }
             public int unk1 = 0;
             public int unk2 = 0;
@@ -501,7 +505,7 @@ namespace DMEEView1
         {
             public DcCircle()
             {
-                commandType = CommandType.circle;
+                _cmdType = CommandType.circle;
             }
 
             public int color = 0;       // color or layer
@@ -515,7 +519,7 @@ namespace DMEEView1
         {
             public DcNet()
             {
-                commandType = CommandType.net;
+                _cmdType = CommandType.net;
             }
             public string name = "-unassigned-";
             public int number = 0;
@@ -530,7 +534,7 @@ namespace DMEEView1
         {
             public DcModule()
             {
-                commandType = CommandType.module;
+                _cmdType = CommandType.module;
             }
             public int moduleListIndex = -1;    // index to entry for module in moduleList
             public float parentScaleFactor = 1; // Module scale factor from parent module
@@ -621,7 +625,7 @@ namespace DMEEView1
             string fname = module.fileName;
             DcCommand.CommandType prevCommandType = DcCommand.CommandType.undefined;
             DcModule parentModuleCommand = new DcModule();
-            parentModuleCommand.commandType = DcCommand.CommandType.module;
+            //parentModuleCommand.commandType = DcCommand.CommandType.module;
             string line;
             FileStream file;
             long endPos = 0;
@@ -710,7 +714,6 @@ namespace DMEEView1
                 case DcCommand.CommandType.arc:
                     DcArc dArc = new DcArc()
                     {
-                        commandType = DcCommand.CommandType.arc,
                         color = Convert.ToInt16(fields[1]),
                         centerX = Convert.ToSingle(fields[2]),
                         centerY = Convert.ToSingle(fields[3]),
@@ -725,7 +728,6 @@ namespace DMEEView1
                 case DcCommand.CommandType.bus:
                     DcBus dBus = new DcBus()
                     {
-                        commandType = DcCommand.CommandType.bus,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
@@ -739,7 +741,6 @@ namespace DMEEView1
                 case DcCommand.CommandType.circle:
                     DcCircle dcCircle = new DcCircle
                     {
-                        commandType = DcCommand.CommandType.circle,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
@@ -753,7 +754,6 @@ namespace DMEEView1
                     InfoTextBox.Text += rawLine + crlf;
                     DcDrawing dcDrawing = new DcDrawing()
                     {
-                        commandType = DcCommand.CommandType.drawing,
                         version = Convert.ToSingle(fields[1]),
                         X1 = Convert.ToSingle(fields[3]),
                         Y1 = Convert.ToSingle(fields[4]),
@@ -766,7 +766,6 @@ namespace DMEEView1
                 case DcCommand.CommandType.line:
                     DcLine dcLine = new DcLine
                     {
-                        commandType = DcCommand.CommandType.line,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
@@ -784,7 +783,6 @@ namespace DMEEView1
                     InfoTextBox.Text += (rawLine + crlf);
                     DcModule dcModule = new DcModule()  // CREATE COMMAND OBJECT FOR MODULE
                     {
-                        commandType = DcCommand.CommandType.module,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
@@ -823,7 +821,6 @@ namespace DMEEView1
                 case DcCommand.CommandType.pin:
                     DcPin dcPin = new DcPin()
                     {
-                        commandType = DcCommand.CommandType.pin,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3])
@@ -836,7 +833,6 @@ namespace DMEEView1
                 case DcCommand.CommandType.str:
                     DcString dcStr = new DcString
                     {
-                        commandType = DcCommand.CommandType.str,
                         unk1 = Convert.ToInt16(fields[1]),
                         unk2 = Convert.ToInt16(fields[2]),
                         strText = fieldStr
@@ -874,7 +870,6 @@ namespace DMEEView1
                 case DcCommand.CommandType.text:
                     DcText dcText = new DcText
                     {
-                        commandType = DcCommand.CommandType.text,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
@@ -895,7 +890,6 @@ namespace DMEEView1
                 case DcCommand.CommandType.wire:
                     DcWire dcWire = new DcWire
                     {
-                        commandType = DcCommand.CommandType.wire,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
