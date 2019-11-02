@@ -89,7 +89,7 @@ namespace DMEEView1
             topModuleCommand.name = topFileName;
 
             Screen activeScreen = Screen.FromControl(this);
-            Console.WriteLine("Screen size: " + activeScreen.Bounds.Width + " x " + activeScreen.Bounds.Height);
+            // Console.WriteLine("Screen size: " + activeScreen.Bounds.Width + " x " + activeScreen.Bounds.Height);
 
             // First, set the height and width of the window to the 11 x 17 aspect ratio
             // where the window height is 95% of the screen height
@@ -362,7 +362,7 @@ namespace DMEEView1
             return radius;
         }
 
-        // ============ DC OMMAND CLASS DEFINITIONS ===================
+        // ============ DC COMMAND CLASS DEFINITIONS ===================
 
         private class DcCommand  // base class for the draw command classes
         {
@@ -371,7 +371,7 @@ namespace DMEEView1
             {
                 get => _cmdType;
             }
-            public enum CommandType { arc, bus, circle, drawing, line, module, net, pin, str, text, wire, undefined };
+            public enum CommandType { arc, bus, circle, drawing, line, module, net, pin, route, str, text, wire, undefined };
         }
 
         //Arc (a) - e.g. "a  6 -38.641014 10 -4 -10 -4 30"
@@ -625,7 +625,6 @@ namespace DMEEView1
             string fname = module.fileName;
             DcCommand.CommandType prevCommandType = DcCommand.CommandType.undefined;
             DcModule parentModuleCommand = new DcModule();
-            //parentModuleCommand.commandType = DcCommand.CommandType.module;
             string line;
             FileStream file;
             long endPos = 0;
@@ -816,6 +815,16 @@ namespace DMEEView1
 
                     // Lastly, add module command to present drawlist
                     drawList.Add(dcModule);
+
+                    Console.Write("module command - name: " + dcModule.name + " \t");
+                    if (dcModule.name.Length < 7) Console.Write("\t");
+                    if (dcModule.name.Length < 4) Console.Write("\t");
+                    Console.Write("parent rotation: " + dcModule.parentRotation + " ");
+                    Console.Write("parent scale factor: " + dcModule.parentScaleFactor + " ");
+                    Console.Write("\tmodule rotation: " + dcModule.rotation + " ");
+                    if (dcModule.rotation < 10) Console.Write("\t");
+                    Console.WriteLine("\tmodule scale factor: " + dcModule.scaleFactor);
+
                     break;
 
                 case DcCommand.CommandType.pin:
@@ -1240,7 +1249,7 @@ namespace DMEEView1
 
                 gr.DrawLine(pen, 50, 50, 200, 50);
                 gr.TranslateTransform(0, ZoomFactor * (shiftY)); // Move the origin "down".
-                Console.WriteLine(shiftY);
+
                 //gr.ScaleTransform(DrawPanelScale, DrawPanelScale);
                 gr.ScaleTransform(0.90F, 0.90F);
                 gr.ScaleTransform(ZoomFactor, ZoomFactor);
