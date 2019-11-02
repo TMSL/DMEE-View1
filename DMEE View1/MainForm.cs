@@ -18,6 +18,7 @@ namespace DMEEView1
         string libraryFolder = "";
         string workingFolder = "";
         float ZoomFactor = 1;
+        float DrawPanelScale = 1;
         const string crlf = "\r\n";
         bool modulesLoaded = false;
 
@@ -32,7 +33,7 @@ namespace DMEEView1
             public bool fromLibrary = false;
             public string name = "";
             public string fileName = "";
-            public List<DcDrawItem> drawList = new List<DcDrawItem>();
+            public List<DcCommand> drawList = new List<DcCommand>();
             public ModuleStats stats = new ModuleStats();
         }
 
@@ -67,42 +68,56 @@ namespace DMEEView1
             public List<DictionaryEntry> entries = new List<DictionaryEntry>();
         }
 
-        private class DcDrawItem  // base class for the various draw command objects
-        {
-            public DcItemType Type = DcItemType.undefined;
-        }
-
         public FolderConfigForm folderConfigForm = new FolderConfigForm();
 
         public MainForm()
         {
             InitializeComponent();
             menuStrip1.Select();
+
+            this.printDocument.PrintPage += new PrintPageEventHandler(this.PrintDocument_PrintPage); // register callback for printing
             topFileName = Properties.Settings.Default.fileName;
-            textBox1.Text = topFileName;
+            TopFileNameTextBox.Text = topFileName;
 
             // created a module command on behalf of the top module
+            topModuleCommand.parentScaleFactor = 1.0F;
+            topModuleCommand.parentRotation = 0F;
             topModuleCommand.scaleFactor = 1.0F;
             topModuleCommand.X1 = 0;
             topModuleCommand.Y1 = 0;
             topModuleCommand.moduleListIndex = 0;
             topModuleCommand.name = topFileName;
 
-            this.Width = Convert.ToInt32(2250 * 0.55);
-            this.Height = Convert.ToInt32(1375 * 0.55);
+            Screen activeScreen = Screen.FromControl(this);
+            Console.WriteLine("Screen size: " + activeScreen.Bounds.Width + " x " + activeScreen.Bounds.Height);
 
+            // First, set the height and width of the window to the 11 x 17 aspect ratio
+            // where the window height is 95% of the screen height
+            this.Height = (int) (activeScreen.Bounds.Height * 0.95F);
+            this.Width = (int)(18F / 12F * this.Height);
+            this.CenterToScreen();
+
+            // Set the location and size of DrawPanel relative to form
             DrawPanel.Location = new Point(0, menuStrip1.Height);
-            DrawPanel.Width = this.Width-40;
-            DrawPanel.Height = this.Height - menuStrip1.Height - 40;
+            DrawPanel.Height = this.Height - menuStrip1.Height-40;
+            DrawPanel.Width = this.Width-20;
+
+            Graphics gr = CreateGraphics();
+
+            // Now calculate a scale factor that makes as 12" x 18" area fit in the window and then double it.
+            // This should make a 50% zoom factor fit the window nicely
             DrawPictureBox.Location = new Point(0, 0);
-            DrawPictureBox.Width = DrawPanel.Width-40;
-            DrawPictureBox.Height = DrawPanel.Height;
-            
+            DrawPictureBox.Height = (int)(12 * gr.DpiY);
+            DrawPictureBox.Width = (int)(18 * gr.DpiX);
+
+            // calculate scale factor based on fitting a 12" high image into the DrawPanel at 50% Zoom level
+            DrawPanelScale = 2F * (DrawPanel.Height / (float)DrawPictureBox.Height);
+
             if (Properties.Settings.Default.ShowInfo == true)
             {
                 HideNShowInfoButton.Text = "hide info";
                 InfoTextBox.Show();
-                
+
             }
             else
             {
@@ -158,7 +173,7 @@ namespace DMEEView1
             Pen pen = new Pen(Color.Black);
             Pen savedPen = new Pen(Color.Black);
             PointF location = new PointF(moduleCommand.X1, moduleCommand.Y1);
-            List<DcDrawItem> drawList = moduleList[moduleCommand.moduleListIndex].drawList;
+            List<DcCommand> drawList = moduleList[moduleCommand.moduleListIndex].drawList;
             float scaleFactor = moduleCommand.scaleFactor;
 
             GraphicsState gsSaved = gr.Save();
@@ -176,9 +191,9 @@ namespace DMEEView1
             for (int i = 0; i < drawList.Count; i++)
             {
                 GraphicsState grSaved = gr.Save();
-                switch (drawList[i].Type)
+                switch (drawList[i].commandType)
                 {
-                    case DcItemType.arc:
+                    case DcCommand.CommandType.arc:
                         DcArc dArc = (DcArc)drawList[i];
                         gr.ScaleTransform(1, -1);
                         gr.TranslateTransform(x, y);
@@ -190,19 +205,23 @@ namespace DMEEView1
                         DcDrawArc(gr, pen, arcCenter, p1, p2);
                         break;
 
-                    case DcItemType.bus:  // TBD: Finish updating rotation and mirror for handling bus commands, check mirror on other commands
+                    case DcCommand.CommandType.bus:
                         DcBus dBus = (DcBus)drawList[i];
-                        pt1.X = Convert.ToInt32(dBus.X1 + x);
-                        pt1.Y = Convert.ToInt32(-dBus.Y1 - y);
-                        pt2.X = Convert.ToInt32(dBus.X2 + x);
-                        pt2.Y = Convert.ToInt32(-dBus.Y2 - y);
+                        gr.ScaleTransform(1, -1);
+                        gr.TranslateTransform(x, y);
+                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
+                        gr.RotateTransform(moduleCommand.rotation);
+                        pt1.X = Convert.ToInt32(dBus.X1);
+                        pt1.Y = Convert.ToInt32(dBus.Y1);
+                        pt2.X = Convert.ToInt32(dBus.X2);
+                        pt2.Y = Convert.ToInt32(dBus.Y2);
                         savedPen = (Pen)pen.Clone();
                         pen.Width = dBus.width;
                         gr.DrawLine(pen, pt1, pt2);
                         pen = savedPen;
                         break;
 
-                    case DcItemType.circle:
+                    case DcCommand.CommandType.circle:
                         DcCircle dCircle = (DcCircle)drawList[i];
                         gr.ScaleTransform(1, -1);
                         gr.TranslateTransform(x, y);
@@ -212,16 +231,16 @@ namespace DMEEView1
                         ptf1.Y = Convert.ToSingle(dCircle.Y1);
                         ptf2.X = Convert.ToSingle(dCircle.X2);
                         ptf2.Y = Convert.ToSingle(dCircle.Y2);
-                        float radius = (float) Math.Sqrt( Math.Pow(ptf1.X - ptf2.X, 2) + Math.Pow(ptf1.Y - ptf2.Y, 2));
+                        float radius = (float)Math.Sqrt(Math.Pow(ptf1.X - ptf2.X, 2) + Math.Pow(ptf1.Y - ptf2.Y, 2));
                         float diameter = 2F * radius;
                         float center = ptf1.X;
                         gr.DrawEllipse(pen, center - radius, ptf1.Y - radius, diameter, diameter);
                         break;
 
-                    case DcItemType.drawing:
+                    case DcCommand.CommandType.drawing:
                         break;
 
-                    case DcItemType.line:
+                    case DcCommand.CommandType.line:
                         DcLine dLine = (DcLine)drawList[i];
                         gr.ScaleTransform(1, -1);
                         gr.TranslateTransform(x, y);
@@ -234,11 +253,11 @@ namespace DMEEView1
                         gr.DrawLine(pen, pt1, pt2);
                         break;
 
-                    case DcItemType.module:
+                    case DcCommand.CommandType.module:
                         DcModule dModule = (DcModule)drawList[i];
                         int mIndex = dModule.moduleListIndex;
                         // get drawlist for module from moduleList
-                        List<DcDrawItem> mDrawList;
+                        List<DcCommand> mDrawList;
                         mDrawList = moduleList[mIndex].drawList;
                         // draw the module at specified location with given scalefactor
                         float mScaleFactor = dModule.scaleFactor;
@@ -246,7 +265,7 @@ namespace DMEEView1
                         PaintDcModule(gr, dModule);
                         break;
 
-                    case DcItemType.pin:
+                    case DcCommand.CommandType.pin:
                         DcPin dPin = (DcPin)drawList[i];
                         // draw a small square to identify the pin location.
                         gr.ScaleTransform(1, -1);
@@ -255,14 +274,14 @@ namespace DMEEView1
                         gr.RotateTransform(moduleCommand.rotation);
                         float width = pen.Width; // save width
                         pen.Width = 0.5F;
-                        gr.DrawRectangle(pen, dPin.X1-2, dPin.Y1-2, 4, 4);
+                        gr.DrawRectangle(pen, dPin.X1 - 2, dPin.Y1 - 2, 4, 4);
                         pen.Width = width;  // restore width
                         break;
 
-                    case DcItemType.str:
+                    case DcCommand.CommandType.str:
                         break;
 
-                    case DcItemType.text:
+                    case DcCommand.CommandType.text:
                         gr.ScaleTransform(1, -1);
                         gr.TranslateTransform(x, y);
                         gr.RotateTransform(moduleCommand.rotation);
@@ -270,10 +289,11 @@ namespace DMEEView1
                         DcDrawText(gr, pen, dct);
                         break;
 
-                    case DcItemType.wire:
+                    case DcCommand.CommandType.wire:
                         DcWire dWire = (DcWire)drawList[i];
                         gr.ScaleTransform(1, -1);
                         gr.TranslateTransform(x, y);
+                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         pt1.X = Convert.ToInt32(dWire.X1);
                         pt1.Y = Convert.ToInt32(dWire.Y1);
@@ -282,7 +302,7 @@ namespace DMEEView1
                         gr.DrawLine(pen, pt1, pt2);
                         break;
 
-                    case DcItemType.undefined:
+                    case DcCommand.CommandType.undefined:
                         break;
 
                     default:
@@ -309,7 +329,7 @@ namespace DMEEView1
             gr.ScaleTransform(1, -1); // undo Y flip
 
             gr.RotateTransform(-dct.rotation);
-            gr.DrawString(text, the_font, pen.Brush, new PointF(0,0-fontSize));
+            gr.DrawString(text, the_font, pen.Brush, new PointF(0, 0 - fontSize));
 
             gr.Restore(grSaved);
         }
@@ -342,63 +362,93 @@ namespace DMEEView1
             return radius;
         }
 
-        private enum DcItemType { arc, bus, circle, drawing, line, module, pin, str, text, wire, undefined };
+        // ============ DC OMMAND CLASS DEFINITIONS ===================
 
-        private class DcArc : DcDrawItem
+        private class DcCommand  // base class for the draw command classes
         {
-            // Draw arc given coordinates of the center of a circle and two points on the circle that define the arc.
-            // Calculating the coordinates of the center given two arbitrary points and a radius is an interesting problem
-            // for the software that generates the file. Fortunately, it's fairly straightforward to draw the arc once 
-            // the points have been calculated.
-            public DcItemType recordType = DcItemType.arc;     //Arc (a) - e.g. "a  6 -38.641014 10 -4 -10 -4 30"
-            public int color = 0;
-            public float centerX = 0;
-            public float centerY = 0;
-            public float X1 = 0;
-            public float Y1 = 0;
-            public float X2 = 0;
-            public float Y2 = 0;
+            public CommandType commandType = CommandType.undefined;
+            public enum CommandType { arc, bus, circle, drawing, line, module, net, pin, str, text, wire, undefined };
         }
 
-        private class DcBus : DcDrawItem
+        //Arc (a) - e.g. "a  6 -38.641014 10 -4 -10 -4 30"
+        // Draw arc given coordinates of the center of a circle and two points on the circle that define the arc.
+        // Calculating the coordinates of the center given two arbitrary points and a radius is an interesting problem
+        // for the software that generates the file. Fortunately, it's fairly straightforward to draw the arc once 
+        // the points have been calculated.
+        private class DcArc : DcCommand
         {
-            public DcItemType recordType = DcItemType.bus;      //Bus (b) - e.g. "b  10 1810 1115 1810 400 0 2"
+            public DcArc()
+            {
+                commandType = CommandType.arc;
+            }
+            public int color = 0;      // [1]
+            public float centerX = 0;  // [2]
+            public float centerY = 0;  // [3]
+            public float X1 = 0;       // [4]
+            public float Y1 = 0;       // [5]
+            public float X2 = 0;       // [6]
+            public float Y2 = 0;       // [7]
+        }
+
+        //Bus (b) - e.g. "b  10 1810 1115 1810 400 0 2"
+        private class DcBus : DcCommand
+        {
+            public DcBus()
+            {
+                commandType = CommandType.bus;
+            }
+
             public int color = 0;       // [1]
             public float X1 = 0;        // [2]
             public float Y1 = 0;        // [3]
             public float X2 = 0;        // [4]
             public float Y2 = 0;        // [5]
-            public int unk1 = 0;        // [6]
-            public float width = 0;     // line weight??
+            public int unk1 = 0;        // [6] MIRROR?
+            public float width = 0;     // [7] line weight??
         }
 
-        private class DcPin : DcDrawItem
-        {   // a pin may have an associated s record. The record defines the pin number, e.g. s 1 0 #2
-            public DcItemType recordType = DcItemType.pin;     //Pin (p) - e.g. "p  15 60 10 60 10 1"
-            public int color = 0;
-            public float X1 = 0;
-            public float Y1 = 0;
-            public float unk1 = 0;
-            public float unk2 = 0;
-            public float unk3 = 0;
+        //Pin (p) - e.g. "p  15 60 10 60 10 1"
+        // a pin may have an associated s record. The record defines the pin number, e.g. s 1 0 #2
+        private class DcPin : DcCommand
+        {
+            public DcPin()
+            {
+                commandType = CommandType.pin;
+            }
+            public int color = 0;       // [1]
+            public float X1 = 0;        // [2]
+            public float Y1 = 0;        // [3]
+            public float unk1 = 0;      // [4]
+            public float unk2 = 0;      // [5]
+            public float unk3 = 0;      // [6] MIRROR?
             public string Text = "";
         }
 
-        private class DcLine : DcDrawItem
+        //Line (l)        
+        private class DcLine : DcCommand
         {
-            public DcItemType recordType = DcItemType.line;    //Line (l)
+            public DcLine()
+            {
+                commandType = CommandType.line;
+            }
+
             public int color = 0;       // [1]
-            public float X1 = 0;
-            public float Y1 = 0;
-            public float X2 = 0;
-            public float Y2 = 0;
-            public int unk1 = 0;        // I've found some 2.10 library modules that have only 6 fields for a line instead of seven (no unk2)
-            public int unk2 = 0;
+            public float X1 = 0;        // [2]
+            public float Y1 = 0;        // [3]
+            public float X2 = 0;        // [4]
+            public float Y2 = 0;        // [5]
+            public int unk6 = 0;        // [6] I've found some 2.10 library modules that have only 7 fields for a line instead of seven (no unk2)
+            public int unk7 = 0;        // [7]
         }
 
-        private class DcWire : DcDrawItem
+        //Wire (w)        
+        private class DcWire : DcCommand
         {
-            public DcItemType recordType = DcItemType.wire;    //Wire (w)
+            public DcWire()
+            {
+                commandType = CommandType.wire;
+            }
+
             public int color = 0;       // [1]
             public float X1 = 0;        // [2]
             public float Y1 = 0;        // [3]
@@ -406,40 +456,54 @@ namespace DMEEView1
             public float Y2 = 0;        // [5]
             public int unk1 = 0;        // [6]
             public int unk2 = 0;        // [7]
-            public int net = 0;         //Lines and wires are similar but lines do not include net and unk3 values
+            public int net = 0;         // [8]
             public int unk3 = 0;        // [9]
             public DcString dcStr = new DcString();
         }
 
-        private class DcText : DcDrawItem
+        //Text (t)
+        private class DcText : DcCommand
         {
-            public DcItemType recordType = DcItemType.text;     //Text (t)
-            public int color = 0;
-            public float X1 = 0;
-            public float Y1 = 0;
-            public float scaleFactor = 0;   // scaling factor for the font
-            public float rotation = 0;
-            public int unk6 = 0;            // [6]
+            public DcText()
+            {
+                commandType = CommandType.text;
+            }
+
+            public int color = 0;           // [1]
+            public float X1 = 0;            // [2]
+            public float Y1 = 0;            // [3]
+            public float scaleFactor = 0;   // [4] scaling factor for the font
+            public float rotation = 0;      // [5]
+            public int unk6 = 0;            // [6] MIRROR?
             public int unk7 = 0;            // [7]
             public DcString dcStr = new DcString();
         }
 
+        //String/symbol name (s)
         // String text fields in file begin with "#" immediately followed by the text
         // Strings are allowed to have spaces in them. Thus, encountering a # 'turns off'
         // use of <space> as a field delimiter for the remainder of the line.
         // # serves double-duty as start of a comment or comment line
-        private class DcString : DcDrawItem
+        private class DcString : DcCommand
         {
-            public DcItemType recordType = DcItemType.str;     // String/symbol name (s)
+            public DcString()
+            {
+                commandType = CommandType.str;
+            }
             public int unk1 = 0;
             public int unk2 = 0;
             public int unk3 = 0;
-            public string strText=""; 
+            public string strText = "";
         }
 
-        private class DcCircle : DcDrawItem
+        //Circle (c)
+        private class DcCircle : DcCommand
         {
-            public DcItemType recordType = DcItemType.circle;  //Circle (c)
+            public DcCircle()
+            {
+                commandType = CommandType.circle;
+            }
+
             public int color = 0;       // color or layer
             public float X1 = 0;
             public float Y1 = 0;
@@ -447,38 +511,47 @@ namespace DMEEView1
             public float Y2 = 0;
         }
 
-        private class DcNet : DcDrawItem
+        private class DcNet : DcCommand
         {
+            public DcNet()
+            {
+                commandType = CommandType.net;
+            }
             public string name = "-unassigned-";
             public int number = 0;
         }
 
-        private class DcModule : DcDrawItem //include Module (m)
-                                            // -- e.g. m  15 0 0 1.25 0 0 bsize 0 0 0 0 0
-                                            //         m  15 1900 725 1 180 1 iowire 0 0 0 1 1 // horizontally flipped
-                                            //         m  15 1675 765 1 180 1 ls125  0 0 0 1 1  // horizontally flipped
-                                            //         m  15 1070 670 1 90  0 r      0 0 0 1 1  // 90 rotated?
+        //include Module (m)
+        // -- e.g. m  15 0 0 1.25 0 0 bsize 0 0 0 0 0
+        //         m  15 1900 725 1 180 1 iowire 0 0 0 1 1 // horizontally flipped
+        //         m  15 1675 765 1 180 1 ls125  0 0 0 1 1  // horizontally flipped
+        //         m  15 1070 670 1 90  0 r      0 0 0 1 1  // 90 rotated
+        private class DcModule : DcCommand
         {
-            public DcItemType recordType = DcItemType.module; // [0] (m)
+            public DcModule()
+            {
+                commandType = CommandType.module;
+            }
             public int moduleListIndex = -1;    // index to entry for module in moduleList
+            public float parentScaleFactor = 1; // Module scale factor from parent module
+            public float parentRotation = 0;    // Module rotation from parent module
             public int color = 0;           // [1] color or layer
             public float X1 = 0;            // [2] X coordinate (offset) to place module's origin
             public float Y1 = 0;            // [3] Y coordinate (offset) to place module's origin
-            public float scaleFactor = 0;   // [4]
+            public float scaleFactor = 1;   // [4]
             public float rotation = 0;      // [5] Rotation in degrees
             public int mirror = 0;          // [6] 0 = no mirror, 1 = mirror (horizontal mirror) ??????
             public string name = "";        // [7]
-            public int unk8 = 0;
-            public int unk9 = 0;
-            public int unk10 = 0;
-            public int unk11 = 0;
-            public int unk12 = 0;
+            public int unk8 = 0;            // [8]
+            public int unk9 = 0;            // [9]
+            public int unk10 = 0;           // [10]
+            public int unk11 = 0;           // [11]
+            public int unk12 = 0;           // [12]
         }
 
-        private class DcDrawing : DcDrawItem    // (d) drawing / display -- e.g.
+        private class DcDrawing : DcCommand    // (d) drawing / display -- e.g.
                                                 //                   D2BLKDIA:   d  4.09 1  1751  588  1        0 0 0 0 0   5 0
         {                                       //                   CONN62.100: d  3.00 1 -1514 -131  0.291667 0 0 0 0 0 100 0
-            public DcItemType recordType = DcItemType.drawing;
             public float version = 0;       // [1]
             public int unk2 = 0;            // [2]
             public float X1 = 0;            // [3]
@@ -495,7 +568,7 @@ namespace DMEEView1
 
         private class DcLibEntry
         {
-            public string moduleName= "";
+            public string moduleName = "";
         }
 
         private String DcReadASCIILine(FileStream file, ref long filePos)
@@ -541,10 +614,14 @@ namespace DMEEView1
         // 6. mark module as processed
         // back to (1)
 
-        private void DcMakeDrawListFromFile(ref ModuleListEntry module, long startPos, int drawListSize)
+        enum DrawListStatus { OK, FileNotFound };
+
+        private DrawListStatus DcMakeDrawListFromFile(ref ModuleListEntry module, long startPos, int drawListSize)
         {
             string fname = module.fileName;
-            DcItemType prevRecordType = DcItemType.undefined;
+            DcCommand.CommandType prevCommandType = DcCommand.CommandType.undefined;
+            DcModule parentModuleCommand = new DcModule();
+            parentModuleCommand.commandType = DcCommand.CommandType.module;
             string line;
             FileStream file;
             long endPos = 0;
@@ -555,9 +632,10 @@ namespace DMEEView1
             {
                 file = new FileStream(fname, FileMode.Open, FileAccess.Read);
             }
-            else {
-                MessageBox.Show("File not found. Please select a file using Open from the File menu");
-                return;
+            else
+            {
+                module.drawList.Clear();
+                return DrawListStatus.FileNotFound;
             }
 
             file.Position = startPos;
@@ -575,7 +653,7 @@ namespace DMEEView1
 
                 if (line != null)
                 {
-                    ParseDcCommandLine(ref prevRecordType, ref line, ref module);
+                    ParseDcCommandLine(ref prevCommandType, ref line, ref module, parentModuleCommand);
                 }
                 else break;
             }
@@ -584,15 +662,17 @@ namespace DMEEView1
 
             this.Invalidate();
             file.Close();
+            return DrawListStatus.OK;
         }
 
-        private DcItemType ParseDcCommandLine(ref DcItemType prevRecordType, ref string line, ref ModuleListEntry module)
+        private DcCommand.CommandType ParseDcCommandLine(ref DcCommand.CommandType prevCommandType, ref string line,
+                                              ref ModuleListEntry module, DcModule parentModule)
         {
-            DcItemType recordType = DcItemType.undefined;         
+            DcCommand.CommandType commandType = DcCommand.CommandType.undefined;         
             string[] fields;
             string fieldStr = "";
             string rawLine = line;
-            List<DcDrawItem> drawList = module.drawList;
+            List<DcCommand> drawList = module.drawList;
             ModuleStats stats = module.stats;
 
             // extract comment / string field from the line, if any
@@ -612,25 +692,25 @@ namespace DMEEView1
 
             switch (fields[0])
             {
-                case "a": recordType = DcItemType.arc; break;
-                case "b": recordType = DcItemType.bus; break;
-                case "c": recordType = DcItemType.circle; break;
-                case "d": recordType = DcItemType.drawing; break;
-                case "s": recordType = DcItemType.str; break;
-                case "t": recordType = DcItemType.text; break;
-                case "l": recordType = DcItemType.line; break;
-                case "m": recordType = DcItemType.module; break;
-                case "p": recordType = DcItemType.pin; break;
-                case "w": recordType = DcItemType.wire; break;
-                default: recordType = DcItemType.undefined; break;
+                case "a": commandType = DcCommand.CommandType.arc; break;
+                case "b": commandType = DcCommand.CommandType.bus; break;
+                case "c": commandType = DcCommand.CommandType.circle; break;
+                case "d": commandType = DcCommand.CommandType.drawing; break;
+                case "s": commandType = DcCommand.CommandType.str; break;
+                case "t": commandType = DcCommand.CommandType.text; break;
+                case "l": commandType = DcCommand.CommandType.line; break;
+                case "m": commandType = DcCommand.CommandType.module; break;
+                case "p": commandType = DcCommand.CommandType.pin; break;
+                case "w": commandType = DcCommand.CommandType.wire; break;
+                default: commandType = DcCommand.CommandType.undefined; break;
             }
 
-            switch (recordType)  // create a record object for line and add it to draw list
+            switch (commandType)  // create a record object for line and add it to draw list
             {
-                case DcItemType.arc:
+                case DcCommand.CommandType.arc:
                     DcArc dArc = new DcArc()
                     {
-                        Type = DcItemType.arc,
+                        commandType = DcCommand.CommandType.arc,
                         color = Convert.ToInt16(fields[1]),
                         centerX = Convert.ToSingle(fields[2]),
                         centerY = Convert.ToSingle(fields[3]),
@@ -642,10 +722,10 @@ namespace DMEEView1
                     drawList.Add(dArc);
                     break;
 
-                case DcItemType.bus:
+                case DcCommand.CommandType.bus:
                     DcBus dBus = new DcBus()
                     {
-                        Type = DcItemType.bus,
+                        commandType = DcCommand.CommandType.bus,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
@@ -656,10 +736,10 @@ namespace DMEEView1
                     drawList.Add(dBus);
                     break;
 
-                case DcItemType.circle:
+                case DcCommand.CommandType.circle:
                     DcCircle dcCircle = new DcCircle
                     {
-                        Type = DcItemType.circle,
+                        commandType = DcCommand.CommandType.circle,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
@@ -669,11 +749,11 @@ namespace DMEEView1
                     drawList.Add(dcCircle);
                     break;
 
-                case DcItemType.drawing:
+                case DcCommand.CommandType.drawing:
                     InfoTextBox.Text += rawLine + crlf;
                     DcDrawing dcDrawing = new DcDrawing()
                     {
-                        Type = DcItemType.drawing,
+                        commandType = DcCommand.CommandType.drawing,
                         version = Convert.ToSingle(fields[1]),
                         X1 = Convert.ToSingle(fields[3]),
                         Y1 = Convert.ToSingle(fields[4]),
@@ -683,28 +763,28 @@ namespace DMEEView1
                     drawList.Add(dcDrawing);
                     break;
 
-                case DcItemType.line:
+                case DcCommand.CommandType.line:
                     DcLine dcLine = new DcLine
                     {
-                        Type = DcItemType.line,
+                        commandType = DcCommand.CommandType.line,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
                         X2 = Convert.ToSingle(fields[4]),
                         Y2 = Convert.ToSingle(fields[5])
                     };
-                    if (fields.Length > 6) dcLine.unk1 = Convert.ToInt16(fields[6]);
-                    if (fields.Length > 7) dcLine.unk2 = Convert.ToInt16(fields[7]);
+                    if (fields.Length > 6) dcLine.unk6 = Convert.ToInt16(fields[6]);
+                    if (fields.Length > 7) dcLine.unk7 = Convert.ToInt16(fields[7]);
                     BiggestSmallestXY(dcLine.X1, dcLine.Y1, ref stats);
                     BiggestSmallestXY(dcLine.X2, dcLine.Y2, ref stats);
                     drawList.Add(dcLine);
                     break;
 
-                case DcItemType.module:
+                case DcCommand.CommandType.module:
                     InfoTextBox.Text += (rawLine + crlf);
                     DcModule dcModule = new DcModule()  // CREATE COMMAND OBJECT FOR MODULE
                     {
-                        Type = DcItemType.module,
+                        commandType = DcCommand.CommandType.module,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
@@ -740,10 +820,10 @@ namespace DMEEView1
                     drawList.Add(dcModule);
                     break;
 
-                case DcItemType.pin:
+                case DcCommand.CommandType.pin:
                     DcPin dcPin = new DcPin()
                     {
-                        Type = DcItemType.pin,
+                        commandType = DcCommand.CommandType.pin,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3])
@@ -753,10 +833,10 @@ namespace DMEEView1
                     module.stats.pinItemCount++;
                     break;
 
-                case DcItemType.str:
+                case DcCommand.CommandType.str:
                     DcString dcStr = new DcString
                     {
-                        Type = DcItemType.str,
+                        commandType = DcCommand.CommandType.str,
                         unk1 = Convert.ToInt16(fields[1]),
                         unk2 = Convert.ToInt16(fields[2]),
                         strText = fieldStr
@@ -769,7 +849,7 @@ namespace DMEEView1
                     module.stats.strItemCount++;
 
                     // Set String in previous record
-                    if (prevRecordType == DcItemType.text)
+                    if (prevCommandType == DcCommand.CommandType.text)
                     {
                         if (drawList.Count > 0)
                         {
@@ -778,7 +858,7 @@ namespace DMEEView1
                         }
                     }
 
-                    if (prevRecordType == DcItemType.wire)
+                    if (prevCommandType == DcCommand.CommandType.wire)
                     {
                         if (drawList.Count > 0)
                         {
@@ -791,10 +871,10 @@ namespace DMEEView1
                     }
                     break;
 
-                case DcItemType.text:
+                case DcCommand.CommandType.text:
                     DcText dcText = new DcText
                     {
-                        Type = DcItemType.text,
+                        commandType = DcCommand.CommandType.text,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
@@ -812,10 +892,10 @@ namespace DMEEView1
                     }
                     break;
 
-                case DcItemType.wire:
+                case DcCommand.CommandType.wire:
                     DcWire dcWire = new DcWire
                     {
-                        Type = DcItemType.wire,
+                        commandType = DcCommand.CommandType.wire,
                         color = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
@@ -834,8 +914,8 @@ namespace DMEEView1
 
                 default: break;
             }
-            prevRecordType = recordType;
-            return recordType;
+            prevCommandType = commandType;
+            return commandType;
         }
 
         private void BiggestSmallestXY(float X, float Y, ref ModuleStats stats)
@@ -924,25 +1004,32 @@ namespace DMEEView1
             string fullName = Properties.Settings.Default.fileName;
             string fName = "";
             string fDir = "";
-            textBox1.Text = fullName;
-            textBox1.Update();
 
-            fName = fullName.Substring(fullName.LastIndexOf(@"\") + 1);
-            if (fDir != "") fDir = fullName.Substring(0, fullName.LastIndexOf(@"\"));
+            if (fullName != @"\")
+            {
+                fName = fullName.Substring(fullName.LastIndexOf(@"\") + 1);
+                fDir = fullName.Substring(0, fullName.LastIndexOf(@"\"));
+            }
+            else
+            {
+                fullName = "";
+            }
+
+            TopFileNameTextBox.Text = fullName;
+            TopFileNameTextBox.Update();
 
             openFileDialog1.InitialDirectory = fDir;
             openFileDialog1.FileName = fName;
-            openFileDialog1.ShowDialog();
+            DialogResult result = openFileDialog1.ShowDialog();
 
-            if (openFileDialog1.FileName != "")
+            if (result == DialogResult.OK)
             {
                 topFileName = openFileDialog1.FileName;
-                textBox1.Text = topFileName;
-                textBox1.Update();
-                menuStrip1.Select();
+                TopFileNameTextBox.Text = topFileName;
+                TopFileNameTextBox.Update();
                 Properties.Settings.Default.fileName = topFileName;
-                Properties.Settings.Default.Save();
             }
+            menuStrip1.Select();
         }
 
         private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -955,6 +1042,12 @@ namespace DMEEView1
             folderConfigForm.ShowDialog();
             libraryFolder = folderConfigForm.libraryFolder;
             workingFolder = folderConfigForm.workingFolder;
+        }
+
+        private void ToolStripMenuZoom25_Click(object sender, EventArgs e)
+        {
+            ZoomFactor = 0.25F;
+            this.Invalidate();
         }
 
         private void ToolStripMenuZoom50_Click(object sender, EventArgs e)
@@ -992,7 +1085,16 @@ namespace DMEEView1
             module.name = topFileName.Substring(topFileName.LastIndexOf("\\") + 1);
             module.fromLibrary = false;
             moduleList.Add(module);
-            DcMakeDrawListFromFile(ref module, 0, 0);
+            DrawListStatus status = DcMakeDrawListFromFile(ref module, 0, 0);
+            if (status == DrawListStatus.FileNotFound)
+            {
+                topFileName = "";
+                TopFileNameTextBox.Text = "";
+                TopFileNameTextBox.Update();
+                Properties.Settings.Default.fileName = "";
+                MessageBox.Show("Please select another file using Open under File menu", "File not found");
+                return;
+            }
 
             // read dictionaries from each library (.LBR) file in library folder
             if (Directory.Exists(libraryFolder))
@@ -1069,13 +1171,17 @@ namespace DMEEView1
         // The PrintPage event is raised for each page to be printed.
         private void PrintDocument_PrintPage(object sender, System.Drawing.Printing.PrintPageEventArgs e)
         {
-            MessageBox.Show("Printing not yet implemented.", "Work in progress");
+            Console.WriteLine("Print Page");
+            MessageBox.Show("Printing not yet implemented.", "Print Page Event");
         }
 
         private void ToolStripMenuPrint_Click(object sender, EventArgs e)
         {
-            printDialog1.ShowDialog();
-            MessageBox.Show("Not yet implemented.", "Work in progress");
+            DialogResult result = printDialog1.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                printDocument.Print();
+            }
         }
 
         private void ToolStripMenuPageSetup_Click(object sender, EventArgs e)
@@ -1083,7 +1189,7 @@ namespace DMEEView1
             PageSettings settings = new PageSettings();
             pageSetupDialog1.PageSettings = settings;
             pageSetupDialog1.ShowDialog();
-            MessageBox.Show("Not yet implemented.", "Work in progress");
+            MessageBox.Show("Not yet implemented.", "Page Setup");
         }
 
         private void HideNShowInfoButton_Click(object sender, EventArgs e)
@@ -1132,11 +1238,18 @@ namespace DMEEView1
 
             if (modulesLoaded)
             {
-                DrawPictureBox.Width = (int)(ZoomFactor * (250 + moduleList[0].stats.biggestX - moduleList[0].stats.smallestX));
-                DrawPictureBox.Height = (int)(80 + ZoomFactor * (moduleList[0].stats.biggestY - moduleList[0].stats.smallestY));
+                //DrawPictureBox.Width = (int)(ZoomFactor * (250 + moduleList[0].stats.biggestX - moduleList[0].stats.smallestX));
+                //DrawPictureBox.Height = (int)(110 + ZoomFactor * (moduleList[0].stats.biggestY - moduleList[0].stats.smallestY));
 
-                gr.TranslateTransform(25F - smallestX, biggestY + 80F / ZoomFactor); // Move the origin "down".
-                gr.ScaleTransform(ZoomFactor, ZoomFactor, MatrixOrder.Append);
+                // move origin down
+                float shiftY = 12F * gr.DpiY;
+
+                gr.DrawLine(pen, 50, 50, 200, 50);
+                gr.TranslateTransform(0, ZoomFactor * (shiftY)); // Move the origin "down".
+                Console.WriteLine(shiftY);
+                //gr.ScaleTransform(DrawPanelScale, DrawPanelScale);
+                gr.ScaleTransform(0.90F, 0.90F);
+                gr.ScaleTransform(ZoomFactor, ZoomFactor);
 
                 pen.Width = 1;
 
@@ -1154,8 +1267,8 @@ namespace DMEEView1
         private void MainForm_Resize(object sender, EventArgs e)
         {
             DrawPanel.Location = new Point(0, menuStrip1.Height);
-            DrawPanel.Width = this.Width - 40;
             DrawPanel.Height = this.Height - menuStrip1.Height - 40;
+            DrawPanel.Width = this.Width - 20;
         }
     }
 }
