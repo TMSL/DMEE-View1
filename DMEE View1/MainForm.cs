@@ -34,21 +34,29 @@ namespace DMEEView1
             public string name = "";
             public string fileName = "";
             public List<DcCommand> drawList = new List<DcCommand>();
-            public ModuleStats stats = new ModuleStats();
+            public DrawListStats stats = new DrawListStats();
         }
 
-        private class ModuleStats
+        private class DrawListStats
         {
-            public float biggestX = -10000;
-            public float biggestY = -10000;
-            public float smallestX = 10000;
-            public float smallestY = 10000;
             public int textItemCount = 0;
             public int strItemCount = 0;
             public int pinItemCount = 0;
             public int moduleItemCount = 0;
             public int drawingItemCount = 0;
+            public float biggestX = -10000;
+            public float biggestY = -10000;
+            public float smallestX = 10000;
+            public float smallestY = 10000;
             public List<Single> textScalingList = new List<Single>();
+        }
+
+        private class ModuleCommandStats
+        {
+            public float biggestX = -10000;
+            public float biggestY = -10000;
+            public float smallestX = 10000;
+            public float smallestY = 10000;
         }
 
         private class DictionaryEntry
@@ -146,10 +154,10 @@ namespace DMEEView1
             InfoTextBox.Clear();
             InfoTextBox.Text += "Library Folder: " + libraryFolder + crlf;
             InfoTextBox.Text += "Working Folder: " + workingFolder + crlf;
-            InfoTextBox.Text += "Biggest X: " + module.stats.biggestX.ToString() + crlf;
-            InfoTextBox.Text += "Biggest Y: " + module.stats.biggestY.ToString() + crlf;
-            InfoTextBox.Text += "Smallest X: " + module.stats.smallestX.ToString() + crlf;
-            InfoTextBox.Text += "Smallest Y: " + module.stats.smallestY.ToString() + crlf;
+            //InfoTextBox.Text += "Biggest X: " + module.stats.biggestX.ToString() + crlf;
+            //InfoTextBox.Text += "Biggest Y: " + module.stats.biggestY.ToString() + crlf;
+            //InfoTextBox.Text += "Smallest X: " + module.stats.smallestX.ToString() + crlf;
+            //InfoTextBox.Text += "Smallest Y: " + module.stats.smallestY.ToString() + crlf;
             InfoTextBox.Text += "Module (m) Entries Count: " + module.stats.moduleItemCount + crlf;
             InfoTextBox.Text += "Text (t) Entries Count: " + module.stats.textItemCount + crlf;
             InfoTextBox.Text += "String (s) Entries Count: " + module.stats.strItemCount + crlf;
@@ -539,6 +547,7 @@ namespace DMEEView1
             public int moduleListIndex = -1;    // index to entry for module in moduleList
             public float parentScaleFactor = 1; // Module scale factor from parent module
             public float parentRotation = 0;    // Module rotation from parent module
+            public ModuleCommandStats stats = new ModuleCommandStats();
             public int color = 0;           // [1] color or layer
             public float X1 = 0;            // [2] X coordinate (offset) to place module's origin
             public float Y1 = 0;            // [3] Y coordinate (offset) to place module's origin
@@ -629,7 +638,7 @@ namespace DMEEView1
             FileStream file;
             long endPos = 0;
 
-            module.stats = new ModuleStats();  // clears all module stats
+            module.stats = new DrawListStats();  // clears all module stats
 
             if (File.Exists(fname))
             {
@@ -676,7 +685,8 @@ namespace DMEEView1
             string fieldStr = "";
             string rawLine = line;
             List<DcCommand> drawList = module.drawList;
-            ModuleStats stats = module.stats;
+            DrawListStats drawListStats = module.stats;
+            ModuleCommandStats moduleCommandStats = parentModuleCommand.stats;
 
             // extract comment / string field from the line, if any
             int strIndex = line.IndexOf('#');
@@ -773,8 +783,8 @@ namespace DMEEView1
                     };
                     if (fields.Length > 6) dcLine.unk6 = Convert.ToInt16(fields[6]);
                     if (fields.Length > 7) dcLine.unk7 = Convert.ToInt16(fields[7]);
-                    BiggestSmallestXY(dcLine.X1, dcLine.Y1, ref stats);
-                    BiggestSmallestXY(dcLine.X2, dcLine.Y2, ref stats);
+                    BiggestSmallestXY(dcLine.X1, dcLine.Y1, ref drawListStats);
+                    BiggestSmallestXY(dcLine.X2, dcLine.Y2, ref drawListStats);
                     drawList.Add(dcLine);
                     break;
 
@@ -793,7 +803,7 @@ namespace DMEEView1
                         name = Convert.ToString(fields[7])
                     };
                     module.stats.moduleItemCount++;
-                    BiggestSmallestXY(dcModule.X1, dcModule.Y1, ref stats);
+                    BiggestSmallestXY(dcModule.X1, dcModule.Y1, ref drawListStats);
 
                     // Search to see if an entry for the module is already in the module list.
                     ModuleListEntry result = moduleList.Find(x => x.name == dcModule.name);
@@ -826,6 +836,7 @@ namespace DMEEView1
                     Console.Write("\tmodule rotation: " + dcModule.rotation + " ");
                     if (dcModule.rotation < 10) Console.Write("\t");
                     Console.WriteLine("\tmodule scale factor: " + dcModule.scaleFactor);
+                    Console.WriteLine("Biggest X: " + drawListStats.biggestX);
 
                     break;
 
@@ -836,7 +847,7 @@ namespace DMEEView1
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3])
                     };
-                    BiggestSmallestXY(dcPin.X1, dcPin.Y1, ref stats);
+                    BiggestSmallestXY(dcPin.X1, dcPin.Y1, ref drawListStats);
                     drawList.Add(dcPin);
                     module.stats.pinItemCount++;
                     break;
@@ -889,7 +900,7 @@ namespace DMEEView1
                         unk6 = Convert.ToInt16(fields[6]),
                         unk7 = Convert.ToInt16(fields[7])
                     };
-                    BiggestSmallestXY(dcText.X1, dcText.Y1, ref stats);
+                    BiggestSmallestXY(dcText.X1, dcText.Y1, ref drawListStats);
                     module.stats.textItemCount++;
                     drawList.Add(dcText);
                     if (!module.stats.textScalingList.Contains(dcText.scaleFactor))
@@ -912,8 +923,8 @@ namespace DMEEView1
                     if (fields.Length > 8) dcWire.net = Convert.ToInt16(fields[8]);
                     if (fields.Length > 9) dcWire.unk3 = Convert.ToInt16(fields[9]);
 
-                    BiggestSmallestXY(dcWire.X1, dcWire.Y1, ref stats);
-                    BiggestSmallestXY(dcWire.X2, dcWire.Y2, ref stats);
+                    BiggestSmallestXY(dcWire.X1, dcWire.Y1, ref drawListStats);
+                    BiggestSmallestXY(dcWire.X2, dcWire.Y2, ref drawListStats);
                     drawList.Add(dcWire);
                     break;
 
@@ -923,7 +934,7 @@ namespace DMEEView1
             return commandType;
         }
 
-        private void BiggestSmallestXY(float X, float Y, ref ModuleStats stats)
+        private void BiggestSmallestXY(float X, float Y, ref DrawListStats stats)
         {
             if (X > stats.biggestX) stats.biggestX = X;
             if (X < stats.smallestX) stats.smallestX = X;
@@ -1085,7 +1096,7 @@ namespace DMEEView1
             ModuleListEntry module = new ModuleListEntry  // create entry for top module
             {
                 fileName = topFileName,
-                stats = new ModuleStats()
+                stats = new DrawListStats()
             };
             module.name = topFileName.Substring(topFileName.LastIndexOf("\\") + 1);
             module.fromLibrary = false;
@@ -1120,7 +1131,6 @@ namespace DMEEView1
             foreach (ModuleListEntry m in moduleList)
             {
                 module = m;
-                Console.WriteLine("moduleList: " + m.name);
                 if (!module.processed)
                 {
                     // first check for name in working directory
@@ -1171,6 +1181,13 @@ namespace DMEEView1
                 }
             }
             modulesLoaded = true;
+            foreach(ModuleListEntry m in moduleList)
+            {
+                Console.Write("moduleList: " + m.name + " \t");
+                if (m.name.Length < 7) Console.Write("\t");
+                if (m.name.Length < 3) Console.Write("\t");
+                Console.WriteLine("biggest X: " + m.stats.biggestX);
+            }
         }
 
         // The PrintPage event is raised for each page to be printed.
@@ -1222,10 +1239,6 @@ namespace DMEEView1
         {
             Graphics gr = e.Graphics;
             ModuleListEntry module = moduleList[0];
-            float biggestX = module.stats.biggestX;
-            float biggestY = module.stats.biggestY;
-            float smallestX = module.stats.smallestX;
-            float smallestY = module.stats.smallestY;
             float dpiX = gr.DpiX;
             float dpiY = gr.DpiY;
             int windowWidth = this.Width;
@@ -1243,9 +1256,6 @@ namespace DMEEView1
 
             if (modulesLoaded)
             {
-                //DrawPictureBox.Width = (int)(ZoomFactor * (250 + moduleList[0].stats.biggestX - moduleList[0].stats.smallestX));
-                //DrawPictureBox.Height = (int)(110 + ZoomFactor * (moduleList[0].stats.biggestY - moduleList[0].stats.smallestY));
-
                 // move origin down
                 float shiftY = 12F * gr.DpiY;
 
@@ -1261,7 +1271,7 @@ namespace DMEEView1
                 // draw crossed lines at origin
                 pen.Color = Color.Red;
                 DrawCropMark(gr, pen, new PointF(topModuleCommand.X1, topModuleCommand.Y1));
-                DrawCropMark(gr, pen, new PointF(biggestX, -biggestY));
+                //DrawCropMark(gr, pen, new PointF(biggestX, -biggestY));
 
                 PaintDcModule(gr, topModuleCommand);
                 ModuleInfoTextBox(moduleList[0]);
