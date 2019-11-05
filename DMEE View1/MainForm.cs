@@ -1268,7 +1268,7 @@ namespace DMEEView1
                         Console.WriteLine(mdl.name + " module count: " + mdlCount + " sub processed: " + subProcessedCount);
                         if (subProcessedCount == mdlCount)  // no unprocessed sub modules left in this module instance
                         {
-                            
+                            // TBD: FINISH MAKING MORE THAN ONE PASS THROUGH CHECKING COMPOUND MODULES
                         }
                     }
                 }
@@ -1298,6 +1298,15 @@ namespace DMEEView1
                 Console.Write("XMax: " + ile.bounds.XMax + " YMax: " + ile.bounds.YMax);
                 Console.WriteLine(" XMin: " + ile.bounds.XMin + " YMin: " + ile.bounds.YMin);
             }
+
+            // Scale Picture Box to fit drawing
+            DcModule topModule = moduleList[0];
+            Console.WriteLine("Scale Picture Box =================================");
+            Console.Write("XMax: " + topModule.bounds.XMax + " YMax: " + topModule.bounds.YMax);
+            Console.WriteLine(" XMin: " + topModule.bounds.XMin + " YMin: " + topModule.bounds.YMin);
+            // Set size of Picture Box
+            DrawPictureBox.Height = (int)(topModule.bounds.YMax - topModule.bounds.YMin) + 5;
+            DrawPictureBox.Width = (int)(topModule.bounds.XMax - topModule.bounds.XMin) + 5;
         }
 
         // The PrintPage event is raised for each page to be printed.
@@ -1366,13 +1375,7 @@ namespace DMEEView1
 
             if (modulesLoaded)
             {
-                // move origin down
-                float shiftY = 12F * gr.DpiY;
-
-                gr.TranslateTransform(0, ZoomFactor * (shiftY)); // Move the origin "down".
-
-                //gr.ScaleTransform(DrawPanelScale, DrawPanelScale);
-                gr.ScaleTransform(0.90F, 0.90F);
+                gr.TranslateTransform(0, ZoomFactor * (topModuleCommand.bounds.YMax + 20));  // move origin down based on ZoomFactor
                 gr.ScaleTransform(ZoomFactor, ZoomFactor);
 
                 pen.Width = 1;
