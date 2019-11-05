@@ -1248,9 +1248,7 @@ namespace DMEEView1
 
                                 if (mLBR.bounds.boundsProcessed)  // update module command bounds based on bounds for module in internal library
                                 {
-                                    //ModuleCommandStats mCmdStats = mCmd.stats;
                                     DcBounds mCmdBounds = mCmd.bounds;
-                                    DrawListStats mLBRStats = mLBR.stats;
                                     DcBounds mLBRBounds = mLBR.bounds;
 
                                     // Update bounds for this module command instance
@@ -1261,9 +1259,7 @@ namespace DMEEView1
                                     mCmdBounds.boundsProcessed = true;
 
                                     // Update stats for the parent module
-                                    if (mCmd.bounds.XMax > mdl.bounds.XMax) mdl.bounds.XMax = mCmd.bounds.XMax;
-                                    // TBD
-                                    //UpdateMinMaxBounds(mCmdBounds.XMax, mCmdBounds.YMax, mdl.bounds);
+                                    UpdateMinMaxBounds(mCmdBounds.XMax, mCmdBounds.YMax, ref mdl.bounds);
                                     subProcessedCount++;
                                 }
                             }
