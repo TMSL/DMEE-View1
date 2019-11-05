@@ -56,13 +56,11 @@ namespace DMEEView1
 
         private class DrawListStats
         {
-            public bool boundsProcessed = false; // internal flag indicating biggest/smallest X,Y processing is done for this drawlist
             public int textItemCount = 0;
             public int strItemCount = 0;
             public int pinItemCount = 0;
             public int moduleItemCount = 0;
             public int drawingItemCount = 0;
-            public DcBounds bounds = new DcBounds();
             public List<Single> textScalingList = new List<Single>();
         }
 
@@ -73,16 +71,6 @@ namespace DMEEView1
             public float YMax = -10000;
             public float XMin = 10000;
             public float YMin = 10000;
-        }
-
-        private class ModuleCommandStats
-        {
-            public bool boundsProcessed = false; // internal flag indicating biggest/smallest X,Y processing is done for this module instance
-            public DcBounds bounds = new DcBounds();
-            //public float XMax = -10000;
-            //public float YMax = -10000;
-            //public float XMin = 10000;
-            //public float YMin = 10000;
         }
 
         private class ExtLBRCatEntry
@@ -183,6 +171,7 @@ namespace DMEEView1
             gr.DrawLine(pen, center.X - 5, center.Y, center.X + 5, center.Y);
             gr.DrawLine(pen, center.X, center.Y - 5, center.X, center.Y + 5);
         }
+
         // =======================================================
         //           PAINT DC MODULE
         // =======================================================
@@ -558,7 +547,8 @@ namespace DMEEView1
                 _cmdType = CommandType.module;
             }
             public int internalLBRIndex = -1; // index to entry for module in internal library
-            public ModuleCommandStats stats = new ModuleCommandStats();
+            public DcBounds bounds = new DcBounds(); //
+            //public ModuleCommandStats stats = new ModuleCommandStats();
             public int color = 0;           // [1] color or layer
             public float X1 = 0;            // [2] X coordinate (offset) to place module's origin
             public float Y1 = 0;            // [3] Y coordinate (offset) to place module's origin
@@ -694,6 +684,7 @@ namespace DMEEView1
             string rawLine = line;
             List<DcCommand> drawList = internalLBREntry.drawList;
             DrawListStats drawListStats = internalLBREntry.stats;
+            DcBounds drawListBounds = internalLBREntry.bounds;
 
             // extract comment / string field from the line, if any
             int strIndex = line.IndexOf('#');
@@ -791,8 +782,8 @@ namespace DMEEView1
                     };
                     if (fields.Length > 6) dcLine.unk6 = Convert.ToInt16(fields[6]);
                     if (fields.Length > 7) dcLine.unk7 = Convert.ToInt16(fields[7]);
-                    BiggestXMinY(dcLine.X1, dcLine.Y1, ref drawListStats.bounds);
-                    BiggestXMinY(dcLine.X2, dcLine.Y2, ref drawListStats.bounds);
+                    UpdateMinMaxBounds(dcLine.X1, dcLine.Y1, ref drawListBounds);
+                    UpdateMinMaxBounds(dcLine.X2, dcLine.Y2, ref drawListBounds);
                     drawList.Add(dcLine);
                     break;
 
@@ -809,7 +800,7 @@ namespace DMEEView1
                         name = Convert.ToString(fields[7])
                     };
                     internalLBREntry.stats.moduleItemCount++;
-                    BiggestXMinY(dcModule.X1, dcModule.Y1, ref drawListStats.bounds);
+                    UpdateMinMaxBounds(dcModule.X1, dcModule.Y1, ref drawListBounds);
 
                     // Search to see if an entry for the module is already in the module list.
                     InternalLBREntry result = internalLBR.Find(x => x.name == dcModule.name);
@@ -846,7 +837,7 @@ namespace DMEEView1
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3])
                     };
-                    BiggestXMinY(dcPin.X1, dcPin.Y1, ref drawListStats.bounds);
+                    UpdateMinMaxBounds(dcPin.X1, dcPin.Y1, ref drawListBounds);
                     drawList.Add(dcPin);
                     internalLBREntry.stats.pinItemCount++;
                     break;
@@ -899,7 +890,7 @@ namespace DMEEView1
                         unk6 = Convert.ToInt16(fields[6]),
                         unk7 = Convert.ToInt16(fields[7])
                     };
-                    BiggestXMinY(dcText.X1, dcText.Y1, ref drawListStats.bounds);
+                    UpdateMinMaxBounds(dcText.X1, dcText.Y1, ref drawListBounds);
                     internalLBREntry.stats.textItemCount++;
                     drawList.Add(dcText);
                     if (!internalLBREntry.stats.textScalingList.Contains(dcText.scaleFactor))
@@ -922,8 +913,8 @@ namespace DMEEView1
                     if (fields.Length > 8) dcWire.net = Convert.ToInt16(fields[8]);
                     if (fields.Length > 9) dcWire.unk3 = Convert.ToInt16(fields[9]);
 
-                    BiggestXMinY(dcWire.X1, dcWire.Y1, ref drawListStats.bounds);
-                    BiggestXMinY(dcWire.X2, dcWire.Y2, ref drawListStats.bounds);
+                    UpdateMinMaxBounds(dcWire.X1, dcWire.Y1, ref drawListBounds);
+                    UpdateMinMaxBounds(dcWire.X2, dcWire.Y2, ref drawListBounds);
                     drawList.Add(dcWire);
                     break;
 
@@ -933,7 +924,7 @@ namespace DMEEView1
             return commandType;
         }
 
-        private void BiggestXMinY(float X, float Y, ref DcBounds bounds)
+        private void UpdateMinMaxBounds(float X, float Y, ref DcBounds bounds)
         {
             if (X > bounds.XMax) bounds.XMax = X;
             if (X < bounds.XMin) bounds.XMin = X;
@@ -1020,6 +1011,10 @@ namespace DMEEView1
             return index;
         }
 
+
+        // =======================================================
+        //           HANDLE CLICK TO SELECT AND OPEN A DRAWING FILE
+        // =======================================================
         private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
         {
             string fullName = Properties.Settings.Default.fileName;
@@ -1202,12 +1197,13 @@ namespace DMEEView1
             }
             modulesLoaded = true;
 
+            // --------------------- BOUNDS PROCESSING -----------------------------------
             // Process internal library for biggest/smallest X,Y ("bounds")
             // First identify "simple" modules in the internal library. These modules don't need more bounds processing
             // since the processing was done when the drawlist was created.
             foreach (InternalLBREntry ile in internalLBR)
             {
-                if (ile.stats.moduleItemCount == 0) ile.stats.boundsProcessed = true;
+                if (ile.stats.moduleItemCount == 0) ile.bounds.boundsProcessed = true;
                 
             }
 
@@ -1218,11 +1214,11 @@ namespace DMEEView1
             foreach (DcModule mdl in moduleList)
             {
                 // first locate modules that reference "simple" drawlists and mark them.
-                if (internalLBR[mdl.internalLBRIndex].stats.boundsProcessed)  //<== indicates "simple" (does not contain sub modules)
+                if (internalLBR[mdl.internalLBRIndex].bounds.boundsProcessed)  //<== indicates "simple" (does not contain sub modules)
                 {
                     // update module command's biggest X,Y based on scaling factor
-                    mdl.stats.bounds.XMax = mdl.scaleFactor * internalLBR[mdl.internalLBRIndex].stats.bounds.XMax;
-                    mdl.stats.boundsProcessed = true;  // mark this module instance as "bounds processed"
+                    mdl.bounds.XMax = mdl.scaleFactor * internalLBR[mdl.internalLBRIndex].bounds.XMax;
+                    mdl.bounds.boundsProcessed = true;  // mark this module instance as "bounds processed"
                 }
             }
 
@@ -1234,7 +1230,7 @@ namespace DMEEView1
                 bool allModulesProcessed = true;
                 foreach (DcModule mdl in moduleList)
                 {
-                    if (!mdl.stats.boundsProcessed)
+                    if (!mdl.bounds.boundsProcessed)
                     {
                         allModulesProcessed = false;
                         int mdlCount = 0; int subProcessedCount = 0;
@@ -1250,21 +1246,24 @@ namespace DMEEView1
 
                                 mdlCount++;
 
-                                if (mLBR.stats.boundsProcessed)  // update module command stats based on stats for module in internal library
+                                if (mLBR.bounds.boundsProcessed)  // update module command bounds based on bounds for module in internal library
                                 {
-                                    ModuleCommandStats mCmdStats = mCmd.stats;
+                                    //ModuleCommandStats mCmdStats = mCmd.stats;
+                                    DcBounds mCmdBounds = mCmd.bounds;
                                     DrawListStats mLBRStats = mLBR.stats;
+                                    DcBounds mLBRBounds = mLBR.bounds;
 
-                                    // Update stats for this module command instance
-                                    mCmdStats.bounds.XMax = mLBRStats.bounds.XMax * mCmd.scaleFactor;
-                                    mCmdStats.bounds.YMax = mLBRStats.bounds.YMax * mCmd.scaleFactor;
-                                    mCmdStats.bounds.XMin = mLBRStats.bounds.XMin * mCmd.scaleFactor;
-                                    mCmdStats.bounds.YMin = mLBRStats.bounds.YMin * mCmd.scaleFactor;
-                                    mCmd.stats.boundsProcessed = true;
+                                    // Update bounds for this module command instance
+                                    mCmdBounds.XMax = mLBRBounds.XMax * mCmd.scaleFactor;
+                                    mCmdBounds.YMax = mLBRBounds.YMax * mCmd.scaleFactor;
+                                    mCmdBounds.XMin = mLBRBounds.XMin * mCmd.scaleFactor;
+                                    mCmdBounds.YMin = mLBRBounds.YMin * mCmd.scaleFactor;
+                                    mCmdBounds.boundsProcessed = true;
 
                                     // Update stats for the parent module
-                                    if (mCmd.stats.bounds.XMax > mdl.stats.bounds.XMax) mdl.stats.bounds.XMax = mCmd.stats.bounds.XMax;
-                                    //BiggestXMinY(mCmdStats.XMax, mCmdStats.YMax, mdl.stats);
+                                    if (mCmd.bounds.XMax > mdl.bounds.XMax) mdl.bounds.XMax = mCmd.bounds.XMax;
+                                    // TBD
+                                    //UpdateMinMaxBounds(mCmdBounds.XMax, mCmdBounds.YMax, mdl.bounds);
                                     subProcessedCount++;
                                 }
                             }
@@ -1285,11 +1284,11 @@ namespace DMEEView1
                 Console.Write("module command - name: " + mdl.name + " \t");
                 if (mdl.name.Length < 8) Console.Write("\t");
                 if (mdl.name.Length < 4) Console.Write("\t");
-                Console.Write("size processed: " + mdl.stats.boundsProcessed);
+                Console.Write("size processed: " + mdl.bounds.boundsProcessed);
                 Console.Write("\tmodule rotation: " + mdl.rotation + " ");
                 if (mdl.rotation < 10) Console.Write("\t");
                 Console.Write("\tmodule scale factor: " + mdl.scaleFactor);
-                Console.WriteLine(" Biggest X: " + mdl.stats.bounds.XMax);
+                Console.WriteLine(" Biggest X: " + mdl.bounds.XMax);
             }
             Console.WriteLine("Internal Library: =================================");
             foreach (InternalLBREntry ile in internalLBR)
@@ -1298,7 +1297,7 @@ namespace DMEEView1
                 if (ile.name.Length < 7) Console.Write("\t");
                 if (ile.name.Length < 3) Console.Write("\t");
                 Console.Write("sub module count: " + ile.stats.moduleItemCount + " ");
-                Console.WriteLine("biggest X: " + ile.stats.bounds.XMax);
+                Console.WriteLine("biggest X: " + ile.bounds.XMax);
             }
         }
 
