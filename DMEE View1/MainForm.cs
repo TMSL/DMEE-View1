@@ -1258,8 +1258,9 @@ namespace DMEEView1
                                     mCmdBounds.YMin = mLBRBounds.YMin * mCmd.scaleFactor;
                                     mCmdBounds.boundsProcessed = true;
 
-                                    // Update stats for the parent module
+                                    // Update bounds for the parent module
                                     UpdateMinMaxBounds(mCmdBounds.XMax, mCmdBounds.YMax, ref mdl.bounds);
+                                    UpdateMinMaxBounds(mCmdBounds.XMin, mCmdBounds.YMin, ref mdl.bounds);
                                     subProcessedCount++;
                                 }
                             }
@@ -1284,7 +1285,8 @@ namespace DMEEView1
                 Console.Write("\tmodule rotation: " + mdl.rotation + " ");
                 if (mdl.rotation < 10) Console.Write("\t");
                 Console.Write("\tmodule scale factor: " + mdl.scaleFactor);
-                Console.WriteLine(" Biggest X: " + mdl.bounds.XMax);
+                Console.Write(" XMax: " + mdl.bounds.XMax + " YMax: " + mdl.bounds.YMax);
+                Console.WriteLine(" XMin: " + mdl.bounds.XMin + " YMin: " + mdl.bounds.YMin);
             }
             Console.WriteLine("Internal Library: =================================");
             foreach (InternalLBREntry ile in internalLBR)
@@ -1293,7 +1295,8 @@ namespace DMEEView1
                 if (ile.name.Length < 7) Console.Write("\t");
                 if (ile.name.Length < 3) Console.Write("\t");
                 Console.Write("sub module count: " + ile.stats.moduleItemCount + " ");
-                Console.WriteLine("biggest X: " + ile.bounds.XMax);
+                Console.Write("XMax: " + ile.bounds.XMax + " YMax: " + ile.bounds.YMax);
+                Console.WriteLine(" XMin: " + ile.bounds.XMin + " YMin: " + ile.bounds.YMin);
             }
         }
 
