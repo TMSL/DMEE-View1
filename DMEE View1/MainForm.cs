@@ -17,7 +17,7 @@ using System.Text;
 // 1.5 this module is the working 'parent' module
 // 2. search for module file in working directory, then in library catalogs (top module name comes from "open file" so
 //    top module will actually just respond to a "file exists" check.)
-// 3. If module not found found mark module as processed-not-found and back to (1)
+// 3. If module not found mark module entry as processed with bounds set to 0,0,0,0 and back to (1)
 // 4. Extract display list for module 
 // 5. Search display list for module commands, for each module command ("submodule") found:
 // 5.1      Create entry for internal library if not already present in list (marked as unprocessed)
@@ -195,16 +195,16 @@ namespace DMEEView1
             // Translate the origin to be at the target x, y position.
             float x = location.X;
             float y = location.Y;
+            gr.TranslateTransform(x, y);
 
             for (int i = 0; i < drawList.Count; i++)
             {
                 GraphicsState grSaved = gr.Save();
+
                 switch (drawList[i].CmdType)
                 {
                     case DcCommand.CommandType.arc:
                         DcArc dArc = (DcArc)drawList[i];
-                        gr.ScaleTransform(1, -1);
-                        gr.TranslateTransform(x, y);
                         if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         PointF arcCenter = new PointF(dArc.centerX, dArc.centerY);
@@ -215,8 +215,6 @@ namespace DMEEView1
 
                     case DcCommand.CommandType.bus:
                         DcBus dBus = (DcBus)drawList[i];
-                        gr.ScaleTransform(1, -1);
-                        gr.TranslateTransform(x, y);
                         if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         pt1.X = Convert.ToInt32(dBus.X1);
@@ -231,8 +229,6 @@ namespace DMEEView1
 
                     case DcCommand.CommandType.circle:
                         DcCircle dCircle = (DcCircle)drawList[i];
-                        gr.ScaleTransform(1, -1);
-                        gr.TranslateTransform(x, y);
                         if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         ptf1.X = Convert.ToSingle(dCircle.X1);
@@ -250,8 +246,6 @@ namespace DMEEView1
 
                     case DcCommand.CommandType.line:
                         DcLine dLine = (DcLine)drawList[i];
-                        gr.ScaleTransform(1, -1);
-                        gr.TranslateTransform(x, y);
                         if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         pt1.X = Convert.ToInt32(dLine.X1);
@@ -276,8 +270,6 @@ namespace DMEEView1
                     case DcCommand.CommandType.pin:
                         DcPin dPin = (DcPin)drawList[i];
                         // draw a small square to identify the pin location.
-                        gr.ScaleTransform(1, -1);
-                        gr.TranslateTransform(x, y);
                         if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         float width = pen.Width; // save width
@@ -290,18 +282,14 @@ namespace DMEEView1
                         break;
 
                     case DcCommand.CommandType.text:
-                        gr.ScaleTransform(1, -1);
-                        gr.TranslateTransform(x, y);
                         if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         DcText dct = (DcText)drawList[i];
-                        DcDrawText(gr, pen, dct);
+                        DcDrawText(gr, pen, dct, moduleCommand.mirror == 1);
                         break;
 
                     case DcCommand.CommandType.wire:
                         DcWire dWire = (DcWire)drawList[i];
-                        gr.ScaleTransform(1, -1);
-                        gr.TranslateTransform(x, y);
                         if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         pt1.X = Convert.ToInt32(dWire.X1);
@@ -323,7 +311,7 @@ namespace DMEEView1
             gr.Restore(gsSaved);
         }
 
-        private void DcDrawText(Graphics gr, Pen pen, DcText dct)
+        private void DcDrawText(Graphics gr, Pen pen, DcText dct, bool moduleMirrored)
         {
             FontFamily fontFamily = new FontFamily("MS GOTHIC");
             string text = dct.dcStr.strText.TrimStart('#');
@@ -333,13 +321,30 @@ namespace DMEEView1
             Font the_font = new Font(fontFamily, fontSize);
             GraphicsState grSaved = gr.Save();
 
-            //gr.ScaleTransform(1, -1);
-            gr.TranslateTransform(dct.X1, dct.Y1);
-            gr.ScaleTransform(1, -1); // undo Y flip
+            if (moduleMirrored && dct.upright == 1)
+            {
+                gr.ScaleTransform(-1, 1);  // mirror X coordinates so text isn't backwards
+                SizeF size = gr.MeasureString(text, the_font); // move origin by text length
+                float x = size.Width - gr.MeasureString(" ", the_font).Width * 0.75F; 
+                gr.TranslateTransform(-(dct.X1+x), dct.Y1);
+            }
+            else
+            {
+                gr.TranslateTransform(dct.X1, dct.Y1);
+            }
+
+            if (dct.mirror == 1 && dct.upright == 1)
+            {
+                SizeF size = gr.MeasureString(text, the_font); // move origin by text length
+                float x = size.Width - gr.MeasureString(" ", the_font).Width * 0.75F;
+                gr.TranslateTransform(-x, 0);
+                gr.ScaleTransform(-1, -1);
+            }
+
+            if (dct.upright == 1) gr.ScaleTransform(1, -1); // undo Y flip
 
             gr.RotateTransform(-dct.rotation);
             gr.DrawString(text, the_font, pen.Brush, new PointF(0, 0 - fontSize));
-            SizeF size = gr.MeasureString(text, the_font);
 
             gr.Restore(grSaved);
         }
@@ -372,16 +377,22 @@ namespace DMEEView1
             return radius;
         }
 
-        // ============ DC COMMAND CLASS DEFINITIONS ===================
-
+        // ==================================================================
+        // ================= DC COMMAND CLASS DEFINITIONS ===================
+        // ==================================================================
         private class DcCommand  // base class for the draw command classes
         {
+            public enum CommandType
+            {
+                arc, bus, circle, drawing, fill, line,
+                module, net, pin, route, str, text, wire,
+                undefined
+            };
             protected CommandType _cmdType = CommandType.undefined;
             public CommandType CmdType
             {
                 get => _cmdType;
             }
-            public enum CommandType { arc, bus, circle, drawing, line, module, net, pin, route, str, text, wire, undefined };
         }
 
         //Arc (a) - e.g. "a  6 -38.641014 10 -4 -10 -4 30"
@@ -451,8 +462,8 @@ namespace DMEEView1
             public float Y1 = 0;        // [3]
             public float X2 = 0;        // [4]
             public float Y2 = 0;        // [5]
-            public int unk6 = 0;        // [6] I've found some 2.10 library modules that have only 7 fields for a line instead of seven (no unk2)
-            public int unk7 = 0;        // [7]
+            public float unk6 = 0;      // [6] found some 2.10 library modules that have only 6 fields for a line instead of seven
+            public float unk7 = 0;      // [7] found this is a float, perhaps line weight/width ??
         }
 
         //Wire (w)        
@@ -488,8 +499,8 @@ namespace DMEEView1
             public float Y1 = 0;            // [3]
             public float scaleFactor = 0;   // [4] scaling factor for the font
             public float rotation = 0;      // [5]
-            public int unk6 = 0;            // [6] MIRROR?
-            public int unk7 = 0;            // [7]
+            public int mirror = 0;          // [6] MIRROR = 1?
+            public int upright = 0;         // [7] KEEP UPRIGHT = 1?
             public DcString dcStr = new DcString();
         }
 
@@ -518,11 +529,12 @@ namespace DMEEView1
                 _cmdType = CommandType.circle;
             }
 
-            public int color = 0;       // color or layer
-            public float X1 = 0;
-            public float Y1 = 0;
-            public float X2 = 0;
-            public float Y2 = 0;
+            public int color = 0;           // [1] color or layer
+            public float X1 = 0;            // [2]
+            public float Y1 = 0;            // [3]
+            public float X2 = 0;            // [4]
+            public float Y2 = 0;            // [5]
+            public float unk6 = 0;          // [6]
         }
 
         private class DcNet : DcCommand
@@ -647,7 +659,7 @@ namespace DMEEView1
             file.Position = startPos;
             endPos = startPos + drawListSize;
 
-            for (int i = 0; i < 20000; i++) // 20,000 line limit.  TBD: This is bad form. Really should add an 'abort'/cancel function in
+            for (int i = 0; i < 20000; i++) // 20,000 line limit.  TBD: This is pretty bad form. Really should add an 'abort'/cancel function in
                                             // case someone loads a huge file that might be mistaken for a DMEE file. Maybe do this all in
                                             // a separate thread?
             {
@@ -755,6 +767,7 @@ namespace DMEEView1
                         X2 = Convert.ToSingle(fields[4]),
                         Y2 = Convert.ToSingle(fields[5])
                     };
+                    if (fields.Length > 6) dcCircle.unk6 = Convert.ToSingle(fields[6]);
                     drawList.Add(dcCircle);
                     break;
 
@@ -780,8 +793,8 @@ namespace DMEEView1
                         X2 = Convert.ToSingle(fields[4]),
                         Y2 = Convert.ToSingle(fields[5])
                     };
-                    if (fields.Length > 6) dcLine.unk6 = Convert.ToInt16(fields[6]);
-                    if (fields.Length > 7) dcLine.unk7 = Convert.ToInt16(fields[7]);
+                    if (fields.Length > 6) dcLine.unk6 = Convert.ToSingle(fields[6]);
+                    if (fields.Length > 7) dcLine.unk7 = Convert.ToSingle(fields[7]);
                     UpdateMinMaxBounds(dcLine.X1, dcLine.Y1, ref drawListBounds);
                     UpdateMinMaxBounds(dcLine.X2, dcLine.Y2, ref drawListBounds);
                     drawList.Add(dcLine);
@@ -849,7 +862,6 @@ namespace DMEEView1
                         unk2 = Convert.ToInt16(fields[2]),
                         strText = fieldStr
                     };
-
                     // I discovered some string commands only have two leading fields. E.g. "s 1 0 #TYPE"
                     // while others have three E.g. "s 1 0 1 #CA31:2
                     if (fields.Length > 3) dcStr.unk3 = Convert.ToInt16(fields[3]);
@@ -887,8 +899,8 @@ namespace DMEEView1
                         Y1 = Convert.ToSingle(fields[3]),
                         scaleFactor = Convert.ToSingle(fields[4]),
                         rotation = Convert.ToSingle(fields[5]),
-                        unk6 = Convert.ToInt16(fields[6]),
-                        unk7 = Convert.ToInt16(fields[7])
+                        mirror = Convert.ToInt16(fields[6]),
+                        upright = Convert.ToInt16(fields[7])
                     };
                     UpdateMinMaxBounds(dcText.X1, dcText.Y1, ref drawListBounds);
                     internalLBREntry.stats.textItemCount++;
@@ -1191,41 +1203,73 @@ namespace DMEEView1
                             ExtLBRCatEntry entry = externalCatalog.entries[index];
                             DcMakeDrawListFromFile(ref internalLBREntry, entry.recordOffset, entry.recordSize);
                         }
-                        else Console.WriteLine("Module \"" + ile.name + "\" not found in directory or libraries. ");
+                        else
+                        {
+                            Console.WriteLine("Module \"" + ile.name + "\" not found in directory or libraries. ");
+                            // set the bounds to all 0's for empty drawlist
+                            ile.bounds.XMax = 0;
+                            ile.bounds.YMax = 0;
+                            ile.bounds.XMin = 0;
+                            ile.bounds.YMin = 0;
+                        }
                     }
                 }
             }
             modulesLoaded = true;
 
             // --------------------- BOUNDS PROCESSING -----------------------------------
-            // Process internal library for biggest/smallest X,Y ("bounds")
-            // First identify "simple" modules in the internal library. These modules don't need more bounds processing
-            // since the processing was done when the drawlist was created.
+            // Process bounds for modules in the internal library,
+            // then for modules in the module instance list
+            // ---------------------------------------------------------------------------
+
+            // --------
+            // PROCESS SIMPLE MODULES in the internal library.
+            // These modules don't need more bounds processing since the processing was done
+            // when the drawlist was created based on the bounds of the lines, arcs, circles, etc. in the drawList.
             foreach (InternalLBREntry ile in internalLBR)
             {
-                if (ile.stats.moduleItemCount == 0) ile.bounds.boundsProcessed = true;
-                
+                if (ile.stats.moduleItemCount == 0) ile.bounds.boundsProcessed = true;               
             }
 
-            // Now do bounds processing for module instances.
+            // --------
+            // PROCESS COMPOUND MODULES in the internal library. 
+            foreach (InternalLBREntry ile in internalLBR)
+            {
+                if (ile.stats.moduleItemCount > 0)
+                {
+                    // need to scan drawlist for the module
+                }
+            }
 
-            // Process module instances that reference simple modules instances in the internal library and then
-            // mark those instances as "bounds processed".
+            // --------
+            // NEXT, PROCESS MODULES in the module instance list THAT ONLY POINT TO PROCESSED MODULES IN THE INTERNAL LIBRARY
             foreach (DcModule mdl in moduleList)
             {
-                // first locate modules that reference "simple" drawlists and mark them.
-                if (internalLBR[mdl.internalLBRIndex].bounds.boundsProcessed)  //<== indicates "simple" (does not contain sub modules)
+                if (internalLBR[mdl.internalLBRIndex].bounds.boundsProcessed)
                 {
-                    // update module command's biggest X,Y based on scaling factor
-                    mdl.bounds.XMax = mdl.scaleFactor * internalLBR[mdl.internalLBRIndex].bounds.XMax;
+                    DcBounds srcBounds = internalLBR[mdl.internalLBRIndex].bounds;
+                    DcBounds destBounds = mdl.bounds;
+                    float destX = mdl.X1;
+                    float destY = mdl.Y1;
+                    float destRotation = mdl.rotation;
+                    float destScaleFactor = mdl.scaleFactor;
+
+                    // update bounds based on module location, rotation, and scale
+                    TransformBounds(srcBounds, destBounds, destX, destY, destRotation, destScaleFactor);
+
                     mdl.bounds.boundsProcessed = true;  // mark this module instance as "bounds processed"
                 }
             }
 
-            // HANDLE COMPOUND MODULES:
-            // NEED TO SCAN ALL SUB-MODULES IN THE DRAWLIST FOR THE GIVEN MODULE IN ORDER TO MARK THAT MODULE AS "BOUNDS PROCESSED"
-            // Keep scanning and processing until no unprocessed modules found
-            for (int i = 1; i < 2; i++ )  // make a maximum of N passes through the modules. Break if no unprocessed modules detected.
+            // --------
+            // LAST, HANDLE COMPOUND MODULES THAT CONTAIN COMPOUND MODULES:
+            // Need to scan all child modules in the drawlist for the given module to determine whether
+            // the module can be marked as "bounds processed".
+            // This is an iterative process since the child modules in particular module may themselves be compound modules
+            // that will first need to be marked as "bounds processed".
+            // Thus, keep scanning and processing the moduleList until no unprocessed modules found or scanDepth limit reached. 
+            const int scanDepth = 2;   // TBD: Make this a configuration option ???
+            for (int i = 1; i < scanDepth; i++ )  // make a maximum of N passes through the modules. Break if no unprocessed modules detected.
             {
                 bool allModulesProcessed = true;
                 foreach (DcModule mdl in moduleList)
@@ -1236,7 +1280,7 @@ namespace DMEEView1
                         int mdlCount = 0; int subProcessedCount = 0;
                         List<DcCommand> mdlDrawList = internalLBR[mdl.internalLBRIndex].drawList;
 
-                        // scan drawlist for module commands with unprocessed bounds and update their biggest/smallest x,y stats
+                        // scan drawlist for module commands with unprocessed bounds and update their bounds
                         foreach (DcCommand cmd in mdlDrawList)
                         {
                             if (cmd.CmdType == DcCommand.CommandType.module)
@@ -1252,10 +1296,11 @@ namespace DMEEView1
                                     DcBounds mLBRBounds = mLBR.bounds;
 
                                     // Update bounds for this module command instance
-                                    mCmdBounds.XMax = mLBRBounds.XMax * mCmd.scaleFactor;
-                                    mCmdBounds.YMax = mLBRBounds.YMax * mCmd.scaleFactor;
-                                    mCmdBounds.XMin = mLBRBounds.XMin * mCmd.scaleFactor;
-                                    mCmdBounds.YMin = mLBRBounds.YMin * mCmd.scaleFactor;
+                                    TransformBounds(mLBRBounds, mCmdBounds, mCmd.X1, mCmd.Y1, mCmd.rotation, mCmd.scaleFactor);
+                                    //mCmdBounds.XMax = mLBRBounds.XMax * mCmd.scaleFactor;
+                                    //mCmdBounds.YMax = mLBRBounds.YMax * mCmd.scaleFactor;
+                                    //mCmdBounds.XMin = mLBRBounds.XMin * mCmd.scaleFactor;
+                                    //mCmdBounds.YMin = mLBRBounds.YMin * mCmd.scaleFactor;
                                     mCmdBounds.boundsProcessed = true;
 
                                     // Update bounds for the parent module
@@ -1269,6 +1314,11 @@ namespace DMEEView1
                         if (subProcessedCount == mdlCount)  // no unprocessed sub modules left in this module instance
                         {
                             // TBD: FINISH MAKING MORE THAN ONE PASS THROUGH CHECKING COMPOUND MODULES
+                            // TBD: NEED TO MODIFY BOUNDS PROPAGATION TO HANDLE FACT THAT A SUB-MODULE WITH, FOR EXAMPLE, A NEGATIVE Y BOUND
+                            // DOESN'T NECESSARILY MEAN THAT THE PARENT MODULE WILL HAVE A NEGATIVE Y BOUND BECAUSE THE EFFECT ON THE
+                            // PARENT MODULE IS BASED ON WHERE THE MODULE IS PLACED. I.e. a module with a -25 YMin is placed with
+                            // its origin at 100,45 in the parent module will only have an effective YMin bound of 20 (45 + -25).
+                            // SO: NEED TO ADD THE MODULE BOUNDS TO ITS LOCATION BEFORE UPDATING THE PARENT'S BOUNDS.
                         }
                     }
                 }
@@ -1304,9 +1354,35 @@ namespace DMEEView1
             Console.WriteLine("Scale Picture Box =================================");
             Console.Write("XMax: " + topModule.bounds.XMax + " YMax: " + topModule.bounds.YMax);
             Console.WriteLine(" XMin: " + topModule.bounds.XMin + " YMin: " + topModule.bounds.YMin);
-            // Set size of Picture Box
-            DrawPictureBox.Height = (int)(topModule.bounds.YMax - topModule.bounds.YMin) + 5;
-            DrawPictureBox.Width = (int)(topModule.bounds.XMax - topModule.bounds.XMin) + 5;
+        }
+
+        // =======================================================
+        //           TRANSFORM BOUNDS
+        // =======================================================
+        private static void TransformBounds(DcBounds srcBounds, DcBounds dstBounds,
+                                               float dstX, float dstY, float dstRot, float dstScale)
+        {
+            PointF[] pts = new PointF[]
+            {
+                        new PointF(srcBounds.XMax, srcBounds.YMax),
+                        new PointF(srcBounds.XMin, srcBounds.YMin)
+            };
+            Matrix matrix = new Matrix();
+
+            // Create destination bounds by transforming source bounds using location, rotation, and scale values
+            matrix.Translate(dstX, dstY);
+            matrix.Rotate(dstRot);
+            matrix.Scale(dstScale, dstScale);
+            matrix.TransformPoints(pts);
+            for (int i = 0; i < pts.Length; i++)  // Round results
+            {
+                pts[i].X = (float)Math.Round(pts[i].X, 5);
+                pts[i].Y = (float)Math.Round(pts[i].Y, 5);
+            }
+            dstBounds.XMax = pts[0].X;
+            dstBounds.YMax = pts[0].Y;
+            dstBounds.XMin = pts[1].X;
+            dstBounds.YMin = pts[1].Y;
         }
 
         // The PrintPage event is raised for each page to be printed.
@@ -1375,15 +1451,21 @@ namespace DMEEView1
 
             if (modulesLoaded)
             {
-                gr.TranslateTransform(0, ZoomFactor * (topModuleCommand.bounds.YMax + 20));  // move origin down based on ZoomFactor
-                gr.ScaleTransform(ZoomFactor, ZoomFactor);
+                // Set size of Picture Box
+                DrawPictureBox.Height = (int)((topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin) * ZoomFactor + 30);
+                DrawPictureBox.Width = (int)((topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin) * ZoomFactor + 30);
 
+                // Set origin for display based on drawing bounds
+                gr.TranslateTransform(-topModuleCommand.bounds.XMin * ZoomFactor + 15,
+                                       topModuleCommand.bounds.YMax * ZoomFactor + 15);
+
+                gr.ScaleTransform(1, -1);  // Set Y direction to be from bottom to top rather than Windows top to bottom
+                gr.ScaleTransform(ZoomFactor, ZoomFactor);
                 pen.Width = 1;
 
                 // draw crossed lines at origin
-                pen.Color = Color.Red;
-                DrawCropMark(gr, pen, new PointF(topModuleCommand.X1, topModuleCommand.Y1));
-                //DrawCropMark(gr, pen, new PointF(XMax, -YMax));
+                DrawCropMark(gr, new Pen(Color.Red), new PointF(0F, 0F));
+                DrawCropMark(gr, new Pen(Color.Green), new PointF(topModuleCommand.bounds.XMin, - topModuleCommand.bounds.YMin));
 
                 PaintDcModule(gr, topModuleCommand);
                 ModuleInfoTextBox(internalLBR[0]);
