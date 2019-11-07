@@ -37,7 +37,7 @@ namespace DMEEView1
         float ZoomFactor = 1;
         float DrawPanelScale = 1;
         const string crlf = "\r\n";
-        bool modulesLoaded = false;
+        bool drawingLoaded = false;
 
         private List<InternalLBREntry> internalLBR = new List<InternalLBREntry>();
         private List<DcModule> moduleList = new List<DcModule>();
@@ -154,10 +154,6 @@ namespace DMEEView1
             InfoTextBox.Clear();
             InfoTextBox.Text += "Library Folder: " + libraryFolder + crlf;
             InfoTextBox.Text += "Working Folder: " + workingFolder + crlf;
-            //InfoTextBox.Text += "Biggest X: " + module.stats.XMax.ToString() + crlf;
-            //InfoTextBox.Text += "Biggest Y: " + module.stats.YMax.ToString() + crlf;
-            //InfoTextBox.Text += "Smallest X: " + module.stats.XMin.ToString() + crlf;
-            //InfoTextBox.Text += "Smallest Y: " + module.stats.YMin.ToString() + crlf;
             InfoTextBox.Text += "Module (m) Entries Count: " + entry.stats.moduleItemCount + crlf;
             InfoTextBox.Text += "Text (t) Entries Count: " + entry.stats.textItemCount + crlf;
             InfoTextBox.Text += "String (s) Entries Count: " + entry.stats.strItemCount + crlf;
@@ -177,8 +173,6 @@ namespace DMEEView1
         // =======================================================
         private void PaintDcModule(Graphics gr, DcModule moduleCommand)
         {
-            Point pt1 = new Point();
-            Point pt2 = new Point();
             PointF ptf1 = new Point();
             PointF ptf2 = new Point();
             Pen pen = new Pen(Color.Black);
@@ -189,13 +183,13 @@ namespace DMEEView1
 
             GraphicsState gsSaved = gr.Save();
 
-            gr.ScaleTransform(scaleFactor, scaleFactor);
-            
-            // transform location
-            // Translate the origin to be at the target x, y position.
+            // Translate the origin to be at the module's target x, y position.
             float x = location.X;
             float y = location.Y;
             gr.TranslateTransform(x, y);
+
+            // scale coordinates from this point on based on module's scale factor
+            gr.ScaleTransform(scaleFactor, scaleFactor);
 
             for (int i = 0; i < drawList.Count; i++)
             {
@@ -208,22 +202,22 @@ namespace DMEEView1
                         if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
                         PointF arcCenter = new PointF(dArc.centerX, dArc.centerY);
-                        PointF p1 = new PointF(dArc.X1, dArc.Y1);
-                        PointF p2 = new PointF(dArc.X2, dArc.Y2);
-                        DcDrawArc(gr, pen, arcCenter, p1, p2);
+                        ptf1 = new PointF(dArc.X1, dArc.Y1);
+                        ptf2 = new PointF(dArc.X2, dArc.Y2);
+                        DcDrawArc(gr, pen, arcCenter, ptf1, ptf2);
                         break;
 
                     case DcCommand.CommandType.bus:
                         DcBus dBus = (DcBus)drawList[i];
                         if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
-                        pt1.X = Convert.ToInt32(dBus.X1);
-                        pt1.Y = Convert.ToInt32(dBus.Y1);
-                        pt2.X = Convert.ToInt32(dBus.X2);
-                        pt2.Y = Convert.ToInt32(dBus.Y2);
+                        ptf1.X = Convert.ToSingle(dBus.X1);
+                        ptf1.Y = Convert.ToSingle(dBus.Y1);
+                        ptf2.X = Convert.ToSingle(dBus.X2);
+                        ptf2.Y = Convert.ToSingle(dBus.Y2);
                         savedPen = (Pen)pen.Clone();
                         pen.Width = dBus.width;
-                        gr.DrawLine(pen, pt1, pt2);
+                        gr.DrawLine(pen, ptf1, ptf2);
                         pen = savedPen;
                         break;
 
@@ -248,11 +242,11 @@ namespace DMEEView1
                         DcLine dLine = (DcLine)drawList[i];
                         if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
-                        pt1.X = Convert.ToInt32(dLine.X1);
-                        pt1.Y = Convert.ToInt32(dLine.Y1);
-                        pt2.X = Convert.ToInt32(dLine.X2);
-                        pt2.Y = Convert.ToInt32(dLine.Y2);
-                        gr.DrawLine(pen, pt1, pt2);
+                        ptf1.X = Convert.ToSingle(dLine.X1);
+                        ptf1.Y = Convert.ToSingle(dLine.Y1);
+                        ptf2.X = Convert.ToSingle(dLine.X2);
+                        ptf2.Y = Convert.ToSingle(dLine.Y2);
+                        gr.DrawLine(pen, ptf1, ptf2);
                         break;
 
                     case DcCommand.CommandType.module:
@@ -292,11 +286,11 @@ namespace DMEEView1
                         DcWire dWire = (DcWire)drawList[i];
                         if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
                         gr.RotateTransform(moduleCommand.rotation);
-                        pt1.X = Convert.ToInt32(dWire.X1);
-                        pt1.Y = Convert.ToInt32(dWire.Y1);
-                        pt2.X = Convert.ToInt32(dWire.X2);
-                        pt2.Y = Convert.ToInt32(dWire.Y2);
-                        gr.DrawLine(pen, pt1, pt2);
+                        ptf1.X = Convert.ToSingle(dWire.X1);
+                        ptf1.Y = Convert.ToSingle(dWire.Y1);
+                        ptf2.X = Convert.ToSingle(dWire.X2);
+                        ptf2.Y = Convert.ToSingle(dWire.Y2);
+                        gr.DrawLine(pen, ptf1, ptf2);
                         break;
 
                     case DcCommand.CommandType.undefined:
@@ -311,6 +305,9 @@ namespace DMEEView1
             gr.Restore(gsSaved);
         }
 
+        // =======================================================
+        //           DC DRAW TEXT
+        // =======================================================
         private void DcDrawText(Graphics gr, Pen pen, DcText dct, bool moduleMirrored)
         {
             FontFamily fontFamily = new FontFamily("MS GOTHIC");
@@ -373,7 +370,6 @@ namespace DMEEView1
             {
                 gr.DrawArc(pen, x, y, width, height, startAngle2, startAngle2 - endAngle2);
             }
-
             return radius;
         }
 
@@ -548,10 +544,12 @@ namespace DMEEView1
         }
 
         //include Module (m)
-        // -- e.g. m  15 0 0 1.25 0 0 bsize 0 0 0 0 0
-        //         m  15 1900 725 1 180 1 iowire 0 0 0 1 1 // horizontally flipped
-        //         m  15 1675 765 1 180 1 ls125  0 0 0 1 1  // horizontally flipped
-        //         m  15 1070 670 1 90  0 r      0 0 0 1 1  // 90 rotated
+        // -- e.g. m  15  0    0  1.25   0  0 bsize   0  0  0  0  0  // just scaled
+        //         m  15 1900 725  1   180  1 iowire  0  0  0  1  1  // horizontally flipped
+        //         m  15 1675 765  1   180  1 ls125   0  0  0  1  1  // horizontally flipped
+        //         m  15 1070 670  1    90  0   r     0  0  0  1  1  // 90 rotated
+        //         m  15 175  585 0.75 270  0 ls04a   1  0  0  1  0  // 270 rotated and scaled
+        //         0   1  2    3   4    5   6   7     8  9 10 11 12
         private class DcModule : DcCommand
         {
             public DcModule()
@@ -560,8 +558,7 @@ namespace DMEEView1
             }
             public int internalLBRIndex = -1; // index to entry for module in internal library
             public DcBounds bounds = new DcBounds(); //
-            //public ModuleCommandStats stats = new ModuleCommandStats();
-            public int color = 0;           // [1] color or layer
+            public int color = 0;           // [1]
             public float X1 = 0;            // [2] X coordinate (offset) to place module's origin
             public float Y1 = 0;            // [3] Y coordinate (offset) to place module's origin
             public float scaleFactor = 1;   // [4]
@@ -659,8 +656,9 @@ namespace DMEEView1
             file.Position = startPos;
             endPos = startPos + drawListSize;
 
-            for (int i = 0; i < 20000; i++) // 20,000 line limit.  TBD: This is pretty bad form. Really should add an 'abort'/cancel function in
-                                            // case someone loads a huge file that might be mistaken for a DMEE file. Maybe do this all in
+            for (int i = 0; i < 20000; i++) // 20,000 line limit.  TBD: This is pretty bad form. Really should
+                                            // add an 'abort'/cancel function in case someone loads a huge file
+                                            // that might be mistaken for a DMEE file. Maybe do this all in
                                             // a separate thread?
             {
                 if (file.Position == file.Length) break;  // reached end of file
@@ -810,8 +808,14 @@ namespace DMEEView1
                         scaleFactor = Convert.ToSingle(fields[4]),
                         rotation = Convert.ToSingle(fields[5]),
                         mirror = Convert.ToInt16(fields[6]),
-                        name = Convert.ToString(fields[7])
+                        name = Convert.ToString(fields[7]),
                     };
+                    if (fields.Length > 8) dcModule.unk8 = Convert.ToInt16(fields[8]);
+                    if (fields.Length > 9) dcModule.unk9 = Convert.ToInt16(fields[9]);
+                    if (fields.Length > 10) dcModule.unk10 = Convert.ToInt16(fields[10]);
+                    if (fields.Length > 11) dcModule.unk11 = Convert.ToInt16(fields[11]);
+                    if (fields.Length > 12) dcModule.unk12 = Convert.ToInt16(fields[12]);
+
                     internalLBREntry.stats.moduleItemCount++;
                     UpdateMinMaxBounds(dcModule.X1, dcModule.Y1, ref drawListBounds);
 
@@ -1056,6 +1060,7 @@ namespace DMEEView1
                 TopFileNameTextBox.Text = topFileName;
                 TopFileNameTextBox.Update();
                 Properties.Settings.Default.fileName = topFileName;
+                DcLoadDrawing();
             }
             menuStrip1.Select();
         }
@@ -1106,6 +1111,18 @@ namespace DMEEView1
         //           DRAW FILE BUTTON CLICK
         // =======================================================
         private void DrawFileButton_Click(object sender, EventArgs e)
+        {
+            drawingLoaded = false;
+            DcLoadDrawing();
+        }
+
+        // =======================================================
+        //           DC LOAD DRAWING
+        // Load the drawing file and create internal library
+        // entries for all referenced modules and sub-modules in
+        // the drawing.
+        // =======================================================
+        private void DcLoadDrawing()
         {
             List<DcExternalLBRCatalog> externalLBRCatalogs = new List<DcExternalLBRCatalog>();
 
@@ -1175,7 +1192,7 @@ namespace DMEEView1
                         int n = name.IndexOf('.');
                         if (n > 0)
                         {
-                            string ext = name.Substring(n+1);
+                            string ext = name.Substring(n + 1);
                             name = name.Substring(0, name.IndexOf('.'));
                             name = name.PadRight(8, ' '); // pad to 8 characters
                             name += ext;
@@ -1215,7 +1232,6 @@ namespace DMEEView1
                     }
                 }
             }
-            modulesLoaded = true;
 
             // --------------------- BOUNDS PROCESSING -----------------------------------
             // Process bounds for modules in the internal library,
@@ -1228,7 +1244,7 @@ namespace DMEEView1
             // when the drawlist was created based on the bounds of the lines, arcs, circles, etc. in the drawList.
             foreach (InternalLBREntry ile in internalLBR)
             {
-                if (ile.stats.moduleItemCount == 0) ile.bounds.boundsProcessed = true;               
+                if (ile.stats.moduleItemCount == 0) ile.bounds.boundsProcessed = true;
             }
 
             // --------
@@ -1269,7 +1285,7 @@ namespace DMEEView1
             // that will first need to be marked as "bounds processed".
             // Thus, keep scanning and processing the moduleList until no unprocessed modules found or scanDepth limit reached. 
             const int scanDepth = 2;   // TBD: Make this a configuration option ???
-            for (int i = 1; i < scanDepth; i++ )  // make a maximum of N passes through the modules. Break if no unprocessed modules detected.
+            for (int i = 1; i < scanDepth; i++)  // make a maximum of N passes through the modules. Break if no unprocessed modules detected.
             {
                 bool allModulesProcessed = true;
                 foreach (DcModule mdl in moduleList)
@@ -1314,11 +1330,10 @@ namespace DMEEView1
                         if (subProcessedCount == mdlCount)  // no unprocessed sub modules left in this module instance
                         {
                             // TBD: FINISH MAKING MORE THAN ONE PASS THROUGH CHECKING COMPOUND MODULES
-                            // TBD: NEED TO MODIFY BOUNDS PROPAGATION TO HANDLE FACT THAT A SUB-MODULE WITH, FOR EXAMPLE, A NEGATIVE Y BOUND
-                            // DOESN'T NECESSARILY MEAN THAT THE PARENT MODULE WILL HAVE A NEGATIVE Y BOUND BECAUSE THE EFFECT ON THE
-                            // PARENT MODULE IS BASED ON WHERE THE MODULE IS PLACED. I.e. a module with a -25 YMin is placed with
-                            // its origin at 100,45 in the parent module will only have an effective YMin bound of 20 (45 + -25).
-                            // SO: NEED TO ADD THE MODULE BOUNDS TO ITS LOCATION BEFORE UPDATING THE PARENT'S BOUNDS.
+                            // TBD: More cleanup for bounds processing.
+                            // TBD: Reject "m" commands with color/layer field (field[1]) >= 50 
+                            // since those are module commands for "pads" and have a different format than
+                            // that for the "drawing" module commands.
                         }
                     }
                 }
@@ -1326,7 +1341,7 @@ namespace DMEEView1
             }
 
             Console.WriteLine("Module Instances: =================================");
-            foreach(DcModule mdl in moduleList)
+            foreach (DcModule mdl in moduleList)
             {
                 Console.Write("module command - name: " + mdl.name + " \t");
                 if (mdl.name.Length < 8) Console.Write("\t");
@@ -1354,6 +1369,8 @@ namespace DMEEView1
             Console.WriteLine("Scale Picture Box =================================");
             Console.Write("XMax: " + topModule.bounds.XMax + " YMax: " + topModule.bounds.YMax);
             Console.WriteLine(" XMin: " + topModule.bounds.XMin + " YMin: " + topModule.bounds.YMin);
+
+            drawingLoaded = true;
         }
 
         // =======================================================
@@ -1443,13 +1460,9 @@ namespace DMEEView1
             Pen pen = new Pen(Color.Black);
 
             gr.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-            if (ZoomFactor >= 1.0F)
-            {
-                gr.SmoothingMode = SmoothingMode.AntiAlias;
-                gr.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            }
+            if (ZoomFactor > 0.5) gr.SmoothingMode = SmoothingMode.AntiAlias;
 
-            if (modulesLoaded)
+            if (drawingLoaded)
             {
                 // Set size of Picture Box
                 DrawPictureBox.Height = (int)((topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin) * ZoomFactor + 30);
