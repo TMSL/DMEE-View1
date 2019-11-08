@@ -9,6 +9,12 @@ using System.Windows.Forms;
 using System.Text;
 
 // TMS - started September 17, 2019
+// TBD: More cleanup for bounds processing.
+// TBD: Reject "m" commands with color/layer field (field[1]) >= 50 
+// since those are module commands for "pads" and have a different format than
+// that for the "drawing" module commands.
+
+// Module loading and bounds processing:
 // BUILD INTERNAL LIBRARY AND A LIST OF ALL MODULE INSTANCES IN THE DRAWING
 //  CREATE LIST CONTAINING LIBRARY CATALOGS FROM LIBRARY FOLDER AND A LIST OF FILES IN WORKING DIRECTORY
 //     Add top module entry to internal library and mark as unprocessed. Also add an entry for the top module to module instance list.
@@ -34,14 +40,15 @@ namespace DMEEView1
         string topFileName = "";
         string libraryFolder = "";
         string workingFolder = "";
+        bool showInfo = false;
         float ZoomFactor = 1;
-        float DrawPanelScale = 1;
         const string crlf = "\r\n";
         bool drawingLoaded = false;
 
         private List<InternalLBREntry> internalLBR = new List<InternalLBREntry>();
         private List<DcModule> moduleList = new List<DcModule>();
         private DcModule topModuleCommand = new DcModule();
+        private PrinterSettings printerSettings = new PrinterSettings();
 
         private class InternalLBREntry
         {
@@ -84,6 +91,7 @@ namespace DMEEView1
 
         private class DcExternalLBRCatalog
         {
+            public enum MatchType { partial, full };
             public String fileName = ""; // full path to the library file from which the catalog was read.
             public int entryCount = 0;
             public int size = 0;
@@ -96,57 +104,80 @@ namespace DMEEView1
         {
             InitializeComponent();
             menuStrip1.Select();
+            RestoreAppSettings();  // Restore saved settings
 
-            this.printDocument.PrintPage += new PrintPageEventHandler(this.PrintDocument_PrintPage); // register callback for printing
-            topFileName = Properties.Settings.Default.fileName;
-            TopFileNameTextBox.Text = topFileName;
-
-            Screen activeScreen = Screen.FromControl(this);
-            // Console.WriteLine("Screen size: " + activeScreen.Bounds.Width + " x " + activeScreen.Bounds.Height);
-
-            // First, set the height and width of the window to the 11 x 17 aspect ratio
+            // Set the initial height and width of the form's window to a 12 x 18 Height to Width ratio
             // where the window height is 95% of the screen height
-            this.Height = (int) (activeScreen.Bounds.Height * 0.95F);
-            this.Width = (int)(18F / 12F * this.Height);
-            this.CenterToScreen();
+            Height = (int)(Screen.FromControl(this).Bounds.Height * 0.95F);
+            Width = (int)(18F / 12F * this.Height);
+            CenterToScreen();
 
-            // Set the location and size of DrawPanel relative to form
+            // Set the initial location and size of DrawPanel relative to form
             DrawPanel.Location = new Point(0, menuStrip1.Height);
-            DrawPanel.Height = this.Height - menuStrip1.Height-40;
-            DrawPanel.Width = this.Width-20;
+            DrawPanel.Height = this.Height - menuStrip1.Height - 40;
+            DrawPanel.Width = this.Width - 20;
 
-            Graphics gr = CreateGraphics();
-
-            // Now calculate a scale factor that makes as 12" x 18" area fit in the window and then double it.
-            // This should make a 50% zoom factor fit the window nicely
+            // Set location of DrawPictureBox.
+            // (Height and Width are set later based on drawing's bounds)
             DrawPictureBox.Location = new Point(0, 0);
-            DrawPictureBox.Height = (int)(12 * gr.DpiY);
-            DrawPictureBox.Width = (int)(18 * gr.DpiX);
 
-            // calculate scale factor based on fitting a 12" high image into the DrawPanel at 50% Zoom level
-            DrawPanelScale = 2F * (DrawPanel.Height / (float)DrawPictureBox.Height);
+            // Set initial text of file name based on previous setting
+            TopFileNameTextBox.Text = topFileName;
+            TopFileNameTextBox.Show();
 
-            if (Properties.Settings.Default.ShowInfo == true)
+            // Set info button based on previous setting of showInfo
+            if (showInfo == true)
             {
                 HideNShowInfoButton.Text = "hide info";
                 InfoTextBox.Show();
-
             }
             else
             {
                 HideNShowInfoButton.Text = "show info";
                 InfoTextBox.Hide();
             }
+            
+            // register handler for Print event
+            printDocument.PrintPage += new PrintPageEventHandler(this.PrintDocument_PrintPage);
+        }
 
-            internalLBR.Add(new InternalLBREntry());
-            libraryFolder = Properties.Settings.Default.LibFolder;
+        private void RestoreAppSettings()
+        {
+            // restore previous setting of topFileName if valid
+            topFileName = Properties.Settings.Default.fileName;
+            if (!File.Exists(Properties.Settings.Default.fileName))
+            {
+                topFileName = "";
+                Properties.Settings.Default.fileName = topFileName;
+            };
+
+            // restore setting of showInfo
+            if (Properties.Settings.Default.ShowInfo == true)
+            {
+                showInfo = true;
+            }
+            else showInfo = false;
+
+            // restore previous working folder if still valid
             workingFolder = Properties.Settings.Default.WorkFolder;
-
-            if (!Directory.Exists(workingFolder))
+            if (!Directory.Exists(workingFolder)) // clear if not valid
             {
                 workingFolder = "";
                 Properties.Settings.Default.WorkFolder = workingFolder;
             }
+
+            // restore previous library folder if still valid
+            libraryFolder = Properties.Settings.Default.LibFolder;
+            if (!Directory.Exists(libraryFolder))
+            {
+                libraryFolder = "";
+                Properties.Settings.Default.LibFolder = libraryFolder;
+            }
+
+            // restore previous page settings
+            printDocument.DefaultPageSettings.Margins = Properties.Settings.Default.margins;
+            printDocument.DefaultPageSettings.Landscape = Properties.Settings.Default.landscape;
+            printDocument.DefaultPageSettings.PaperSize = Properties.Settings.Default.paperSize;
         }
 
         private void ModuleInfoTextBox(InternalLBREntry entry)
@@ -154,12 +185,17 @@ namespace DMEEView1
             InfoTextBox.Clear();
             InfoTextBox.Text += "Library Folder: " + libraryFolder + crlf;
             InfoTextBox.Text += "Working Folder: " + workingFolder + crlf;
-            InfoTextBox.Text += "Module (m) Entries Count: " + entry.stats.moduleItemCount + crlf;
+            InfoTextBox.Text += "Drawing bounds: XMax = " + topModuleCommand.bounds.XMax + ", YMax = " + topModuleCommand.bounds.YMax;
+            InfoTextBox.Text += "  XMin = " + topModuleCommand.bounds.XMin + ", YMin = " + topModuleCommand.bounds.YMin + crlf;
             InfoTextBox.Text += "Text (t) Entries Count: " + entry.stats.textItemCount + crlf;
             InfoTextBox.Text += "String (s) Entries Count: " + entry.stats.strItemCount + crlf;
             InfoTextBox.Text += "Pin (p) Entries Count: " + entry.stats.pinItemCount + crlf;
             InfoTextBox.Text += "Drawing/display (d) Entries Count: " + entry.stats.drawingItemCount + crlf;
-            InfoTextBox.Text += "Module List Entries Count: " + internalLBR.Count;
+            InfoTextBox.Text += "Module (m) Entries Count (modules in top drawing): " + entry.stats.moduleItemCount + crlf;
+            InfoTextBox.Text += "Module instance Count (number of module instances including drawing): "
+                                + moduleList.Count + crlf;
+            InfoTextBox.Text += "Internal Library Entries Count (unique modules used in drawing & sub-modules): "
+                                + internalLBR.Count;
         }
 
         private void DrawCropMark(Graphics gr, Pen pen, PointF center)
@@ -573,8 +609,8 @@ namespace DMEEView1
         }
 
         private class DcDrawing : DcCommand    // (d) drawing / display -- e.g.
-                                                //                   D2BLKDIA:   d  4.09 1  1751  588  1        0 0 0 0 0   5 0
-        {                                       //                   CONN62.100: d  3.00 1 -1514 -131  0.291667 0 0 0 0 0 100 0
+                                               //  D2BLKDIA:   d  4.09 1  1751  588  1        0 0 0 0 0   5 0
+        {
             public DcDrawing()
             {
                 _cmdType = CommandType.drawing;
@@ -995,15 +1031,15 @@ namespace DMEEView1
             return entryCount;
         }
 
-        public enum MatchType { partial, full };
 
         // =======================================================
         //           FIND MODULE IN CATALOG
         // =======================================================
-        // search catalog entries for name (case insensitive) starting from startIndex in catalog and returning
+        // search catalog's entries for name (case insensitive) starting from startIndex in catalog and returning
         // index of entry if match found. Return -1 if match not found.
         // Setting startIndex to 0 will return index of first match.
-        private int FindModuleInCatalog(DcExternalLBRCatalog catalog, String moduleName, int startIndex, MatchType matchType)
+        private int FindModuleInCatalog(DcExternalLBRCatalog catalog, String moduleName, int startIndex,
+                                        DcExternalLBRCatalog.MatchType matchType)
         {
             int index;
             bool found = false;
@@ -1012,12 +1048,12 @@ namespace DMEEView1
             for (index = startIndex; index < catalog.entries.Count; index++)
             {
                 string name = catalog.entries[index].name.ToUpper();
-                if (matchType == MatchType.full && name == moduleName)
+                if (matchType == DcExternalLBRCatalog.MatchType.full && name == moduleName)
                 {
                     found = true;
                     break;
                 }
-                else if (matchType == MatchType.partial && name.Contains(moduleName))
+                else if (matchType == DcExternalLBRCatalog.MatchType.partial && name.Contains(moduleName))
                 {
                     found = true;
                     break;
@@ -1205,7 +1241,7 @@ namespace DMEEView1
                         // find name among catalogs in external catalog list
                         foreach (DcExternalLBRCatalog cat in externalLBRCatalogs)
                         {
-                            index = FindModuleInCatalog(cat, name, 0, MatchType.full);
+                            index = FindModuleInCatalog(cat, name, 0, DcExternalLBRCatalog.MatchType.full);
                             if (index >= 0)
                             {
                                 externalCatalog = cat;
@@ -1220,7 +1256,7 @@ namespace DMEEView1
                             ExtLBRCatEntry entry = externalCatalog.entries[index];
                             DcMakeDrawListFromFile(ref internalLBREntry, entry.recordOffset, entry.recordSize);
                         }
-                        else
+                        else  // handle missing module
                         {
                             Console.WriteLine("Module \"" + ile.name + "\" not found in directory or libraries. ");
                             // set the bounds to all 0's for empty drawlist
@@ -1248,7 +1284,8 @@ namespace DMEEView1
             }
 
             // --------
-            // PROCESS COMPOUND MODULES in the internal library. 
+            // PROCESS COMPOUND MODULES in the internal library.
+            // TBD: Is there a benefit doing this, or just have it done through moduleList
             foreach (InternalLBREntry ile in internalLBR)
             {
                 if (ile.stats.moduleItemCount > 0)
@@ -1258,7 +1295,7 @@ namespace DMEEView1
             }
 
             // --------
-            // NEXT, PROCESS MODULES in the module instance list THAT ONLY POINT TO PROCESSED MODULES IN THE INTERNAL LIBRARY
+            // PROCESS MODULES in the module instance list THAT ONLY POINT TO PROCESSED MODULES IN THE INTERNAL LIBRARY
             foreach (DcModule mdl in moduleList)
             {
                 if (internalLBR[mdl.internalLBRIndex].bounds.boundsProcessed)
@@ -1284,9 +1321,10 @@ namespace DMEEView1
             // This is an iterative process since the child modules in particular module may themselves be compound modules
             // that will first need to be marked as "bounds processed".
             // Thus, keep scanning and processing the moduleList until no unprocessed modules found or scanDepth limit reached. 
-            const int scanDepth = 2;   // TBD: Make this a configuration option ???
+            const int scanDepth = 10;   // TBD: Make this a configuration option ???
             for (int i = 1; i < scanDepth; i++)  // make a maximum of N passes through the modules. Break if no unprocessed modules detected.
             {
+                Console.WriteLine("ModuleList bounds processing pass " + i);
                 bool allModulesProcessed = true;
                 foreach (DcModule mdl in moduleList)
                 {
@@ -1313,10 +1351,6 @@ namespace DMEEView1
 
                                     // Update bounds for this module command instance
                                     TransformBounds(mLBRBounds, mCmdBounds, mCmd.X1, mCmd.Y1, mCmd.rotation, mCmd.scaleFactor);
-                                    //mCmdBounds.XMax = mLBRBounds.XMax * mCmd.scaleFactor;
-                                    //mCmdBounds.YMax = mLBRBounds.YMax * mCmd.scaleFactor;
-                                    //mCmdBounds.XMin = mLBRBounds.XMin * mCmd.scaleFactor;
-                                    //mCmdBounds.YMin = mLBRBounds.YMin * mCmd.scaleFactor;
                                     mCmdBounds.boundsProcessed = true;
 
                                     // Update bounds for the parent module
@@ -1329,11 +1363,7 @@ namespace DMEEView1
                         Console.WriteLine(mdl.name + " module count: " + mdlCount + " sub processed: " + subProcessedCount);
                         if (subProcessedCount == mdlCount)  // no unprocessed sub modules left in this module instance
                         {
-                            // TBD: FINISH MAKING MORE THAN ONE PASS THROUGH CHECKING COMPOUND MODULES
-                            // TBD: More cleanup for bounds processing.
-                            // TBD: Reject "m" commands with color/layer field (field[1]) >= 50 
-                            // since those are module commands for "pads" and have a different format than
-                            // that for the "drawing" module commands.
+                            mdl.bounds.boundsProcessed = true;
                         }
                     }
                 }
@@ -1363,19 +1393,14 @@ namespace DMEEView1
                 Console.Write("XMax: " + ile.bounds.XMax + " YMax: " + ile.bounds.YMax);
                 Console.WriteLine(" XMin: " + ile.bounds.XMin + " YMin: " + ile.bounds.YMin);
             }
-
-            // Scale Picture Box to fit drawing
-            DcModule topModule = moduleList[0];
-            Console.WriteLine("Scale Picture Box =================================");
-            Console.Write("XMax: " + topModule.bounds.XMax + " YMax: " + topModule.bounds.YMax);
-            Console.WriteLine(" XMin: " + topModule.bounds.XMin + " YMin: " + topModule.bounds.YMin);
-
             drawingLoaded = true;
         }
 
-        // =======================================================
+        // ==================================================================
         //           TRANSFORM BOUNDS
-        // =======================================================
+        // Update destination bounds by transforming source bounds
+        // using destination location, rotation, and scale values
+        // ==================================================================
         private static void TransformBounds(DcBounds srcBounds, DcBounds dstBounds,
                                                float dstX, float dstY, float dstRot, float dstScale)
         {
@@ -1402,7 +1427,10 @@ namespace DMEEView1
             dstBounds.YMin = pts[1].Y;
         }
 
-        // The PrintPage event is raised for each page to be printed.
+        // ==================================================================
+        //           PRINT PAGE EVENT HANDLER
+        // The PrintPage event is raised for each page to be printed
+        // ================================================================== 
         private void PrintDocument_PrintPage(object sender, System.Drawing.Printing.PrintPageEventArgs e)
         {
             Console.WriteLine("Print Page");
@@ -1420,8 +1448,7 @@ namespace DMEEView1
 
         private void ToolStripMenuPageSetup_Click(object sender, EventArgs e)
         {
-            PageSettings settings = new PageSettings();
-            pageSetupDialog1.PageSettings = settings;
+            pageSetupDialog1.PageSettings = printDocument.DefaultPageSettings;
             pageSetupDialog1.ShowDialog();
             MessageBox.Show("Not yet implemented.", "Page Setup");
         }
@@ -1450,7 +1477,6 @@ namespace DMEEView1
         private void DrawPictureBox_Paint(object sender, PaintEventArgs e)
         {
             Graphics gr = e.Graphics;
-            InternalLBREntry internalLBREntry = internalLBR[0];
             float dpiX = gr.DpiX;
             float dpiY = gr.DpiY;
             int windowWidth = this.Width;

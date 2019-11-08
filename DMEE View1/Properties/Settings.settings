@@ -17,5 +17,14 @@
     <Setting Name="fileFolder" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="margins" Type="System.Drawing.Printing.Margins" Scope="User">
+      <Value Profile="(Default)">25, 25, 25, 25</Value>
+    </Setting>
+    <Setting Name="landscape" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="paperSize" Type="System.Drawing.Printing.PaperSize" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
   </Settings>
 </SettingsFile>

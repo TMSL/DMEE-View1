@@ -82,5 +82,40 @@ namespace DMEEView1.Properties {
                 this["fileFolder"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("25, 25, 25, 25")]
+        public global::System.Drawing.Printing.Margins margins {
+            get {
+                return ((global::System.Drawing.Printing.Margins)(this["margins"]));
+            }
+            set {
+                this["margins"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool landscape {
+            get {
+                return ((bool)(this["landscape"]));
+            }
+            set {
+                this["landscape"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        public global::System.Drawing.Printing.PaperSize paperSize {
+            get {
+                return ((global::System.Drawing.Printing.PaperSize)(this["paperSize"]));
+            }
+            set {
+                this["paperSize"] = value;
+            }
+        }
     }
 }
