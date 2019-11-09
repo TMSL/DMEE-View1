@@ -49,6 +49,8 @@ namespace DMEEView1
         private List<DcModule> moduleList = new List<DcModule>();
         private DcModule topModuleCommand = new DcModule();
         private PrinterSettings printerSettings = new PrinterSettings();
+        public FolderConfigForm folderConfigForm = new FolderConfigForm();
+        public ColorConfigForm colorConfigForm = new ColorConfigForm();
 
         private class InternalLBREntry
         {
@@ -97,8 +99,6 @@ namespace DMEEView1
             public int size = 0;
             public List<ExtLBRCatEntry> entries = new List<ExtLBRCatEntry>();
         }
-
-        public FolderConfigForm folderConfigForm = new FolderConfigForm();
 
         public MainForm()
         {
@@ -209,6 +209,7 @@ namespace DMEEView1
             PointF ptf1 = new Point();
             PointF ptf2 = new Point();
             Pen pen = new Pen(Color.Black);
+            pen.Width = 1;
             Pen savedPen = new Pen(Color.Black);
             PointF location = new PointF(moduleCommand.X1, moduleCommand.Y1);
             List<DcCommand> drawList = internalLBR[moduleCommand.internalLBRIndex].drawList;
@@ -682,7 +683,7 @@ namespace DMEEView1
             return str;
         }
 
-        enum DrawListStatus { OK, FileNotFound };
+        enum DrawListStatus { OK, FileNotFound };  // TBD: Make a drawlist class?
 
         // =======================================================
         //           DC MAKE DRAW LIST FROM FILE
@@ -865,6 +866,9 @@ namespace DMEEView1
                         mirror = Convert.ToInt16(fields[6]),
                         name = Convert.ToString(fields[7]),
                     };
+                    // skip modules with color value >= 50. Those are "pad" module commands that
+                    // have a different field syntax than 'drawing' module commands.
+                    if (dcModule.color >= 50) break;
                     if (fields.Length > 8) dcModule.unk8 = Convert.ToInt16(fields[8]);
                     if (fields.Length > 9) dcModule.unk9 = Convert.ToInt16(fields[9]);
                     if (fields.Length > 10) dcModule.unk10 = Convert.ToInt16(fields[10]);
@@ -1350,7 +1354,8 @@ namespace DMEEView1
             // that will first need to be marked as "bounds processed".
             // Thus, keep scanning and processing the moduleList until no unprocessed modules found or scanDepth limit reached. 
             const int scanDepth = 10;   // TBD: Make this a configuration option ???
-            for (int i = 1; i < scanDepth; i++)  // make a maximum of N passes through the modules. Break if no unprocessed modules detected.
+            for (int i = 1; i < scanDepth; i++)  // make a maximum of scanDepth passes through the modules. 
+                                                 // Break early if no unprocessed modules detected.
             {
                 Console.WriteLine("ModuleList bounds processing pass " + i);
                 bool allModulesProcessed = true;
@@ -1466,42 +1471,46 @@ namespace DMEEView1
             // set clip for printing to the margin bounds that were set up for the page
             gr.Clip = new Region(e.MarginBounds);
             
-            if (drawingLoaded)
+            if (!drawingLoaded)
             {
-                DcBounds dBounds = topModuleCommand.bounds;
-                bool centerPrint = true;  // TBD: center document horizontally & vertically within margins
-                Matrix matrix = new Matrix();
-
-                // Figure out a scale factor to fit drawing within the page margins
-                float dWidth = (topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin);
-                float dHeight = (topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin);
-                float scale = e.MarginBounds.Width / dWidth;
-                if (scale > e.MarginBounds.Height / dHeight)  // choose smallest scale factor
-                {
-                    scale = e.MarginBounds.Height/ dHeight ;
-                }
-
-                PointF[] pts = new PointF[]
-                {
-                        new PointF(e.MarginBounds.Left, e.MarginBounds.Top),
-                        new PointF(e.MarginBounds.Right, e.MarginBounds.Bottom)
-                };
-                matrix.Scale(scale, scale);
-                matrix.TransformPoints(pts);
-
-                // shift print origin based on page margin
-                // FYI: Theres also a printdocument property for "OriginAtMargins" but I'm doing it manually here
-                gr.TranslateTransform(e.MarginBounds.Left, e.MarginBounds.Top);
-                // scale the graphics to the printer by scale factor
-                gr.ScaleTransform(scale, scale);
-                // shift location of print origin based on drawing bounds
-                gr.TranslateTransform(-dBounds.XMin, dBounds.YMin+dHeight);
-                // FLIP Y COORDINATES
-                gr.ScaleTransform(1, -1);
-
-                gr.DrawRectangle(new Pen(Color.LightGray), dBounds.XMin, dBounds.YMin, dWidth, dHeight);
-                PaintDcModule(gr, topModuleCommand);
+                e.HasMorePages = false;
+                return;
             }
+
+            DcBounds dBounds = topModuleCommand.bounds;
+            bool centerPrint = true;  // TBD: center document horizontally & vertically within margins
+            Matrix matrix = new Matrix();
+
+            // Figure out a scale factor to fit drawing within the page margins
+            float dWidth = (topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin);
+            float dHeight = (topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin);
+            float scale = e.MarginBounds.Width / dWidth;
+            if (scale > e.MarginBounds.Height / dHeight)  // choose smallest scale factor
+            {
+                scale = e.MarginBounds.Height/ dHeight ;
+            }
+
+            // shift print origin based on page margin
+            // FYI: Theres also a printdocument property for "OriginAtMargins" but I'm doing it manually here
+            gr.TranslateTransform(e.MarginBounds.Left, e.MarginBounds.Top);
+            // scale the graphics to the printer by scale factor
+            gr.ScaleTransform(scale, scale);
+            // shift location of print origin based on drawing bounds
+            gr.TranslateTransform(-dBounds.XMin, dBounds.YMin+dHeight);
+            // FLIP Y COORDINATES
+            gr.ScaleTransform(1, -1);
+
+            // center drawing on page
+            if (centerPrint)
+            {
+                float vDiff = (float)Math.Round((e.MarginBounds.Height / scale - dHeight) / 2.0F, 1);
+                float hDiff = (float)Math.Round((e.MarginBounds.Width / scale - dWidth) / 2.0F, 1);
+                gr.TranslateTransform(0F, -vDiff);
+                gr.TranslateTransform(hDiff, 0);
+            }
+
+            //gr.DrawRectangle(new Pen(Color.LightGray), dBounds.XMin, dBounds.YMin, dWidth, dHeight);
+            PaintDcModule(gr, topModuleCommand);
 
             // If more pages exist, print another page.
             e.HasMorePages = false;
@@ -1509,6 +1518,11 @@ namespace DMEEView1
 
         private void ToolStripMenuPrint_Click(object sender, EventArgs e)
         {
+            if (!drawingLoaded)
+            {
+                MessageBox.Show("Need to open or draw a file before printing", "Nothing to print");
+                return;
+            }
             DialogResult result = printDialog1.ShowDialog();
             if (result == DialogResult.OK)
             {
@@ -1544,7 +1558,7 @@ namespace DMEEView1
             Properties.Settings.Default.Save();
         }
 
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             Properties.Settings.Default.Save();
         }
@@ -1590,6 +1604,18 @@ namespace DMEEView1
             DrawPanel.Location = new Point(0, menuStrip1.Height);
             DrawPanel.Height = this.Height - menuStrip1.Height - 40;
             DrawPanel.Width = this.Width - 20;
+        }
+
+        private void colorPaletteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ColorConfigForm.DcColorConfig colorCfg = new ColorConfigForm.DcColorConfig();
+            var result = colorConfigForm.ShowDialog();
+            colorCfg = colorConfigForm.colorConfig;
+            if(result == DialogResult.OK)
+            {
+                // TBD: set, save, and display colors for drawlist items.
+            }
+
         }
     }
 }

@@ -117,5 +117,53 @@ namespace DMEEView1.Properties {
                 this["paperSize"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Black")]
+        public global::System.Drawing.Color pinsColor {
+            get {
+                return ((global::System.Drawing.Color)(this["pinsColor"]));
+            }
+            set {
+                this["pinsColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Black")]
+        public global::System.Drawing.Color textColor {
+            get {
+                return ((global::System.Drawing.Color)(this["textColor"]));
+            }
+            set {
+                this["textColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Black")]
+        public global::System.Drawing.Color linesColor {
+            get {
+                return ((global::System.Drawing.Color)(this["linesColor"]));
+            }
+            set {
+                this["linesColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Black")]
+        public global::System.Drawing.Color wiresColor {
+            get {
+                return ((global::System.Drawing.Color)(this["wiresColor"]));
+            }
+            set {
+                this["wiresColor"] = value;
+            }
+        }
     }
 }

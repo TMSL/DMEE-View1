@@ -126,6 +126,7 @@
             // radioButton1
             // 
             this.radioButton1.AutoSize = true;
+            this.radioButton1.Checked = true;
             this.radioButton1.Location = new System.Drawing.Point(12, 8);
             this.radioButton1.Name = "radioButton1";
             this.radioButton1.Size = new System.Drawing.Size(147, 17);
@@ -141,13 +142,13 @@
             this.radioButton2.Name = "radioButton2";
             this.radioButton2.Size = new System.Drawing.Size(137, 17);
             this.radioButton2.TabIndex = 3;
-            this.radioButton2.TabStop = true;
             this.radioButton2.Text = "Search library folder first";
             this.radioButton2.UseVisualStyleBackColor = true;
             // 
             // radioButton3
             // 
             this.radioButton3.AutoSize = true;
+            this.radioButton3.Checked = true;
             this.radioButton3.Location = new System.Drawing.Point(4, 6);
             this.radioButton3.Name = "radioButton3";
             this.radioButton3.Size = new System.Drawing.Size(149, 17);
@@ -163,7 +164,6 @@
             this.radioButton4.Name = "radioButton4";
             this.radioButton4.Size = new System.Drawing.Size(99, 17);
             this.radioButton4.TabIndex = 3;
-            this.radioButton4.TabStop = true;
             this.radioButton4.Text = "Search files first";
             this.radioButton4.UseVisualStyleBackColor = true;
             // 
@@ -171,6 +171,7 @@
             // 
             this.panel1.Controls.Add(this.radioButton2);
             this.panel1.Controls.Add(this.radioButton1);
+            this.panel1.Enabled = false;
             this.panel1.Location = new System.Drawing.Point(18, 90);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(172, 57);
@@ -180,6 +181,7 @@
             // 
             this.panel2.Controls.Add(this.radioButton4);
             this.panel2.Controls.Add(this.radioButton3);
+            this.panel2.Enabled = false;
             this.panel2.Location = new System.Drawing.Point(200, 90);
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(163, 57);

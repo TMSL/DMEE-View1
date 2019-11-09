@@ -182,15 +182,16 @@
             // libraryFilesDirectoryToolStripMenuItem
             // 
             this.libraryFilesDirectoryToolStripMenuItem.Name = "libraryFilesDirectoryToolStripMenuItem";
-            this.libraryFilesDirectoryToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
+            this.libraryFilesDirectoryToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.libraryFilesDirectoryToolStripMenuItem.Text = "Folders";
             this.libraryFilesDirectoryToolStripMenuItem.Click += new System.EventHandler(this.FoldersToolStripMenuItem_Click);
             // 
             // colorPaletteToolStripMenuItem
             // 
             this.colorPaletteToolStripMenuItem.Name = "colorPaletteToolStripMenuItem";
-            this.colorPaletteToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
+            this.colorPaletteToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.colorPaletteToolStripMenuItem.Text = "Colors";
+            this.colorPaletteToolStripMenuItem.Click += new System.EventHandler(this.colorPaletteToolStripMenuItem_Click);
             // 
             // openFileDialog1
             // 
@@ -278,7 +279,7 @@
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MainForm";
             this.Text = "DMEE View";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Resize += new System.EventHandler(this.MainForm_Resize);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();

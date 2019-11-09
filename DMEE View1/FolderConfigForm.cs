@@ -106,6 +106,7 @@ namespace DMEEView1
             {
                 Properties.Settings.Default.WorkFolder = text;
             }
+            DialogResult = DialogResult.OK;
             Hide();
         }
 
