@@ -136,9 +136,6 @@ namespace DMEEView1
                 HideNShowInfoButton.Text = "show info";
                 InfoTextBox.Hide();
             }
-            
-            // register handler for Print event
-            printDocument.PrintPage += new PrintPageEventHandler(this.PrintDocument_PrintPage);
         }
 
         private void RestoreAppSettings()
@@ -342,6 +339,28 @@ namespace DMEEView1
         }
 
         // =======================================================
+        //          DC TEXT BOUNDS
+        // =======================================================
+        private void DcTextBounds(DcText dct, DcBounds bounds)
+        {
+            FontFamily fontFamily = new FontFamily("MS GOTHIC");
+            string text = dct.dcStr.strText.TrimStart('#');
+
+            // Calculate font scale factor
+            float fontSize = 10.5F * dct.scaleFactor / 0.039063F;
+            Font the_font = new Font(fontFamily, fontSize);
+
+            // Get the overall dimensions
+            var textSize = TextRenderer.MeasureText(text, the_font);
+
+            // Set the bounds relative to the 'center' of the font being at the font's baseline
+            bounds.YMax = fontSize;
+            bounds.YMin = fontSize - textSize.Height;
+            bounds.XMin = 0;
+            bounds.XMax = textSize.Width;
+        }
+
+        // =======================================================
         //           DC DRAW TEXT
         // =======================================================
         private void DcDrawText(Graphics gr, Pen pen, DcText dct, bool moduleMirrored)
@@ -525,7 +544,7 @@ namespace DMEEView1
             {
                 _cmdType = CommandType.text;
             }
-
+            public DcBounds textBounds = new DcBounds();
             public int color = 0;           // [1]
             public float X1 = 0;            // [2]
             public float Y1 = 0;            // [3]
@@ -915,10 +934,18 @@ namespace DMEEView1
                         {
                             DcText dText = (DcText)drawList[drawList.Count - 1];
                             dText.dcStr = dcStr;
+                            DcBounds srcBounds = new DcBounds();
+                            DcBounds dstBounds = dText.textBounds;
+                            DcTextBounds(dText, srcBounds);
+                            // Set scalefactor to 1.0F because the text was scaled when calculating the
+                            // bounds using DcTextBounds
+                            TransformBounds(srcBounds, dstBounds, dText.X1, dText.Y1, dText.rotation, 1.0F);
+                            UpdateMinMaxBounds(dText.textBounds.XMax, dText.textBounds.YMax, ref drawListBounds);
+                            UpdateMinMaxBounds(dText.textBounds.XMin, dText.textBounds.YMin, ref drawListBounds);
                         }
                     }
 
-                    if (prevCommandType == DcCommand.CommandType.wire)
+                    if (prevCommandType == DcCommand.CommandType.wire) 
                     {
                         if (drawList.Count > 0)
                         {
@@ -942,6 +969,7 @@ namespace DMEEView1
                         mirror = Convert.ToInt16(fields[6]),
                         upright = Convert.ToInt16(fields[7])
                     };
+                    // Calculate the text bounds
                     UpdateMinMaxBounds(dcText.X1, dcText.Y1, ref drawListBounds);
                     internalLBREntry.stats.textItemCount++;
                     drawList.Add(dcText);
@@ -1434,7 +1462,49 @@ namespace DMEEView1
         private void PrintDocument_PrintPage(object sender, System.Drawing.Printing.PrintPageEventArgs e)
         {
             Console.WriteLine("Print Page");
-            MessageBox.Show("Printing not yet implemented.", "Print Page Event");
+            Graphics gr = e.Graphics;
+            // set clip for printing to the margin bounds that were set up for the page
+            gr.Clip = new Region(e.MarginBounds);
+            
+            if (drawingLoaded)
+            {
+                DcBounds dBounds = topModuleCommand.bounds;
+                bool centerPrint = true;  // TBD: center document horizontally & vertically within margins
+                Matrix matrix = new Matrix();
+
+                // Figure out a scale factor to fit drawing within the page margins
+                float dWidth = (topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin);
+                float dHeight = (topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin);
+                float scale = e.MarginBounds.Width / dWidth;
+                if (scale > e.MarginBounds.Height / dHeight)  // choose smallest scale factor
+                {
+                    scale = e.MarginBounds.Height/ dHeight ;
+                }
+
+                PointF[] pts = new PointF[]
+                {
+                        new PointF(e.MarginBounds.Left, e.MarginBounds.Top),
+                        new PointF(e.MarginBounds.Right, e.MarginBounds.Bottom)
+                };
+                matrix.Scale(scale, scale);
+                matrix.TransformPoints(pts);
+
+                // shift print origin based on page margin
+                // FYI: Theres also a printdocument property for "OriginAtMargins" but I'm doing it manually here
+                gr.TranslateTransform(e.MarginBounds.Left, e.MarginBounds.Top);
+                // scale the graphics to the printer by scale factor
+                gr.ScaleTransform(scale, scale);
+                // shift location of print origin based on drawing bounds
+                gr.TranslateTransform(-dBounds.XMin, dBounds.YMin+dHeight);
+                // FLIP Y COORDINATES
+                gr.ScaleTransform(1, -1);
+
+                gr.DrawRectangle(new Pen(Color.LightGray), dBounds.XMin, dBounds.YMin, dWidth, dHeight);
+                PaintDcModule(gr, topModuleCommand);
+            }
+
+            // If more pages exist, print another page.
+            e.HasMorePages = false;
         }
 
         private void ToolStripMenuPrint_Click(object sender, EventArgs e)
@@ -1449,8 +1519,13 @@ namespace DMEEView1
         private void ToolStripMenuPageSetup_Click(object sender, EventArgs e)
         {
             pageSetupDialog1.PageSettings = printDocument.DefaultPageSettings;
-            pageSetupDialog1.ShowDialog();
-            MessageBox.Show("Not yet implemented.", "Page Setup");
+            var result = pageSetupDialog1.ShowDialog();
+            if (result == DialogResult.OK)  // set properties for later restoration
+            {
+                Properties.Settings.Default.margins = printDocument.DefaultPageSettings.Margins;
+                Properties.Settings.Default.paperSize = printDocument.DefaultPageSettings.PaperSize;
+                Properties.Settings.Default.landscape = printDocument.DefaultPageSettings.Landscape;
+            }
         }
 
         private void HideNShowInfoButton_Click(object sender, EventArgs e)
@@ -1477,8 +1552,6 @@ namespace DMEEView1
         private void DrawPictureBox_Paint(object sender, PaintEventArgs e)
         {
             Graphics gr = e.Graphics;
-            float dpiX = gr.DpiX;
-            float dpiY = gr.DpiY;
             int windowWidth = this.Width;
             int windowHeight = this.Height;
 
