@@ -9,27 +9,21 @@ using System.Windows.Forms;
 using System.Text;
 
 // TMS - started September 17, 2019
-// TBD: More cleanup for bounds processing.
-// TBD: Reject "m" commands with color/layer field (field[1]) >= 50 
-// since those are module commands for "pads" and have a different format than
-// that for the "drawing" module commands.
 
 // Module loading and bounds processing:
-// BUILD INTERNAL LIBRARY AND A LIST OF ALL MODULE INSTANCES IN THE DRAWING
+// BUILD INTERNAL LIBRARY
 //  CREATE LIST CONTAINING LIBRARY CATALOGS FROM LIBRARY FOLDER AND A LIST OF FILES IN WORKING DIRECTORY
-//     Add top module entry to internal library and mark as unprocessed. Also add an entry for the top module to module instance list.
+//     Add top module entry to internal library and mark as unprocessed.
 // 1. get unprocessed module entry from internal library. If none found then done. (since top module is initially the only
 //    module in the list, processing will always start with top module.)
 // 1.5 this module is the working 'parent' module
 // 2. search for module file in working directory, then in library catalogs (top module name comes from "open file" so
 //    top module will actually just respond to a "file exists" check.)
 // 3. If module not found mark module entry as processed with bounds set to 0,0,0,0 and back to (1)
-// 4. Extract display list for module 
-// 5. Search display list for module commands, for each module command ("submodule") found:
+// 4. Extract draw list for module 
+// 5. Search draw list for module commands, for each module command ("submodule") found:
 // 5.1      Create entry for internal library if not already present in list (marked as unprocessed)
 // 5.2      Set module command in drawlist to point to internal library entry.
-// 5.3      Add module command to module instance list
-// 5.4      SET MODULE COMMAND IN DRAWLIST TO POINT TO PARENT IN INSTANCE LIST   
 // 6. Mark internal library entry as processed indicating all module commands in drawlist for present entry
 // 7. Back to (1)
 
@@ -47,7 +41,6 @@ namespace DMEEView1
 
         private List<InternalLBREntry> internalLBR = new List<InternalLBREntry>();
         List<DcExternalLBRCatalog> externalLBRCatalogs = new List<DcExternalLBRCatalog>();
-        private List<DcModule> moduleList = new List<DcModule>();
         private DcModule topModuleCommand = new DcModule();
         private PrinterSettings printerSettings = new PrinterSettings();
         public FolderConfigForm folderConfigForm = new FolderConfigForm();
@@ -194,8 +187,6 @@ namespace DMEEView1
             InfoTextBox.Text += "Pin (p) Entries Count: " + entry.stats.pinItemCount + crlf;
             InfoTextBox.Text += "Drawing/display (d) Entries Count: " + entry.stats.drawingItemCount + crlf;
             InfoTextBox.Text += "Module (m) Entries Count (modules in top drawing): " + entry.stats.moduleItemCount + crlf;
-            InfoTextBox.Text += "Module instance Count (number of module instances including drawing): "
-                                + moduleList.Count + crlf;
             InfoTextBox.Text += "Internal Library Entries Count (unique modules used in drawing & sub-modules): "
                                 + internalLBR.Count;
         }
@@ -400,8 +391,8 @@ namespace DMEEView1
             // Calculate rectangle for DrawArc
             float x = centerPt.X - radius;
             float y = centerPt.Y - radius;
-            float width = 2 * radius;
-            float height = 2 * radius;
+            float width = 2F * radius;
+            float height = 2F * radius;
 
             // Determine angles for DrawArc
             float startAngle2 = (float)((180 / Math.PI) * Math.Atan2(p1.Y - centerPt.Y, p1.X - centerPt.X));
@@ -893,7 +884,6 @@ namespace DMEEView1
                         internalLBR.Add(intLibEntry);     // add new entry to module list
                         dcModule.internalLBRIndex = internalLBR.IndexOf(intLibEntry);     // set module command to point to new entry
                     }
-                    moduleList.Add(dcModule); // add module command to module instance list
                     drawList.Add(dcModule);   // add module command to present drawlist
                     break;
 
@@ -1176,8 +1166,77 @@ namespace DMEEView1
         }
 
         // =======================================================
+        //          BOUNDS PROCESS INTERNAL LIBRARY COMPOUND MODULES
+        // =======================================================
+        //HANDLE COMPOUND MODULES THAT MAY ALSO CONTAIN COMPOUND MODULES:
+        // For each entry in the internal library, scan all child modules in its drawlist. Update the library entry's
+        // bounds for each child module that is already marked as bounds processed.Mark the parent module
+        // as boundsProcessed if no unprocessed child modules are detected. Since child modules may themselves be
+        // compound modules this may not happen on the first pass through the list. 
+        // Thus, repeat scanning and processing the moduleList until no unprocessed modules found or scanDepth limit reached.
+        private void BoundsProcessInternalLibraryEntries()
+        {
+            // --------
+            // PROCESS SIMPLE MODULES in the internal library.
+            // These modules won't need more bounds processing since the processing was done
+            // when the drawlist was created based on the bounds of the lines, arcs, circles, etc. in the drawList.
+            foreach (InternalLBREntry ile in internalLBR)
+            {
+                if (ile.stats.moduleItemCount == 0) ile.bounds.boundsProcessed = true;
+            }
+            const int scanDepth = 10;   // Maximum number of passes through moduleList. TBD: Make this a configuration option ???
+            for (int i = 1; i < scanDepth; i++)
+            {
+                bool foundUnprocessedModules = false;
+                foreach (InternalLBREntry ile in internalLBR)
+                {
+                    if (!ile.bounds.boundsProcessed) // unprocessed modules still in the list
+                    {
+                        foundUnprocessedModules = true;
+                        int mdlCount = 0; int subProcessedCount = 0;
+                        List<DcCommand> ileDrawList = ile.drawList; // get drawlist for this module
+
+                        // scan drawlist for module commands with processed bounds and, if found,
+                        // update parent's bounds accordingly
+                        foreach (DcCommand cmd in ileDrawList)
+                        {
+                            if (cmd.CmdType == DcCommand.CommandType.module)
+                            {
+                                DcModule mCmd = (DcModule)cmd;
+                                InternalLBREntry mLBR = internalLBR[mCmd.internalLBRIndex];
+                                mdlCount++; // count the number of child modules in the drawList
+                                if (mLBR.bounds.boundsProcessed)  // update parent's bounds based on bounds for child in internal library
+                                {
+                                    DcBounds mCmdBounds = mCmd.bounds;
+                                    DcBounds mLBRBounds = mLBR.bounds;
+
+                                    // Transform child's bounds for this module command
+                                    TransformBounds(mLBRBounds, mCmdBounds, mCmd.X1, mCmd.Y1, mCmd.rotation, mCmd.scaleFactor);
+
+                                    // Update bounds for the drawList
+                                    UpdateMinMaxBounds(mCmdBounds.XMax, mCmdBounds.YMax, ref ile.bounds);
+                                    UpdateMinMaxBounds(mCmdBounds.XMin, mCmdBounds.YMin, ref ile.bounds);
+                                    mCmdBounds.boundsProcessed = true;
+                                    subProcessedCount++; // count the number of child modules that have had their bounds processed
+                                }
+                            }
+                        }
+                        if (subProcessedCount == mdlCount)  // no unprocessed sub modules left in this module instance
+                        {
+                            ile.bounds.boundsProcessed = true;
+                        }
+                    }
+                }
+                if (!foundUnprocessedModules) break;  // all modules instances in list have had their bounds processed
+            }
+            // copy drawlist and bounds to top module
+            topModuleCommand.bounds = internalLBR[0].bounds;
+        }
+
+ 
+        // =======================================================
         //           DC LOAD DRAWING
-        // Load the drawing file and create internal library
+        // Load the top drawing file and create internal library
         // entries for all referenced modules and sub-modules in
         // the drawing.
         // =======================================================
@@ -1205,73 +1264,9 @@ namespace DMEEView1
             LoadInternalLibrary();  
 
             // --------------------- BOUNDS PROCESSING -----------------------------------
-            // Process bounds for modules in the internal library,
-            // then process modules in the module instance list
+            // Process bounds for modules in the internal library and topModuleCommand
             // ---------------------------------------------------------------------------
-
-            // --------
-            // PROCESS SIMPLE MODULES in the internal library.
-            // These modules don't need more bounds processing since the processing was done
-            // when the drawlist was created based on the bounds of the lines, arcs, circles, etc. in the drawList.
-            foreach (InternalLBREntry ile in internalLBR)
-            {
-                if (ile.stats.moduleItemCount == 0) ile.bounds.boundsProcessed = true;
-            }
-
-            // --------
-            // HANDLE COMPOUND MODULES THAT MAY ALSO CONTAIN COMPOUND MODULES:
-            // For each module instance in the module list, scan all child modules in its drawlist. Update the parent module's
-            // bounds for each child module that is already marked as bounds processed. Mark the parent module
-            // as boundsProcessed if no unprocessed child modules are detected. Since child modules may themselves be
-            // compound modules this may not happen on the first pass through the list. 
-            // Thus, repeat scanning and processing the moduleList until no unprocessed modules found or scanDepth limit reached. 
-            const int scanDepth = 10;   // Maximum number of passes through moduleList. TBD: Make this a configuration option ???
-            for (int i = 1; i < scanDepth; i++)
-            {
-                Console.WriteLine("ModuleList bounds processing pass " + i);
-                bool foundUnprocessedModules = false;
-                foreach (DcModule mdl in moduleList)
-                {
-                    if (!mdl.bounds.boundsProcessed) // unprocessed modules still in the list
-                    {
-                        foundUnprocessedModules = true;
-                        int mdlCount = 0; int subProcessedCount = 0;
-                        List<DcCommand> mdlDrawList = internalLBR[mdl.internalLBRIndex].drawList; // get drawlist for this module
-
-                        // scan drawlist for module commands with processed bounds and, if found,
-                        // update parent's bounds accordingly
-                        foreach (DcCommand cmd in mdlDrawList)
-                        {
-                            if (cmd.CmdType == DcCommand.CommandType.module)
-                            {
-                                DcModule mCmd = (DcModule)cmd;
-                                InternalLBREntry mLBR = internalLBR[mCmd.internalLBRIndex];
-                                mdlCount++; // count the number of child modules in the drawList
-                                if (mLBR.bounds.boundsProcessed)  // update parent's bounds based on bounds for child in internal library
-                                {
-                                    DcBounds mCmdBounds = mCmd.bounds;
-                                    DcBounds mLBRBounds = mLBR.bounds;
-
-                                    // Transform child's bounds for this module command instance
-                                    TransformBounds(mLBRBounds, mCmdBounds, mCmd.X1, mCmd.Y1, mCmd.rotation, mCmd.scaleFactor);
-                                    mCmdBounds.boundsProcessed = true;
-
-                                    // Update bounds for the parent module
-                                    UpdateMinMaxBounds(mCmdBounds.XMax, mCmdBounds.YMax, ref mdl.bounds);
-                                    UpdateMinMaxBounds(mCmdBounds.XMin, mCmdBounds.YMin, ref mdl.bounds);
-                                    subProcessedCount++; // count the number of child modules that have had their bounds processed
-                                }
-                            }
-                        }
-                        if (subProcessedCount == mdlCount)  // no unprocessed sub modules left in this module instance
-                        {
-                            mdl.bounds.boundsProcessed = true;
-                        }
-                    }
-                }
-                if (!foundUnprocessedModules) break;  // all modules instances in list have had their bounds processed
-            }
-
+            BoundsProcessInternalLibraryEntries();
             WriteDebugDataToConsole();
 
             drawingLoaded = true;
@@ -1326,19 +1321,6 @@ namespace DMEEView1
 
         private void WriteDebugDataToConsole()
         {
-            Console.WriteLine("Module Instances: =================================");
-            foreach (DcModule mdl in moduleList)
-            {
-                Console.Write("module command - name: " + mdl.name + " \t");
-                if (mdl.name.Length < 8) Console.Write("\t");
-                if (mdl.name.Length < 4) Console.Write("\t");
-                Console.Write("size processed: " + mdl.bounds.boundsProcessed);
-                Console.Write("\tmodule rotation: " + mdl.rotation + " ");
-                if (mdl.rotation < 10) Console.Write("\t");
-                Console.Write("\tmodule scale factor: " + mdl.scaleFactor);
-                Console.Write(" XMax: " + mdl.bounds.XMax + " YMax: " + mdl.bounds.YMax);
-                Console.WriteLine(" XMin: " + mdl.bounds.XMin + " YMin: " + mdl.bounds.YMin);
-            }
             Console.WriteLine("Internal Library: =================================");
             foreach (InternalLBREntry ile in internalLBR)
             {
@@ -1347,7 +1329,8 @@ namespace DMEEView1
                 if (ile.name.Length < 3) Console.Write("\t");
                 Console.Write("sub module count: " + ile.stats.moduleItemCount + " ");
                 Console.Write("XMax: " + ile.bounds.XMax + " YMax: " + ile.bounds.YMax);
-                Console.WriteLine(" XMin: " + ile.bounds.XMin + " YMin: " + ile.bounds.YMin);
+                Console.Write(" XMin: " + ile.bounds.XMin + " YMin: " + ile.bounds.YMin);
+                Console.WriteLine(" Bounds processed: " + ile.bounds.boundsProcessed);
             }
         }
 
@@ -1382,13 +1365,11 @@ namespace DMEEView1
             internalLBR.Add(internalLBREntry);
 
             // create entry for top module in module instance list
-            moduleList.Clear();
             topModuleCommand = new DcModule
             {
                 name = internalLBREntry.name,
                 internalLBRIndex = 0
             };
-            moduleList.Add(topModuleCommand);
 
             // read catalogs from each library (.LBR) file in library folder
             if (Directory.Exists(libraryFolder))
