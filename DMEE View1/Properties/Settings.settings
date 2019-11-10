@@ -23,7 +23,7 @@
     <Setting Name="landscape" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
-    <Setting Name="paperSize" Type="System.Drawing.Printing.PaperSize" Scope="User">
+    <Setting Name="PSize" Type="System.Drawing.Printing.PaperSize" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="pinsColor" Type="System.Drawing.Color" Scope="User">

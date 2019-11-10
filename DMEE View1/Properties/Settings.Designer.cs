@@ -109,12 +109,12 @@ namespace DMEEView1.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        public global::System.Drawing.Printing.PaperSize paperSize {
+        public global::System.Drawing.Printing.PaperSize PSize {
             get {
-                return ((global::System.Drawing.Printing.PaperSize)(this["paperSize"]));
+                return ((global::System.Drawing.Printing.PaperSize)(this["PSize"]));
             }
             set {
-                this["paperSize"] = value;
+                this["PSize"] = value;
             }
         }
         

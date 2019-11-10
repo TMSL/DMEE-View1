@@ -46,6 +46,7 @@ namespace DMEEView1
         bool drawingLoaded = false;
 
         private List<InternalLBREntry> internalLBR = new List<InternalLBREntry>();
+        List<DcExternalLBRCatalog> externalLBRCatalogs = new List<DcExternalLBRCatalog>();
         private List<DcModule> moduleList = new List<DcModule>();
         private DcModule topModuleCommand = new DcModule();
         private PrinterSettings printerSettings = new PrinterSettings();
@@ -54,7 +55,6 @@ namespace DMEEView1
 
         private class InternalLBREntry
         {
-            public bool processed = false;
             public bool fromLibrary = false;
             public string name = "";
             public string fileName = "";
@@ -172,9 +172,14 @@ namespace DMEEView1
             }
 
             // restore previous page settings
+            // Aside: Apparent bug in how MSFT handles properties in settings. If I name the paper
+            // size setting "paperSize" the debugger reports a "FileNotFound" exception in mscorlib.dll
+            ///when accessing the setting even though the correct values get loaded.
+            // Trying to "catch" the exception doesn't catch anything! Changing the property
+            // name to something else, e.g. PSize, makes the error go away. Hmmmm....
+            printDocument.DefaultPageSettings.PaperSize = Properties.Settings.Default.PSize;
             printDocument.DefaultPageSettings.Margins = Properties.Settings.Default.margins;
             printDocument.DefaultPageSettings.Landscape = Properties.Settings.Default.landscape;
-            printDocument.DefaultPageSettings.PaperSize = Properties.Settings.Default.paperSize;
         }
 
         private void ModuleInfoTextBox(InternalLBREntry entry)
@@ -211,19 +216,15 @@ namespace DMEEView1
             Pen pen = new Pen(Color.Black);
             pen.Width = 1;
             Pen savedPen = new Pen(Color.Black);
-            PointF location = new PointF(moduleCommand.X1, moduleCommand.Y1);
-            List<DcCommand> drawList = internalLBR[moduleCommand.internalLBRIndex].drawList;
-            float scaleFactor = moduleCommand.scaleFactor;
+            var drawList = internalLBR[moduleCommand.internalLBRIndex].drawList;
 
             GraphicsState gsSaved = gr.Save();
 
-            // Translate the origin to be at the module's target x, y position.
-            float x = location.X;
-            float y = location.Y;
-            gr.TranslateTransform(x, y);
-
-            // scale coordinates from this point on based on module's scale factor
-            gr.ScaleTransform(scaleFactor, scaleFactor);
+            // scale coordinates from this point on based on module's location, scale factor, and rotation
+            gr.TranslateTransform(moduleCommand.X1, moduleCommand.Y1);
+            gr.ScaleTransform(moduleCommand.scaleFactor, moduleCommand.scaleFactor);
+            if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
+            gr.RotateTransform(moduleCommand.rotation);
 
             for (int i = 0; i < drawList.Count; i++)
             {
@@ -233,8 +234,6 @@ namespace DMEEView1
                 {
                     case DcCommand.CommandType.arc:
                         DcArc dArc = (DcArc)drawList[i];
-                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
-                        gr.RotateTransform(moduleCommand.rotation);
                         PointF arcCenter = new PointF(dArc.centerX, dArc.centerY);
                         ptf1 = new PointF(dArc.X1, dArc.Y1);
                         ptf2 = new PointF(dArc.X2, dArc.Y2);
@@ -243,8 +242,6 @@ namespace DMEEView1
 
                     case DcCommand.CommandType.bus:
                         DcBus dBus = (DcBus)drawList[i];
-                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
-                        gr.RotateTransform(moduleCommand.rotation);
                         ptf1.X = Convert.ToSingle(dBus.X1);
                         ptf1.Y = Convert.ToSingle(dBus.Y1);
                         ptf2.X = Convert.ToSingle(dBus.X2);
@@ -257,8 +254,6 @@ namespace DMEEView1
 
                     case DcCommand.CommandType.circle:
                         DcCircle dCircle = (DcCircle)drawList[i];
-                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
-                        gr.RotateTransform(moduleCommand.rotation);
                         ptf1.X = Convert.ToSingle(dCircle.X1);
                         ptf1.Y = Convert.ToSingle(dCircle.Y1);
                         ptf2.X = Convert.ToSingle(dCircle.X2);
@@ -274,8 +269,6 @@ namespace DMEEView1
 
                     case DcCommand.CommandType.line:
                         DcLine dLine = (DcLine)drawList[i];
-                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
-                        gr.RotateTransform(moduleCommand.rotation);
                         ptf1.X = Convert.ToSingle(dLine.X1);
                         ptf1.Y = Convert.ToSingle(dLine.Y1);
                         ptf2.X = Convert.ToSingle(dLine.X2);
@@ -298,8 +291,6 @@ namespace DMEEView1
                     case DcCommand.CommandType.pin:
                         DcPin dPin = (DcPin)drawList[i];
                         // draw a small square to identify the pin location.
-                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
-                        gr.RotateTransform(moduleCommand.rotation);
                         float width = pen.Width; // save width
                         pen.Width = 0.5F;
                         gr.DrawRectangle(pen, dPin.X1 - 2, dPin.Y1 - 2, 4, 4);
@@ -310,16 +301,12 @@ namespace DMEEView1
                         break;
 
                     case DcCommand.CommandType.text:
-                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
-                        gr.RotateTransform(moduleCommand.rotation);
                         DcText dct = (DcText)drawList[i];
                         DcDrawText(gr, pen, dct, moduleCommand.mirror == 1);
                         break;
 
                     case DcCommand.CommandType.wire:
                         DcWire dWire = (DcWire)drawList[i];
-                        if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
-                        gr.RotateTransform(moduleCommand.rotation);
                         ptf1.X = Convert.ToSingle(dWire.X1);
                         ptf1.Y = Convert.ToSingle(dWire.Y1);
                         ptf2.X = Convert.ToSingle(dWire.X2);
@@ -402,6 +389,9 @@ namespace DMEEView1
             gr.Restore(grSaved);
         }
 
+        // =======================================================
+        //           DC DRAW ARC
+        // =======================================================
         private static float DcDrawArc(Graphics gr, Pen pen, PointF centerPt, PointF p1, PointF p2)
         {
             // Calculate radius as distance from center to p1
@@ -574,6 +564,7 @@ namespace DMEEView1
         }
 
         //Circle (c)
+        // e.g. c  15 35 0 30 0 = Circle with radius 5 (diameter = 10) centered at 35,0
         private class DcCircle : DcCommand
         {
             public DcCircle()
@@ -599,7 +590,7 @@ namespace DMEEView1
             public int number = 0;
         }
 
-        //include Module (m)
+        // Module (m)
         // -- e.g. m  15  0    0  1.25   0  0 bsize   0  0  0  0  0  // just scaled
         //         m  15 1900 725  1   180  1 iowire  0  0  0  1  1  // horizontally flipped
         //         m  15 1675 765  1   180  1 ls125   0  0  0  1  1  // horizontally flipped
@@ -645,8 +636,9 @@ namespace DMEEView1
             public int unk8 = 0;            // [8]
             public int unk9 = 0;            // [9]
             public int unk10 = 0;           // [10]
-            public int unk11 = 0;           // [11]
-            public int unk12 = 0;           // [12]
+            public int grid = 0;            // [11] units per grid / snap
+            public int units = 0;           // [12] 0 = 1 mil per unit, 1 = 5 mils per unit
+            public DcString dcStr = new DcString();
         }
 
         private class DcLibEntry
@@ -731,8 +723,6 @@ namespace DMEEView1
                 else break;
             }
 
-            internalLBREntry.processed = true;   // module has been processed for sub-modules
-
             this.Invalidate();
             file.Close();
             return DrawListStatus.OK;
@@ -796,6 +786,8 @@ namespace DMEEView1
                         X2 = Convert.ToSingle(fields[6]),
                         Y2 = Convert.ToSingle(fields[7])
                     };
+                    UpdateMinMaxBounds(dArc.X1, dArc.Y1, ref drawListBounds);
+                    UpdateMinMaxBounds(dArc.X2, dArc.Y2, ref drawListBounds);
                     drawList.Add(dArc);
                     break;
 
@@ -809,20 +801,26 @@ namespace DMEEView1
                         Y2 = Convert.ToSingle(fields[5]),
                         width = Convert.ToSingle(fields[7])
                     };
+                    UpdateMinMaxBounds(dBus.X1, dBus.Y1, ref drawListBounds);
+                    UpdateMinMaxBounds(dBus.X2, dBus.Y2, ref drawListBounds);
                     drawList.Add(dBus);
                     break;
 
                 case DcCommand.CommandType.circle:
-                    DcCircle dcCircle = new DcCircle
+                    DcCircle dCircle = new DcCircle
                     {
                         color = Convert.ToInt16(fields[1]),
-                        X1 = Convert.ToSingle(fields[2]),
-                        Y1 = Convert.ToSingle(fields[3]),
-                        X2 = Convert.ToSingle(fields[4]),
-                        Y2 = Convert.ToSingle(fields[5])
+                        X1 = Convert.ToSingle(fields[2]),   // center X
+                        Y1 = Convert.ToSingle(fields[3]),   // center Y
+                        X2 = Convert.ToSingle(fields[4]),   // point on circle, X
+                        Y2 = Convert.ToSingle(fields[5])    // point on circle, Y
                     };
-                    if (fields.Length > 6) dcCircle.unk6 = Convert.ToSingle(fields[6]);
-                    drawList.Add(dcCircle);
+                    if (fields.Length > 6) dCircle.unk6 = Convert.ToSingle(fields[6]);
+                    // bounds of square holding circle
+                    float radius = (float)Math.Sqrt(Math.Pow(dCircle.X1 - dCircle.X2, 2) + Math.Pow(dCircle.Y1 - dCircle.Y2, 2));
+                    UpdateMinMaxBounds(dCircle.X1-radius, dCircle.Y1-radius, ref drawListBounds);
+                    UpdateMinMaxBounds(dCircle.X1+radius, dCircle.Y1+radius, ref drawListBounds);
+                    drawList.Add(dCircle);
                     break;
 
                 case DcCommand.CommandType.drawing:
@@ -880,16 +878,14 @@ namespace DMEEView1
 
                     // Search to see if an entry for the module is already in the module list.
                     InternalLBREntry result = internalLBR.Find(x => x.name == dcModule.name);
-
-                    if (result != null)  // Link module command to existing entry in module list
+                    if (result != null)  // existing entry found. Link module command to existing entry in module list
                     {
                         dcModule.internalLBRIndex = internalLBR.IndexOf(result);  // set module command to point to entry
                     }
-                    else    // if not in list, create a new entry, point the module command to it, and add it to the list.
+                    else  // create and add a new internal library entry then point the module command to it
                     {
                         InternalLBREntry intLibEntry = new InternalLBREntry() // create entry that will hold drawlist for module
                         {
-                            processed = false,   // module has not been processed for sub-modules
                             name = dcModule.name,
                             fromLibrary = false,
                             fileName = "",
@@ -897,13 +893,8 @@ namespace DMEEView1
                         internalLBR.Add(intLibEntry);     // add new entry to module list
                         dcModule.internalLBRIndex = internalLBR.IndexOf(intLibEntry);     // set module command to point to new entry
                     }
-
-                    // add module command to present drawlist
-                    drawList.Add(dcModule);
-
-                    // Lastly, add module command to module instance list
-                    moduleList.Add(dcModule);
-
+                    moduleList.Add(dcModule); // add module command to module instance list
+                    drawList.Add(dcModule);   // add module command to present drawlist
                     break;
 
                 case DcCommand.CommandType.pin:
@@ -930,12 +921,12 @@ namespace DMEEView1
                     if (fields.Length > 3) dcStr.unk3 = Convert.ToInt16(fields[3]);
 
                     internalLBREntry.stats.strItemCount++;
+                    if (drawList.Count == 0) break; // handle error condition of possible s command at start of file
 
-                    // Set String in previous record
-                    if (prevCommandType == DcCommand.CommandType.text)
+                    // Set String for previous command
+                    switch(prevCommandType)
                     {
-                        if (drawList.Count > 0)
-                        {
+                        case DcCommand.CommandType.text:
                             DcText dText = (DcText)drawList[drawList.Count - 1];
                             dText.dcStr = dcStr;
                             DcBounds srcBounds = new DcBounds();
@@ -946,21 +937,22 @@ namespace DMEEView1
                             TransformBounds(srcBounds, dstBounds, dText.X1, dText.Y1, dText.rotation, 1.0F);
                             UpdateMinMaxBounds(dText.textBounds.XMax, dText.textBounds.YMax, ref drawListBounds);
                             UpdateMinMaxBounds(dText.textBounds.XMin, dText.textBounds.YMin, ref drawListBounds);
-                        }
-                    }
+                            break;
 
-                    if (prevCommandType == DcCommand.CommandType.wire) 
-                    {
-                        if (drawList.Count > 0)
-                        {
-                            if (drawList[drawList.Count - 1].GetType() == typeof(DcWire))
-                            {
-                                DcWire dcw = (DcWire)drawList[drawList.Count - 1];
-                                dcw.dcStr = dcStr;
-                            }
-                        }
+                        case DcCommand.CommandType.wire:
+                            DcWire dcw = (DcWire)drawList[drawList.Count - 1];
+                            dcw.dcStr = dcStr;
+                            break;
+
+                        case DcCommand.CommandType.drawing:
+                            DcDrawing dcd = (DcDrawing)drawList[drawList.Count - 1];
+                            dcd.dcStr = dcStr;
+                            break;
+
+                        default:
+                            break;
                     }
-                    break;
+                    break; // end of processing for str (s) command
 
                 case DcCommand.CommandType.text:
                     DcText dcText = new DcText
@@ -973,7 +965,7 @@ namespace DMEEView1
                         mirror = Convert.ToInt16(fields[6]),
                         upright = Convert.ToInt16(fields[7])
                     };
-                    // Calculate the text bounds
+                    // Set initial text bounds. Drawing bounds will be updated if a string gets attached to the module.
                     UpdateMinMaxBounds(dcText.X1, dcText.Y1, ref drawListBounds);
                     internalLBREntry.stats.textItemCount++;
                     drawList.Add(dcText);
@@ -996,7 +988,6 @@ namespace DMEEView1
                     };
                     if (fields.Length > 8) dcWire.net = Convert.ToInt16(fields[8]);
                     if (fields.Length > 9) dcWire.unk3 = Convert.ToInt16(fields[9]);
-
                     UpdateMinMaxBounds(dcWire.X1, dcWire.Y1, ref drawListBounds);
                     UpdateMinMaxBounds(dcWire.X2, dcWire.Y2, ref drawListBounds);
                     drawList.Add(dcWire);
@@ -1097,7 +1088,7 @@ namespace DMEEView1
 
 
         // =======================================================
-        //           HANDLE CLICK TO SELECT AND OPEN A DRAWING FILE
+        //           HANDLE FILE MENU CLICK TO OPEN A DRAWING FILE
         // =======================================================
         private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -1192,27 +1183,13 @@ namespace DMEEView1
         // =======================================================
         private void DcLoadDrawing()
         {
-            List<DcExternalLBRCatalog> externalLBRCatalogs = new List<DcExternalLBRCatalog>();
+            InitializeForLoad();
 
-            internalLBR.Clear();
-            InternalLBREntry internalLBREntry = new InternalLBREntry  // create entry for top module in internal library
-            {
-                fileName = topFileName,
-                stats = new DrawListStats()
-            };
-            internalLBREntry.name = topFileName.Substring(topFileName.LastIndexOf("\\") + 1);
-            internalLBREntry.fromLibrary = false;
-            internalLBR.Add(internalLBREntry);
+            InternalLBREntry internalLBREntry = internalLBR[0];
 
-            moduleList.Clear();
-            topModuleCommand = new DcModule     // create entry for top module in module list
-            {
-                name = internalLBREntry.name,
-                internalLBRIndex = 0
-            };
-            moduleList.Add(topModuleCommand);
-
-            DrawListStatus status = DcMakeDrawListFromFile(ref internalLBREntry, 0, 0);
+            // At first the top module is the only entry in the internal library. However, as
+            // the drawlist for the module is processed, more modules are added.
+            DrawListStatus status = DcMakeDrawListFromFile(ref internalLBREntry, 0, 0);  // load drawlist for top module
             if (status == DrawListStatus.FileNotFound)
             {
                 topFileName = "";
@@ -1223,87 +1200,13 @@ namespace DMEEView1
                 return;
             }
 
-            // read catalogs from each library (.LBR) file in library folder
-            if (Directory.Exists(libraryFolder))
-            {
-                externalLBRCatalogs.Clear();
-                int entryCount = 0;
-                string[] libFiles = Directory.GetFiles(libraryFolder, "*.lbr");
-                foreach (string fName in libFiles)
-                {
-                    FileStream libFile = new FileStream(fName, FileMode.Open, FileAccess.Read);
-                    DcExternalLBRCatalog catalog = new DcExternalLBRCatalog();
-                    entryCount = GetCatalog(libFile, catalog);
-                    externalLBRCatalogs.Add(catalog);
-                    libFile.Close();
-                }
-            }
-
-            foreach (InternalLBREntry ile in internalLBR)
-            {
-                internalLBREntry = ile;
-                if (!internalLBREntry.processed)
-                {
-                    // first check for name in working directory
-                    string[] s = Directory.GetFiles(workingFolder, internalLBREntry.name);
-
-                    if (s.Length > 0)  // file name found in working folder
-                    {
-                        internalLBREntry.fromLibrary = false;
-                        internalLBREntry.fileName = s[0];
-                        DcMakeDrawListFromFile(ref internalLBREntry, 0, 0);
-                    }
-                    else  // else check for name in libraries
-                    {
-                        // convert name to 11 character format used in .LBR files
-                        string name = internalLBREntry.name;
-                        int n = name.IndexOf('.');
-                        if (n > 0)
-                        {
-                            string ext = name.Substring(n + 1);
-                            name = name.Substring(0, name.IndexOf('.'));
-                            name = name.PadRight(8, ' '); // pad to 8 characters
-                            name += ext;
-                        }
-                        name = name.PadRight(11, ' '); // pad to 11 total characters
-
-                        int index = -1;
-                        DcExternalLBRCatalog externalCatalog = new DcExternalLBRCatalog();
-
-                        // find name among catalogs in external catalog list
-                        foreach (DcExternalLBRCatalog cat in externalLBRCatalogs)
-                        {
-                            index = FindModuleInCatalog(cat, name, 0, DcExternalLBRCatalog.MatchType.full);
-                            if (index >= 0)
-                            {
-                                externalCatalog = cat;
-                                break;
-                            }
-                        }
-                        // load draw commands from file if module found
-                        if (index >= 0)
-                        {
-                            internalLBREntry.fromLibrary = true;
-                            internalLBREntry.fileName = externalCatalog.fileName;
-                            ExtLBRCatEntry entry = externalCatalog.entries[index];
-                            DcMakeDrawListFromFile(ref internalLBREntry, entry.recordOffset, entry.recordSize);
-                        }
-                        else  // handle missing module
-                        {
-                            Console.WriteLine("Module \"" + ile.name + "\" not found in directory or libraries. ");
-                            // set the bounds to all 0's for empty drawlist
-                            ile.bounds.XMax = 0;
-                            ile.bounds.YMax = 0;
-                            ile.bounds.XMin = 0;
-                            ile.bounds.YMin = 0;
-                        }
-                    }
-                }
-            }
+            // Load the internal library (internalLBR) list with all modules used in the drawing along with their drawlists.
+            // This also creates a list (moduleList) of all the instances of module commands used in the drawing.
+            LoadInternalLibrary();  
 
             // --------------------- BOUNDS PROCESSING -----------------------------------
             // Process bounds for modules in the internal library,
-            // then for modules in the module instance list
+            // then process modules in the module instance list
             // ---------------------------------------------------------------------------
 
             // --------
@@ -1316,93 +1219,113 @@ namespace DMEEView1
             }
 
             // --------
-            // PROCESS COMPOUND MODULES in the internal library.
-            // TBD: Is there a benefit doing this, or just have it done through moduleList
-            foreach (InternalLBREntry ile in internalLBR)
-            {
-                if (ile.stats.moduleItemCount > 0)
-                {
-                    // need to scan drawlist for the module
-                }
-            }
-
-            // --------
-            // PROCESS MODULES in the module instance list THAT ONLY POINT TO PROCESSED MODULES IN THE INTERNAL LIBRARY
-            foreach (DcModule mdl in moduleList)
-            {
-                if (internalLBR[mdl.internalLBRIndex].bounds.boundsProcessed)
-                {
-                    DcBounds srcBounds = internalLBR[mdl.internalLBRIndex].bounds;
-                    DcBounds destBounds = mdl.bounds;
-                    float destX = mdl.X1;
-                    float destY = mdl.Y1;
-                    float destRotation = mdl.rotation;
-                    float destScaleFactor = mdl.scaleFactor;
-
-                    // update bounds based on module location, rotation, and scale
-                    TransformBounds(srcBounds, destBounds, destX, destY, destRotation, destScaleFactor);
-
-                    mdl.bounds.boundsProcessed = true;  // mark this module instance as "bounds processed"
-                }
-            }
-
-            // --------
-            // LAST, HANDLE COMPOUND MODULES THAT CONTAIN COMPOUND MODULES:
-            // Need to scan all child modules in the drawlist for the given module to determine whether
-            // the module can be marked as "bounds processed".
-            // This is an iterative process since the child modules in particular module may themselves be compound modules
-            // that will first need to be marked as "bounds processed".
-            // Thus, keep scanning and processing the moduleList until no unprocessed modules found or scanDepth limit reached. 
-            const int scanDepth = 10;   // TBD: Make this a configuration option ???
-            for (int i = 1; i < scanDepth; i++)  // make a maximum of scanDepth passes through the modules. 
-                                                 // Break early if no unprocessed modules detected.
+            // HANDLE COMPOUND MODULES THAT MAY ALSO CONTAIN COMPOUND MODULES:
+            // For each module instance in the module list, scan all child modules in its drawlist. Update the parent module's
+            // bounds for each child module that is already marked as bounds processed. Mark the parent module
+            // as boundsProcessed if no unprocessed child modules are detected. Since child modules may themselves be
+            // compound modules this may not happen on the first pass through the list. 
+            // Thus, repeat scanning and processing the moduleList until no unprocessed modules found or scanDepth limit reached. 
+            const int scanDepth = 10;   // Maximum number of passes through moduleList. TBD: Make this a configuration option ???
+            for (int i = 1; i < scanDepth; i++)
             {
                 Console.WriteLine("ModuleList bounds processing pass " + i);
-                bool allModulesProcessed = true;
+                bool foundUnprocessedModules = false;
                 foreach (DcModule mdl in moduleList)
                 {
-                    if (!mdl.bounds.boundsProcessed)
+                    if (!mdl.bounds.boundsProcessed) // unprocessed modules still in the list
                     {
-                        allModulesProcessed = false;
+                        foundUnprocessedModules = true;
                         int mdlCount = 0; int subProcessedCount = 0;
-                        List<DcCommand> mdlDrawList = internalLBR[mdl.internalLBRIndex].drawList;
+                        List<DcCommand> mdlDrawList = internalLBR[mdl.internalLBRIndex].drawList; // get drawlist for this module
 
-                        // scan drawlist for module commands with unprocessed bounds and update their bounds
+                        // scan drawlist for module commands with processed bounds and, if found,
+                        // update parent's bounds accordingly
                         foreach (DcCommand cmd in mdlDrawList)
                         {
                             if (cmd.CmdType == DcCommand.CommandType.module)
                             {
                                 DcModule mCmd = (DcModule)cmd;
                                 InternalLBREntry mLBR = internalLBR[mCmd.internalLBRIndex];
-
-                                mdlCount++;
-
-                                if (mLBR.bounds.boundsProcessed)  // update module command bounds based on bounds for module in internal library
+                                mdlCount++; // count the number of child modules in the drawList
+                                if (mLBR.bounds.boundsProcessed)  // update parent's bounds based on bounds for child in internal library
                                 {
                                     DcBounds mCmdBounds = mCmd.bounds;
                                     DcBounds mLBRBounds = mLBR.bounds;
 
-                                    // Update bounds for this module command instance
+                                    // Transform child's bounds for this module command instance
                                     TransformBounds(mLBRBounds, mCmdBounds, mCmd.X1, mCmd.Y1, mCmd.rotation, mCmd.scaleFactor);
                                     mCmdBounds.boundsProcessed = true;
 
                                     // Update bounds for the parent module
                                     UpdateMinMaxBounds(mCmdBounds.XMax, mCmdBounds.YMax, ref mdl.bounds);
                                     UpdateMinMaxBounds(mCmdBounds.XMin, mCmdBounds.YMin, ref mdl.bounds);
-                                    subProcessedCount++;
+                                    subProcessedCount++; // count the number of child modules that have had their bounds processed
                                 }
                             }
                         }
-                        Console.WriteLine(mdl.name + " module count: " + mdlCount + " sub processed: " + subProcessedCount);
                         if (subProcessedCount == mdlCount)  // no unprocessed sub modules left in this module instance
                         {
                             mdl.bounds.boundsProcessed = true;
                         }
                     }
                 }
-                if (allModulesProcessed) break;  // all modules instances in list have had their bounds processed
+                if (!foundUnprocessedModules) break;  // all modules instances in list have had their bounds processed
             }
 
+            WriteDebugDataToConsole();
+
+            drawingLoaded = true;
+        }
+
+        private void LoadInternalLibrary()
+        {
+            // Only one pass is needed since unprocessed modules are added to the end of the list
+            // and will never appear before a processed module
+            foreach (InternalLBREntry ile in internalLBR)
+            {
+                var internalLBREntry = ile;
+
+                // first check for name in working directory
+                string[] s = Directory.GetFiles(workingFolder, internalLBREntry.name);
+                if (s.Length > 0)  // file name found in working folder
+                {
+                    internalLBREntry.fromLibrary = false;
+                    internalLBREntry.fileName = s[0];
+                    // More library entries will be added if found while loading the drawlist
+                    DcMakeDrawListFromFile(ref internalLBREntry, 0, 0);
+                }
+                else  // else check for name among catalogs in external catalog list
+                {
+                    // convert name to 11 character format used in .LBR files
+                    string name = MakeDcName(internalLBREntry.name);
+
+                    int index = -1;
+                    foreach (DcExternalLBRCatalog cat in externalLBRCatalogs)
+                    {
+                        index = FindModuleInCatalog(cat, name, 0, DcExternalLBRCatalog.MatchType.full);
+                        if (index >= 0) // load draw commands from file if module found
+                        {
+                            internalLBREntry.fromLibrary = true;
+                            internalLBREntry.fileName = cat.fileName;
+                            ExtLBRCatEntry entry = cat.entries[index];
+                            // More library entries will be added if found while loading the drawlist
+                            DcMakeDrawListFromFile(ref internalLBREntry, entry.recordOffset, entry.recordSize);
+                            break;  // break out of loop if module found
+                        }
+                    }
+                    if (index < 0) // handle missing module
+                    {
+                        Console.WriteLine("Module \"" + ile.name + "\" not found in directory or libraries. ");
+                        // set the bounds to all 0's for empty drawlist
+                        ile.bounds.XMax = ile.bounds.YMax = 0;
+                        ile.bounds.XMin = ile.bounds.YMin = 0;
+                    }
+                }
+            }
+        }
+
+        private void WriteDebugDataToConsole()
+        {
             Console.WriteLine("Module Instances: =================================");
             foreach (DcModule mdl in moduleList)
             {
@@ -1426,7 +1349,62 @@ namespace DMEEView1
                 Console.Write("XMax: " + ile.bounds.XMax + " YMax: " + ile.bounds.YMax);
                 Console.WriteLine(" XMin: " + ile.bounds.XMin + " YMin: " + ile.bounds.YMin);
             }
-            drawingLoaded = true;
+        }
+
+        private static string MakeDcName(string name)
+        {
+            // This routine converts an input 8.3 name to the
+            // 11 character format used by the catalogs in the external
+            // libraries. E.g.  FOOBAR.MA becomes "FOOBAR<sp><sp>MA<sp>"
+            int n = name.IndexOf('.');
+            if (n > 0)
+            {
+                string ext = name.Substring(n + 1);
+                name = name.Substring(0, name.IndexOf('.'));
+                name = name.PadRight(8, ' '); // pad to 8 characters
+                name += ext;
+            }
+            name = name.PadRight(11, ' '); // pad to 11 total characters
+            return name;
+        }
+
+        private void InitializeForLoad()
+        {
+            // create and initialize entry for top module in internal library
+            internalLBR.Clear();
+            InternalLBREntry internalLBREntry = new InternalLBREntry
+            {
+                fileName = topFileName,
+                stats = new DrawListStats()
+            };
+            internalLBREntry.name = topFileName.Substring(topFileName.LastIndexOf("\\") + 1);
+            internalLBREntry.fromLibrary = false;
+            internalLBR.Add(internalLBREntry);
+
+            // create entry for top module in module instance list
+            moduleList.Clear();
+            topModuleCommand = new DcModule
+            {
+                name = internalLBREntry.name,
+                internalLBRIndex = 0
+            };
+            moduleList.Add(topModuleCommand);
+
+            // read catalogs from each library (.LBR) file in library folder
+            if (Directory.Exists(libraryFolder))
+            {
+                externalLBRCatalogs.Clear();
+                int entryCount = 0;
+                string[] libFiles = Directory.GetFiles(libraryFolder, "*.lbr");
+                foreach (string fName in libFiles)
+                {
+                    FileStream libFile = new FileStream(fName, FileMode.Open, FileAccess.Read);
+                    DcExternalLBRCatalog catalog = new DcExternalLBRCatalog();
+                    entryCount = GetCatalog(libFile, catalog);
+                    externalLBRCatalogs.Add(catalog);
+                    libFile.Close();
+                }
+            }
         }
 
         // ==================================================================
@@ -1537,7 +1515,7 @@ namespace DMEEView1
             if (result == DialogResult.OK)  // set properties for later restoration
             {
                 Properties.Settings.Default.margins = printDocument.DefaultPageSettings.Margins;
-                Properties.Settings.Default.paperSize = printDocument.DefaultPageSettings.PaperSize;
+                Properties.Settings.Default.PSize = printDocument.DefaultPageSettings.PaperSize;
                 Properties.Settings.Default.landscape = printDocument.DefaultPageSettings.Landscape;
             }
         }
