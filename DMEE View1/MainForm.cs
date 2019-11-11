@@ -10,21 +10,21 @@ using System.Text;
 
 // TMS - started September 17, 2019
 
-// Module loading and bounds processing:
+// Module loading and bounds processing:1.5
 // BUILD INTERNAL LIBRARY
 //  CREATE LIST CONTAINING LIBRARY CATALOGS FROM LIBRARY FOLDER AND A LIST OF FILES IN WORKING DIRECTORY
 //     Add top module entry to internal library and mark as unprocessed.
 // 1. get unprocessed module entry from internal library. If none found then done. (since top module is initially the only
 //    module in the list, processing will always start with top module.)
 // 1.5 this module is the working 'parent' module
-// 2. search for module file in working directory, then in library catalogs (top module name comes from "open file" so
+// 2. search for module file in working directory and library catalogs (top module name comes from "open file" so
 //    top module will actually just respond to a "file exists" check.)
-// 3. If module not found mark module entry as processed with bounds set to 0,0,0,0 and back to (1)
-// 4. Extract draw list for module 
-// 5. Search draw list for module commands, for each module command ("submodule") found:
+// 3. If module not found mark module entry as processed with bounds set to 0,0,0,0
+// 4. If module found, extract draw list for module 
+// 5. Scan draw list for module commands, for each module command ("submodule") found:
 // 5.1      Create entry for internal library if not already present in list (marked as unprocessed)
 // 5.2      Set module command in drawlist to point to internal library entry.
-// 6. Mark internal library entry as processed indicating all module commands in drawlist for present entry
+// 6. Mark internal library entry as processed indicating all module commands in drawlist for present entry were scanned
 // 7. Back to (1)
 
 namespace DMEEView1
@@ -45,6 +45,7 @@ namespace DMEEView1
         private PrinterSettings printerSettings = new PrinterSettings();
         public FolderConfigForm folderConfigForm = new FolderConfigForm();
         public ColorConfigForm colorConfigForm = new ColorConfigForm();
+        public ColorConfigForm.DcColorConfig dcColorSettings = new ColorConfigForm.DcColorConfig();
 
         private class InternalLBREntry
         {
@@ -55,7 +56,7 @@ namespace DMEEView1
             public DrawListStats stats = new DrawListStats();
             public DcBounds bounds = new DcBounds();
         }
-
+        
         private class DrawListStats
         {
             public int textItemCount = 0;
@@ -69,10 +70,10 @@ namespace DMEEView1
         private class DcBounds
         {
             public bool boundsProcessed = false; // flag indicating bounds processing is done for this module instance
-            public float XMax = -10000;
-            public float YMax = -10000;
-            public float XMin = 10000;
-            public float YMin = 10000;
+            public float XMax = -32000;
+            public float YMax = -32000;
+            public float XMin = 32000;
+            public float YMin = 32000;
         }
 
         private class ExtLBRCatEntry
@@ -173,6 +174,14 @@ namespace DMEEView1
             printDocument.DefaultPageSettings.PaperSize = Properties.Settings.Default.PSize;
             printDocument.DefaultPageSettings.Margins = Properties.Settings.Default.margins;
             printDocument.DefaultPageSettings.Landscape = Properties.Settings.Default.landscape;
+
+            // restore color settings
+            dcColorSettings.pinsColor = Properties.Settings.Default.pinsColor;
+            dcColorSettings.textColor = Properties.Settings.Default.textColor;
+            dcColorSettings.wiresColor = Properties.Settings.Default.wiresColor;
+            dcColorSettings.linesColor = Properties.Settings.Default.linesColor;
+            dcColorSettings.showPins = Properties.Settings.Default.showPins;
+            dcColorSettings.blackAndWhite = Properties.Settings.Default.blackAndWhite;
         }
 
         private void ModuleInfoTextBox(InternalLBREntry entry)
@@ -204,10 +213,6 @@ namespace DMEEView1
         {
             PointF ptf1 = new Point();
             PointF ptf2 = new Point();
-            Pen pen = new Pen(Color.Black);
-            pen.Width = 1;
-            Pen savedPen = new Pen(Color.Black);
-            var drawList = internalLBR[moduleCommand.internalLBRIndex].drawList;
 
             GraphicsState gsSaved = gr.Save();
 
@@ -217,9 +222,18 @@ namespace DMEEView1
             if (moduleCommand.mirror == 1) gr.ScaleTransform(1, -1);
             gr.RotateTransform(moduleCommand.rotation);
 
+            Pen pen = new Pen(Color.Black);
+            pen.Width = 0.75F;
+            var drawList = internalLBR[moduleCommand.internalLBRIndex].drawList;
+            gr.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+            if (ZoomFactor > 0.5) gr.SmoothingMode = SmoothingMode.AntiAlias;
+
+            Pen savedPen = (Pen)pen.Clone();
+
             for (int i = 0; i < drawList.Count; i++)
             {
                 GraphicsState grSaved = gr.Save();
+                pen = (Pen)savedPen.Clone();
 
                 switch (drawList[i].CmdType)
                 {
@@ -228,6 +242,7 @@ namespace DMEEView1
                         PointF arcCenter = new PointF(dArc.centerX, dArc.centerY);
                         ptf1 = new PointF(dArc.X1, dArc.Y1);
                         ptf2 = new PointF(dArc.X2, dArc.Y2);
+                        if (!dcColorSettings.blackAndWhite) pen.Color = dcColorSettings.linesColor;
                         DcDrawArc(gr, pen, arcCenter, ptf1, ptf2);
                         break;
 
@@ -237,10 +252,8 @@ namespace DMEEView1
                         ptf1.Y = Convert.ToSingle(dBus.Y1);
                         ptf2.X = Convert.ToSingle(dBus.X2);
                         ptf2.Y = Convert.ToSingle(dBus.Y2);
-                        savedPen = (Pen)pen.Clone();
                         pen.Width = dBus.width;
                         gr.DrawLine(pen, ptf1, ptf2);
-                        pen = savedPen;
                         break;
 
                     case DcCommand.CommandType.circle:
@@ -252,6 +265,7 @@ namespace DMEEView1
                         float radius = (float)Math.Sqrt(Math.Pow(ptf1.X - ptf2.X, 2) + Math.Pow(ptf1.Y - ptf2.Y, 2));
                         float diameter = 2F * radius;
                         float center = ptf1.X;
+                        if (!dcColorSettings.blackAndWhite) pen.Color = dcColorSettings.linesColor;
                         gr.DrawEllipse(pen, center - radius, ptf1.Y - radius, diameter, diameter);
                         break;
 
@@ -264,6 +278,7 @@ namespace DMEEView1
                         ptf1.Y = Convert.ToSingle(dLine.Y1);
                         ptf2.X = Convert.ToSingle(dLine.X2);
                         ptf2.Y = Convert.ToSingle(dLine.Y2);
+                        if (!dcColorSettings.blackAndWhite) pen.Color = dcColorSettings.linesColor;
                         gr.DrawLine(pen, ptf1, ptf2);
                         break;
 
@@ -276,16 +291,16 @@ namespace DMEEView1
                         // draw the module at specified location with given scalefactor
                         float mScaleFactor = dModule.scaleFactor;
                         PointF mLocation = new PointF(dModule.X1, dModule.Y1);
+                        savedPen = (Pen)pen.Clone();
                         PaintDcModule(gr, dModule);
                         break;
 
                     case DcCommand.CommandType.pin:
                         DcPin dPin = (DcPin)drawList[i];
                         // draw a small square to identify the pin location.
-                        float width = pen.Width; // save width
                         pen.Width = 0.5F;
-                        gr.DrawRectangle(pen, dPin.X1 - 2, dPin.Y1 - 2, 4, 4);
-                        pen.Width = width;  // restore width
+                        if (!dcColorSettings.blackAndWhite) pen.Color = dcColorSettings.pinsColor;
+                        if (dcColorSettings.showPins) gr.DrawRectangle(pen, dPin.X1 - 2, dPin.Y1 - 2, 4, 4);
                         break;
 
                     case DcCommand.CommandType.str:
@@ -293,6 +308,7 @@ namespace DMEEView1
 
                     case DcCommand.CommandType.text:
                         DcText dct = (DcText)drawList[i];
+                        if (!dcColorSettings.blackAndWhite) pen.Color = dcColorSettings.textColor;
                         DcDrawText(gr, pen, dct, moduleCommand.mirror == 1);
                         break;
 
@@ -302,6 +318,7 @@ namespace DMEEView1
                         ptf1.Y = Convert.ToSingle(dWire.Y1);
                         ptf2.X = Convert.ToSingle(dWire.X2);
                         ptf2.Y = Convert.ToSingle(dWire.Y2);
+                        if (!dcColorSettings.blackAndWhite) pen.Color = dcColorSettings.wiresColor;
                         gr.DrawLine(pen, ptf1, ptf2);
                         break;
 
@@ -439,7 +456,7 @@ namespace DMEEView1
             {
                 _cmdType = CommandType.arc;
             }
-            public int color = 0;      // [1]
+            public int layer = 0;      // [1]
             public float centerX = 0;  // [2]
             public float centerY = 0;  // [3]
             public float X1 = 0;       // [4]
@@ -456,7 +473,7 @@ namespace DMEEView1
                 _cmdType = CommandType.bus;
             }
 
-            public int color = 0;       // [1]
+            public int layer = 0;       // [1]
             public float X1 = 0;        // [2]
             public float Y1 = 0;        // [3]
             public float X2 = 0;        // [4]
@@ -473,7 +490,7 @@ namespace DMEEView1
             {
                 _cmdType = CommandType.pin;
             }
-            public int color = 0;       // [1]
+            public int layer = 0;       // [1]
             public float X1 = 0;        // [2]
             public float Y1 = 0;        // [3]
             public float unk1 = 0;      // [4]
@@ -490,7 +507,7 @@ namespace DMEEView1
                 _cmdType = CommandType.line;
             }
 
-            public int color = 0;       // [1]
+            public int layer = 0;       // [1]
             public float X1 = 0;        // [2]
             public float Y1 = 0;        // [3]
             public float X2 = 0;        // [4]
@@ -507,7 +524,7 @@ namespace DMEEView1
                 _cmdType = CommandType.wire;
             }
 
-            public int color = 0;       // [1]
+            public int layer = 0;       // [1]
             public float X1 = 0;        // [2]
             public float Y1 = 0;        // [3]
             public float X2 = 0;        // [4]
@@ -527,7 +544,7 @@ namespace DMEEView1
                 _cmdType = CommandType.text;
             }
             public DcBounds textBounds = new DcBounds();
-            public int color = 0;           // [1]
+            public int layer = 0;           // [1]
             public float X1 = 0;            // [2]
             public float Y1 = 0;            // [3]
             public float scaleFactor = 0;   // [4] scaling factor for the font
@@ -563,7 +580,7 @@ namespace DMEEView1
                 _cmdType = CommandType.circle;
             }
 
-            public int color = 0;           // [1] color or layer
+            public int layer = 0;           // [1] color or layer
             public float X1 = 0;            // [2]
             public float Y1 = 0;            // [3]
             public float X2 = 0;            // [4]
@@ -596,7 +613,7 @@ namespace DMEEView1
             }
             public int internalLBRIndex = -1; // index to entry for module in internal library
             public DcBounds bounds = new DcBounds(); //
-            public int color = 0;           // [1]
+            public int layer = 0;           // [1]
             public float X1 = 0;            // [2] X coordinate (offset) to place module's origin
             public float Y1 = 0;            // [3] Y coordinate (offset) to place module's origin
             public float scaleFactor = 1;   // [4]
@@ -769,7 +786,7 @@ namespace DMEEView1
                 case DcCommand.CommandType.arc:
                     DcArc dArc = new DcArc()
                     {
-                        color = Convert.ToInt16(fields[1]),
+                        layer = Convert.ToInt16(fields[1]),
                         centerX = Convert.ToSingle(fields[2]),
                         centerY = Convert.ToSingle(fields[3]),
                         X1 = Convert.ToSingle(fields[4]),
@@ -785,7 +802,7 @@ namespace DMEEView1
                 case DcCommand.CommandType.bus:
                     DcBus dBus = new DcBus()
                     {
-                        color = Convert.ToInt16(fields[1]),
+                        layer = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
                         X2 = Convert.ToSingle(fields[4]),
@@ -800,7 +817,7 @@ namespace DMEEView1
                 case DcCommand.CommandType.circle:
                     DcCircle dCircle = new DcCircle
                     {
-                        color = Convert.ToInt16(fields[1]),
+                        layer = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),   // center X
                         Y1 = Convert.ToSingle(fields[3]),   // center Y
                         X2 = Convert.ToSingle(fields[4]),   // point on circle, X
@@ -830,7 +847,7 @@ namespace DMEEView1
                 case DcCommand.CommandType.line:
                     DcLine dcLine = new DcLine
                     {
-                        color = Convert.ToInt16(fields[1]),
+                        layer = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
                         X2 = Convert.ToSingle(fields[4]),
@@ -847,7 +864,7 @@ namespace DMEEView1
                     InfoTextBox.Text += (rawLine + crlf);
                     DcModule dcModule = new DcModule()  // CREATE COMMAND OBJECT FOR MODULE
                     {
-                        color = Convert.ToInt16(fields[1]),
+                        layer = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
                         scaleFactor = Convert.ToSingle(fields[4]),
@@ -857,7 +874,7 @@ namespace DMEEView1
                     };
                     // skip modules with color value >= 50. Those are "pad" module commands that
                     // have a different field syntax than 'drawing' module commands.
-                    if (dcModule.color >= 50) break;
+                    if (dcModule.layer >= 50) break;
                     if (fields.Length > 8) dcModule.unk8 = Convert.ToInt16(fields[8]);
                     if (fields.Length > 9) dcModule.unk9 = Convert.ToInt16(fields[9]);
                     if (fields.Length > 10) dcModule.unk10 = Convert.ToInt16(fields[10]);
@@ -890,7 +907,7 @@ namespace DMEEView1
                 case DcCommand.CommandType.pin:
                     DcPin dcPin = new DcPin()
                     {
-                        color = Convert.ToInt16(fields[1]),
+                        layer = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3])
                     };
@@ -947,7 +964,7 @@ namespace DMEEView1
                 case DcCommand.CommandType.text:
                     DcText dcText = new DcText
                     {
-                        color = Convert.ToInt16(fields[1]),
+                        layer = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
                         scaleFactor = Convert.ToSingle(fields[4]),
@@ -968,7 +985,7 @@ namespace DMEEView1
                 case DcCommand.CommandType.wire:
                     DcWire dcWire = new DcWire
                     {
-                        color = Convert.ToInt16(fields[1]),
+                        layer = Convert.ToInt16(fields[1]),
                         X1 = Convert.ToSingle(fields[2]),
                         Y1 = Convert.ToSingle(fields[3]),
                         X2 = Convert.ToSingle(fields[4]),
@@ -1531,9 +1548,6 @@ namespace DMEEView1
             //Create pen objects
             Pen pen = new Pen(Color.Black);
 
-            gr.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-            if (ZoomFactor > 0.5) gr.SmoothingMode = SmoothingMode.AntiAlias;
-
             if (drawingLoaded)
             {
                 // Set size of Picture Box
@@ -1567,14 +1581,19 @@ namespace DMEEView1
 
         private void colorPaletteToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            ColorConfigForm.DcColorConfig colorCfg = new ColorConfigForm.DcColorConfig();
+            colorConfigForm.SetColorConfig(dcColorSettings);
             var result = colorConfigForm.ShowDialog();
-            colorCfg = colorConfigForm.colorConfig;
             if(result == DialogResult.OK)
             {
-                // TBD: set, save, and display colors for drawlist items.
+                dcColorSettings = colorConfigForm.settings;
             }
-
+            this.Invalidate();
+            Properties.Settings.Default.pinsColor = dcColorSettings.pinsColor;
+            Properties.Settings.Default.textColor = dcColorSettings.textColor;
+            Properties.Settings.Default.wiresColor = dcColorSettings.wiresColor;
+            Properties.Settings.Default.linesColor = dcColorSettings.linesColor;
+            Properties.Settings.Default.showPins = dcColorSettings.showPins;
+            Properties.Settings.Default.blackAndWhite = dcColorSettings.blackAndWhite;
         }
     }
 }

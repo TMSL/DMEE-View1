@@ -13,7 +13,7 @@ namespace DMEEView1
     public partial class ColorConfigForm : Form
     {
         private DcColorConfig colorConfigTemp = new DcColorConfig();
-        public DcColorConfig colorConfig = new DcColorConfig();
+        public DcColorConfig settings = new DcColorConfig();
 
         public ColorConfigForm()
         {
@@ -22,65 +22,68 @@ namespace DMEEView1
 
         public void SetColorConfig(DcColorConfig cfg)
         {
-            colorConfig = cfg;
+            settings = cfg;
             colorConfigTemp = cfg;
         }
 
         public class DcColorConfig
         {
-            public Color pinsColorTemp = Color.Black;
-            public Color textColorTemp = Color.Black;
-            public Color wiresColorTemp = Color.Black;
-            public Color linesColorTemp = Color.Black;
+            public Color pinsColor = Color.Black;
+            public Color textColor = Color.Black;
+            public Color wiresColor = Color.Black;
+            public Color linesColor = Color.Black;
+            public bool showPins = true;
+            public bool blackAndWhite = false;
         }
 
         private void pinsCheckBox_CheckedChanged(object sender, EventArgs e)
         {
-
+            colorConfigTemp.showPins = pinsCheckBox.Checked;
+            Invalidate();
         }
 
         private void pinsColorBox_Click(object sender, EventArgs e)
         {
-            ChooseColor(ref colorConfigTemp.pinsColorTemp);
+            ChooseColor(ref colorConfigTemp.pinsColor);
             pinsColorBox.Invalidate();
         }
 
         private void pinsColorBox_Paint(object sender, PaintEventArgs e)
         {
-            SetColor(e.Graphics, colorConfigTemp.pinsColorTemp);
+            SetColor(e.Graphics, colorConfigTemp.pinsColor);
         }
 
         private void textColorBox_Click(object sender, EventArgs e)
         {
-            ChooseColor(ref colorConfigTemp.textColorTemp);
+            ChooseColor(ref colorConfigTemp.textColor);
             textColorBox.Invalidate();
         }
 
         private void textColorBox_Paint(object sender, PaintEventArgs e)
         {
-            SetColor(e.Graphics, colorConfigTemp.textColorTemp);
+            SetColor(e.Graphics, colorConfigTemp.textColor);
         }
 
         private void linesColorBox_Click(object sender, EventArgs e)
         {
-            ChooseColor(ref colorConfigTemp.linesColorTemp);
+            ChooseColor(ref colorConfigTemp.linesColor);
             linesColorBox.Invalidate();
         }
 
         private void linesColorBox_Paint(object sender, PaintEventArgs e)
         {
-            SetColor(e.Graphics, colorConfigTemp.linesColorTemp);
+            SetColor(e.Graphics, colorConfigTemp.linesColor);
         }
 
         private void wiresColorBox_Click(object sender, EventArgs e)
         {
-            ChooseColor(ref colorConfigTemp.wiresColorTemp);
+            ChooseColor(ref colorConfigTemp.wiresColor);
             wiresColorBox.Invalidate();
         }
 
         private void wiresColorBox_Paint(object sender, PaintEventArgs e)
         {
-            SetColor(e.Graphics, colorConfigTemp.wiresColorTemp);
+            SetColor(e.Graphics, colorConfigTemp.wiresColor);
         }
 
         private void SetColor(Graphics gr, Color color)
@@ -104,7 +107,7 @@ namespace DMEEView1
 
         private void saveButton_Click(object sender, EventArgs e)
         {
-            colorConfig = colorConfigTemp;
+            settings = colorConfigTemp;
             DialogResult = DialogResult.OK;
             Hide();
         }
@@ -116,6 +119,24 @@ namespace DMEEView1
                 e.Cancel = true;
                 Hide();
             }
+        }
+
+        private void ColorConfigForm_Shown(object sender, EventArgs e)
+        {
+            pinsCheckBox.Checked = colorConfigTemp.showPins;
+            blackAndWhiteRadioButton.Checked = colorConfigTemp.blackAndWhite;
+            colorRadioButton.Checked = !colorConfigTemp.blackAndWhite;
+            Console.WriteLine("shown");
+        }
+
+        private void pinsCheckBox_Paint(object sender, PaintEventArgs e)
+        {
+            pinsCheckBox.Checked = colorConfigTemp.showPins;
+        }
+
+        private void blackAndWhiteRadioButton_CheckedChanged(object sender, EventArgs e)
+        {
+            colorConfigTemp.blackAndWhite = blackAndWhiteRadioButton.Checked;
         }
     }
 }

@@ -42,7 +42,7 @@
             this.colorDialog1 = new System.Windows.Forms.ColorDialog();
             this.colorRadioButton = new System.Windows.Forms.RadioButton();
             this.panel1 = new System.Windows.Forms.Panel();
-            this.radioButton1 = new System.Windows.Forms.RadioButton();
+            this.blackAndWhiteRadioButton = new System.Windows.Forms.RadioButton();
             ((System.ComponentModel.ISupportInitialize)(this.pinsColorBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.textColorBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.wiresColorBox)).BeginInit();
@@ -60,6 +60,7 @@
             this.pinsCheckBox.Text = "show";
             this.pinsCheckBox.UseVisualStyleBackColor = true;
             this.pinsCheckBox.CheckedChanged += new System.EventHandler(this.pinsCheckBox_CheckedChanged);
+            this.pinsCheckBox.Paint += new System.Windows.Forms.PaintEventHandler(this.pinsCheckBox_Paint);
             // 
             // pinsLabel
             // 
@@ -179,24 +180,25 @@
             // 
             // panel1
             // 
-            this.panel1.Controls.Add(this.radioButton1);
+            this.panel1.Controls.Add(this.blackAndWhiteRadioButton);
             this.panel1.Controls.Add(this.colorRadioButton);
             this.panel1.Location = new System.Drawing.Point(151, 57);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(114, 46);
             this.panel1.TabIndex = 5;
             // 
-            // radioButton1
+            // blackAndWhiteRadioButton
             // 
-            this.radioButton1.AutoSize = true;
-            this.radioButton1.Checked = true;
-            this.radioButton1.Location = new System.Drawing.Point(3, 23);
-            this.radioButton1.Name = "radioButton1";
-            this.radioButton1.Size = new System.Drawing.Size(103, 17);
-            this.radioButton1.TabIndex = 5;
-            this.radioButton1.TabStop = true;
-            this.radioButton1.Text = "black and  white";
-            this.radioButton1.UseVisualStyleBackColor = true;
+            this.blackAndWhiteRadioButton.AutoSize = true;
+            this.blackAndWhiteRadioButton.Checked = true;
+            this.blackAndWhiteRadioButton.Location = new System.Drawing.Point(3, 23);
+            this.blackAndWhiteRadioButton.Name = "blackAndWhiteRadioButton";
+            this.blackAndWhiteRadioButton.Size = new System.Drawing.Size(103, 17);
+            this.blackAndWhiteRadioButton.TabIndex = 5;
+            this.blackAndWhiteRadioButton.TabStop = true;
+            this.blackAndWhiteRadioButton.Text = "black and  white";
+            this.blackAndWhiteRadioButton.UseVisualStyleBackColor = true;
+            this.blackAndWhiteRadioButton.CheckedChanged += new System.EventHandler(this.blackAndWhiteRadioButton_CheckedChanged);
             // 
             // ColorConfigForm
             // 
@@ -223,6 +225,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Color / Layer Configuration";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.ColorConfigForm_FormClosing);
+            this.Shown += new System.EventHandler(this.ColorConfigForm_Shown);
             ((System.ComponentModel.ISupportInitialize)(this.pinsColorBox)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.textColorBox)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.wiresColorBox)).EndInit();
@@ -250,6 +253,6 @@
         private System.Windows.Forms.ColorDialog colorDialog1;
         private System.Windows.Forms.RadioButton colorRadioButton;
         private System.Windows.Forms.Panel panel1;
-        private System.Windows.Forms.RadioButton radioButton1;
+        private System.Windows.Forms.RadioButton blackAndWhiteRadioButton;
     }
 }

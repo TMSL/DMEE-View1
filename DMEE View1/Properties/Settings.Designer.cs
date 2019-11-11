@@ -165,5 +165,29 @@ namespace DMEEView1.Properties {
                 this["wiresColor"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool showPins {
+            get {
+                return ((bool)(this["showPins"]));
+            }
+            set {
+                this["showPins"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool blackAndWhite {
+            get {
+                return ((bool)(this["blackAndWhite"]));
+            }
+            set {
+                this["blackAndWhite"] = value;
+            }
+        }
     }
 }
