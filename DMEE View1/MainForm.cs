@@ -10,7 +10,7 @@ using System.Text;
 
 // TMS - started September 17, 2019
 
-// Module loading and bounds processing:1.5
+// Module loading and bounds processing:
 // BUILD INTERNAL LIBRARY
 //  CREATE LIST CONTAINING LIBRARY CATALOGS FROM LIBRARY FOLDER AND A LIST OF FILES IN WORKING DIRECTORY
 //     Add top module entry to internal library and mark as unprocessed.
@@ -683,7 +683,7 @@ namespace DMEEView1
             return str;
         }
 
-        enum DrawListStatus { OK, FileNotFound };  // TBD: Make a drawlist class?
+        enum DrawListStatus { OK, FileNotFound, Empty };  // TBD: Make a drawlist class?
 
         // =======================================================
         //           DC MAKE DRAW LIST FROM FILE
@@ -733,6 +733,7 @@ namespace DMEEView1
 
             this.Invalidate();
             file.Close();
+            if (internalLBREntry.stats.drawingItemCount == 0) return DrawListStatus.Empty;
             return DrawListStatus.OK;
         }
 
@@ -794,6 +795,10 @@ namespace DMEEView1
                         X2 = Convert.ToSingle(fields[6]),
                         Y2 = Convert.ToSingle(fields[7])
                     };
+
+                    DcBounds arcBounds = new DcBounds();
+                    ArcBounds(dArc, arcBounds);
+
                     UpdateMinMaxBounds(dArc.X1, dArc.Y1, ref drawListBounds);
                     UpdateMinMaxBounds(dArc.X2, dArc.Y2, ref drawListBounds);
                     drawList.Add(dArc);
@@ -832,7 +837,6 @@ namespace DMEEView1
                     break;
 
                 case DcCommand.CommandType.drawing:
-                    InfoTextBox.Text += rawLine + crlf;
                     DcDrawing dcDrawing = new DcDrawing()
                     {
                         version = Convert.ToSingle(fields[1]),
@@ -861,7 +865,6 @@ namespace DMEEView1
                     break;
 
                 case DcCommand.CommandType.module:
-                    InfoTextBox.Text += (rawLine + crlf);
                     DcModule dcModule = new DcModule()  // CREATE COMMAND OBJECT FOR MODULE
                     {
                         layer = Convert.ToInt16(fields[1]),
@@ -1004,6 +1007,75 @@ namespace DMEEView1
             }
             prevCommandType = commandType;
             return commandType;
+        }
+
+        private static void ArcBounds(DcArc dArc, DcBounds bounds)
+        {
+            float X1 = dArc.X1, Y1 = dArc.Y1, X2 = dArc.X2, Y2 = dArc.Y2;
+            float centerX = dArc.centerX, centerY = dArc.centerY;
+            float XMax = 0, YMax = 0, XMin = 0, YMin = 0;
+
+            // translate points to put center at 0,0
+            X1 -= dArc.centerX; Y1 -= dArc.centerY; X2 -= dArc.centerX; Y2 -= dArc.centerY;
+            centerX = 0; centerY = 0;
+
+            float radius = (float)Math.Sqrt(Math.Pow(X1 - 0, 2) + Math.Pow(Y1 - 0, 2));
+
+            if (dArc.X1 < 0) // P1 is in Q2 or Q3;
+            {
+                X1 *= -1; X2 *= -1; // flip X coordinates
+            }
+
+            if (dArc.Y1 < 0) // P1 is in Q3 or Q4;
+            {
+                Y1 *= -1; Y2 *= -1; // flip Y coordinates
+            }
+
+            // P1 should now be in Q1. Process according to location of transformed Q2.
+            if (X2 >= centerX && Y2 >= centerY) // P2 is in Q1
+            {
+                XMax = X1; XMin = X2; YMax = Y2; YMin = Y1;
+            }
+            if (X2 < 0 && Y2 >= 0) // P2 is in Q2
+            {
+                XMax = X1; XMin = X2; YMax = radius;
+            }
+            if (X2 < 0 && Y2 < 0 ) // P2 is in Q3
+            {
+                XMax = X1; XMin = - radius; YMax = radius; YMin = Y2;
+            }
+            if (X2 >= 0 && Y2 < 0) // P2 is in Q4
+            {
+                XMax = X1; XMin = - radius; YMax = radius; YMin = Y2;
+                if (X2 > X1) XMax = X2;
+            }
+
+            // flip coordinates back for result
+            // if Y was flipped it's like a 180 rotation for X & vice versa
+            if (dArc.X1 < 0) // P1 was in Q2 or Q3;
+            {
+                YMax *= -1; YMin *= -1;
+                float temp = YMax;
+                if (temp < XMin)
+                {
+                    YMax = YMin;
+                    YMin = temp;
+                }
+            }
+
+            if (dArc.Y1 < 0) // P1 was in Q3 or Q4;
+            {
+                XMax *= -1; XMin *= -1;
+                float temp = XMax;
+                if (temp < XMin)
+                {
+                    XMax = XMin;
+                    XMin = temp;
+                }
+            }
+
+            // translate points back
+            XMax += dArc.centerX; YMax += dArc.centerY; XMin += dArc.centerX; YMin += dArc.centerY;
         }
 
         private void UpdateMinMaxBounds(float X, float Y, ref DcBounds bounds)

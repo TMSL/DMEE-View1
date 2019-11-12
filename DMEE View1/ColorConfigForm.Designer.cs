@@ -43,11 +43,14 @@
             this.colorRadioButton = new System.Windows.Forms.RadioButton();
             this.panel1 = new System.Windows.Forms.Panel();
             this.blackAndWhiteRadioButton = new System.Windows.Forms.RadioButton();
+            this.busLabel = new System.Windows.Forms.Label();
+            this.busColorBox = new System.Windows.Forms.PictureBox();
             ((System.ComponentModel.ISupportInitialize)(this.pinsColorBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.textColorBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.wiresColorBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.linesColorBox)).BeginInit();
             this.panel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.busColorBox)).BeginInit();
             this.SuspendLayout();
             // 
             // pinsCheckBox
@@ -149,7 +152,7 @@
             // saveButton
             // 
             this.saveButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.saveButton.Location = new System.Drawing.Point(50, 117);
+            this.saveButton.Location = new System.Drawing.Point(50, 133);
             this.saveButton.Name = "saveButton";
             this.saveButton.Size = new System.Drawing.Size(75, 23);
             this.saveButton.TabIndex = 3;
@@ -160,7 +163,7 @@
             // cancelButton
             // 
             this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cancelButton.Location = new System.Drawing.Point(151, 117);
+            this.cancelButton.Location = new System.Drawing.Point(151, 133);
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(75, 23);
             this.cancelButton.TabIndex = 3;
@@ -171,7 +174,7 @@
             // colorRadioButton
             // 
             this.colorRadioButton.AutoSize = true;
-            this.colorRadioButton.Location = new System.Drawing.Point(3, 3);
+            this.colorRadioButton.Location = new System.Drawing.Point(5, 3);
             this.colorRadioButton.Name = "colorRadioButton";
             this.colorRadioButton.Size = new System.Drawing.Size(48, 17);
             this.colorRadioButton.TabIndex = 4;
@@ -191,7 +194,7 @@
             // 
             this.blackAndWhiteRadioButton.AutoSize = true;
             this.blackAndWhiteRadioButton.Checked = true;
-            this.blackAndWhiteRadioButton.Location = new System.Drawing.Point(3, 23);
+            this.blackAndWhiteRadioButton.Location = new System.Drawing.Point(5, 23);
             this.blackAndWhiteRadioButton.Name = "blackAndWhiteRadioButton";
             this.blackAndWhiteRadioButton.Size = new System.Drawing.Size(103, 17);
             this.blackAndWhiteRadioButton.TabIndex = 5;
@@ -200,19 +203,42 @@
             this.blackAndWhiteRadioButton.UseVisualStyleBackColor = true;
             this.blackAndWhiteRadioButton.CheckedChanged += new System.EventHandler(this.blackAndWhiteRadioButton_CheckedChanged);
             // 
+            // busLabel
+            // 
+            this.busLabel.AutoSize = true;
+            this.busLabel.Location = new System.Drawing.Point(31, 103);
+            this.busLabel.Name = "busLabel";
+            this.busLabel.Size = new System.Drawing.Size(24, 13);
+            this.busLabel.TabIndex = 1;
+            this.busLabel.Text = "bus";
+            this.busLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // busColorBox
+            // 
+            this.busColorBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.busColorBox.Location = new System.Drawing.Point(61, 102);
+            this.busColorBox.Name = "busColorBox";
+            this.busColorBox.Size = new System.Drawing.Size(21, 16);
+            this.busColorBox.TabIndex = 2;
+            this.busColorBox.TabStop = false;
+            this.busColorBox.Click += new System.EventHandler(this.busColorBox_Click);
+            this.busColorBox.Paint += new System.Windows.Forms.PaintEventHandler(this.busColorBox_Paint);
+            // 
             // ColorConfigForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.cancelButton;
-            this.ClientSize = new System.Drawing.Size(277, 151);
+            this.ClientSize = new System.Drawing.Size(277, 168);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.cancelButton);
             this.Controls.Add(this.saveButton);
             this.Controls.Add(this.linesColorBox);
+            this.Controls.Add(this.busColorBox);
             this.Controls.Add(this.wiresColorBox);
             this.Controls.Add(this.textColorBox);
             this.Controls.Add(this.pinsColorBox);
+            this.Controls.Add(this.busLabel);
             this.Controls.Add(this.linesLabel);
             this.Controls.Add(this.wiresLabel);
             this.Controls.Add(this.textLabel);
@@ -232,6 +258,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.linesColorBox)).EndInit();
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.busColorBox)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -254,5 +281,7 @@
         private System.Windows.Forms.RadioButton colorRadioButton;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.RadioButton blackAndWhiteRadioButton;
+        private System.Windows.Forms.Label busLabel;
+        private System.Windows.Forms.PictureBox busColorBox;
     }
 }

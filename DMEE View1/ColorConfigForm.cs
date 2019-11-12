@@ -86,6 +86,16 @@ namespace DMEEView1
             SetColor(e.Graphics, colorConfigTemp.wiresColor);
         }
 
+        private void busColorBox_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void busColorBox_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
         private void SetColor(Graphics gr, Color color)
         {
             gr.FillRectangle(new Pen(color).Brush, 0F, 0F, Width - 2, Height - 2);

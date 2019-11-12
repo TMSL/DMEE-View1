@@ -55,6 +55,7 @@
             this.pageSetupDialog1 = new System.Windows.Forms.PageSetupDialog();
             this.DrawPanel = new System.Windows.Forms.Panel();
             this.DrawPictureBox = new System.Windows.Forms.PictureBox();
+            this.FitToWindowButton = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
             this.DrawPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DrawPictureBox)).BeginInit();
@@ -182,14 +183,14 @@
             // libraryFilesDirectoryToolStripMenuItem
             // 
             this.libraryFilesDirectoryToolStripMenuItem.Name = "libraryFilesDirectoryToolStripMenuItem";
-            this.libraryFilesDirectoryToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.libraryFilesDirectoryToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
             this.libraryFilesDirectoryToolStripMenuItem.Text = "Folders";
             this.libraryFilesDirectoryToolStripMenuItem.Click += new System.EventHandler(this.FoldersToolStripMenuItem_Click);
             // 
             // colorPaletteToolStripMenuItem
             // 
             this.colorPaletteToolStripMenuItem.Name = "colorPaletteToolStripMenuItem";
-            this.colorPaletteToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.colorPaletteToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
             this.colorPaletteToolStripMenuItem.Text = "Colors";
             this.colorPaletteToolStripMenuItem.Click += new System.EventHandler(this.colorPaletteToolStripMenuItem_Click);
             // 
@@ -200,17 +201,17 @@
             // TopFileNameTextBox
             // 
             this.TopFileNameTextBox.BackColor = System.Drawing.SystemColors.Control;
-            this.TopFileNameTextBox.Location = new System.Drawing.Point(151, 1);
+            this.TopFileNameTextBox.Location = new System.Drawing.Point(151, 3);
             this.TopFileNameTextBox.Name = "TopFileNameTextBox";
             this.TopFileNameTextBox.ReadOnly = true;
-            this.TopFileNameTextBox.Size = new System.Drawing.Size(507, 20);
+            this.TopFileNameTextBox.Size = new System.Drawing.Size(481, 20);
             this.TopFileNameTextBox.TabIndex = 2;
             // 
             // DrawFileButton
             // 
-            this.DrawFileButton.Location = new System.Drawing.Point(662, 0);
+            this.DrawFileButton.Location = new System.Drawing.Point(638, 1);
             this.DrawFileButton.Name = "DrawFileButton";
-            this.DrawFileButton.Size = new System.Drawing.Size(75, 23);
+            this.DrawFileButton.Size = new System.Drawing.Size(58, 23);
             this.DrawFileButton.TabIndex = 4;
             this.DrawFileButton.Text = "draw file";
             this.DrawFileButton.UseVisualStyleBackColor = true;
@@ -228,9 +229,9 @@
             // 
             // HideNShowInfoButton
             // 
-            this.HideNShowInfoButton.Location = new System.Drawing.Point(743, 0);
+            this.HideNShowInfoButton.Location = new System.Drawing.Point(702, 1);
             this.HideNShowInfoButton.Name = "HideNShowInfoButton";
-            this.HideNShowInfoButton.Size = new System.Drawing.Size(75, 23);
+            this.HideNShowInfoButton.Size = new System.Drawing.Size(66, 23);
             this.HideNShowInfoButton.TabIndex = 6;
             this.HideNShowInfoButton.Text = "hide info";
             this.HideNShowInfoButton.UseVisualStyleBackColor = true;
@@ -264,12 +265,22 @@
             this.DrawPictureBox.TabStop = false;
             this.DrawPictureBox.Paint += new System.Windows.Forms.PaintEventHandler(this.DrawPictureBox_Paint);
             // 
+            // FitToWindowButton
+            // 
+            this.FitToWindowButton.Location = new System.Drawing.Point(774, 1);
+            this.FitToWindowButton.Name = "FitToWindowButton";
+            this.FitToWindowButton.Size = new System.Drawing.Size(75, 23);
+            this.FitToWindowButton.TabIndex = 6;
+            this.FitToWindowButton.Text = "fit to window";
+            this.FitToWindowButton.UseVisualStyleBackColor = true;
+            // 
             // MainForm
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(900, 450);
             this.Controls.Add(this.InfoTextBox);
+            this.Controls.Add(this.FitToWindowButton);
             this.Controls.Add(this.HideNShowInfoButton);
             this.Controls.Add(this.DrawFileButton);
             this.Controls.Add(this.TopFileNameTextBox);
@@ -319,6 +330,7 @@
         private System.Windows.Forms.Panel DrawPanel;
         private System.Windows.Forms.PictureBox DrawPictureBox;
         private System.Windows.Forms.ToolStripMenuItem MenuZoom25;
+        private System.Windows.Forms.Button FitToWindowButton;
     }
 }
 
