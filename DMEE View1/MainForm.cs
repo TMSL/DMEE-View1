@@ -733,7 +733,14 @@ namespace DMEEView1
 
             this.Invalidate();
             file.Close();
-            if (internalLBREntry.stats.drawingItemCount == 0) return DrawListStatus.Empty;
+
+            if (internalLBREntry.drawList.Count == 0)
+            {
+                // set dummy bounds for empty drawing file
+                internalLBREntry.bounds.XMin = 0F; internalLBREntry.bounds.YMin = 0F;
+                internalLBREntry.bounds.XMax = 0F; internalLBREntry.bounds.YMax = 0F;
+                return DrawListStatus.Empty;
+            }
             return DrawListStatus.OK;
         }
 
@@ -1199,6 +1206,11 @@ namespace DMEEView1
                 TopFileNameTextBox.Update();
                 Properties.Settings.Default.fileName = topFileName;
                 DcLoadDrawing();
+
+                // Set size of Picture Box for screen painting. Dimensions need to cover a non-zero area for paint event to occur.
+                DrawPictureBox.Height = (int)((topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin) * ZoomFactor + 30);
+                DrawPictureBox.Width = (int)((topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin) * ZoomFactor + 30);
+                DrawPictureBox.Invalidate();
             }
             menuStrip1.Select();
         }
@@ -1252,6 +1264,11 @@ namespace DMEEView1
         {
             drawingLoaded = false;
             DcLoadDrawing();
+
+            // Set size of Picture Box for screen painting. Dimensions need to cover a non-zero area for paint event to occur.
+            DrawPictureBox.Height = (int)((topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin) * ZoomFactor + 30);
+            DrawPictureBox.Width = (int)((topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin) * ZoomFactor + 30);
+            DrawPictureBox.Invalidate();
         }
 
         // =======================================================
@@ -1356,7 +1373,15 @@ namespace DMEEView1
             // Process bounds for modules in the internal library and topModuleCommand
             // ---------------------------------------------------------------------------
             BoundsProcessInternalLibraryEntries();
+
+            ModuleInfoTextBox(internalLBR[0]);
             WriteDebugDataToConsole();
+
+            if (status == DrawListStatus.Empty)
+            {
+                MessageBox.Show("File does not contain any drawing commands", "Empty File");
+                return;
+            }
 
             drawingLoaded = true;
         }
@@ -1622,10 +1647,6 @@ namespace DMEEView1
 
             if (drawingLoaded)
             {
-                // Set size of Picture Box
-                DrawPictureBox.Height = (int)((topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin) * ZoomFactor + 30);
-                DrawPictureBox.Width = (int)((topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin) * ZoomFactor + 30);
-
                 // Set origin for display based on drawing bounds
                 gr.TranslateTransform(-topModuleCommand.bounds.XMin * ZoomFactor + 15,
                                        topModuleCommand.bounds.YMax * ZoomFactor + 15);
@@ -1639,7 +1660,6 @@ namespace DMEEView1
                 DrawCropMark(gr, new Pen(Color.Green), new PointF(topModuleCommand.bounds.XMin, - topModuleCommand.bounds.YMin));
 
                 PaintDcModule(gr, topModuleCommand);
-                ModuleInfoTextBox(internalLBR[0]);
             }
             pen.Dispose();
         }
