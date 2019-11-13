@@ -1024,25 +1024,36 @@ namespace DMEEView1
             bool xFlipped = false;
             bool yFlipped = false;
 
+            // Algorithm:
+            // set P1, P2 = (dArc.X1, dArc.Y1) (dArc.X2, dArc.Y2), respectively
+            // translate arc coordinates to put center at 0,0.
+            // transform coordinates to put P1 into first quadrant.
+            // set min,max based on which quadrant P2 lands after transformation
+            // transform back
+            // make sure XMin, XMax, YMin, YMax values are in correct magnitude order
+            // translate coordinates back based on original location of center
+            // assign to bounds and return
+
             // translate points to put center at 0,0
             X1 -= dArc.centerX; Y1 -= dArc.centerY; X2 -= dArc.centerX; Y2 -= dArc.centerY;
             centerX = 0; centerY = 0;
 
             float radius = (float)Math.Sqrt(Math.Pow(X1 - 0, 2) + Math.Pow(Y1 - 0, 2));
 
+            // Transform coordinates to move P1 to quadrant 1 (Q1)
             if (X1 < 0) // P1 is in Q2 or Q3;
             {
                 X1 *= -1; X2 *= -1; // flip X coordinates
                 xFlipped = true;
             }
-
             if (Y1 < 0) // P1 is in Q3 or Q4;
             {
                 Y1 *= -1; Y2 *= -1; // flip Y coordinates
                 yFlipped = true;
             }
 
-            // P1 should now be in Q1. Process according what quadrant holds transformed P2.
+            // P1 should now be in Q1.
+            // Process according to which quadrant holds transformed P2.
             if (X2 >= centerX && Y2 >= centerY) // P2 is in Q1
             {
                 XMax = X1; XMin = X2; YMax = Y2; YMin = Y1;
@@ -1061,13 +1072,15 @@ namespace DMEEView1
                 if (X2 > X1) XMax = X2;
             }
 
-            // Having a flipped Y is like a 180 degree rotation of the arc
+            // Transform coordinates back based. 
+            // Having a flipped Y is like a 180 degree rotation of the arc around the X-axis
             // that flips the X direction of the arc relative to the Y axis.
             // Thus, the X direction needs to be flipped back.
             if (yFlipped) 
             {
                 XMax *= -1; XMin *= -1;
             }
+            // Similarly, flipping X is like a 180 degree rotation around Y
             if (xFlipped)
             {
                 YMax *= -1; YMin *= -1;
