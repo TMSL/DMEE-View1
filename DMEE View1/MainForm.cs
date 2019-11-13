@@ -806,8 +806,8 @@ namespace DMEEView1
                     DcBounds arcBounds = new DcBounds();
                     ArcBounds(dArc, arcBounds);
 
-                    UpdateMinMaxBounds(dArc.X1, dArc.Y1, ref drawListBounds);
-                    UpdateMinMaxBounds(dArc.X2, dArc.Y2, ref drawListBounds);
+                    UpdateMinMaxBounds(arcBounds.XMax, arcBounds.YMax, ref drawListBounds);
+                    UpdateMinMaxBounds(arcBounds.XMin, arcBounds.YMin, ref drawListBounds);
                     drawList.Add(dArc);
                     break;
 
@@ -1021,6 +1021,8 @@ namespace DMEEView1
             float X1 = dArc.X1, Y1 = dArc.Y1, X2 = dArc.X2, Y2 = dArc.Y2;
             float centerX = dArc.centerX, centerY = dArc.centerY;
             float XMax = 0, YMax = 0, XMin = 0, YMin = 0;
+            bool xFlipped = false;
+            bool yFlipped = false;
 
             // translate points to put center at 0,0
             X1 -= dArc.centerX; Y1 -= dArc.centerY; X2 -= dArc.centerX; Y2 -= dArc.centerY;
@@ -1028,17 +1030,19 @@ namespace DMEEView1
 
             float radius = (float)Math.Sqrt(Math.Pow(X1 - 0, 2) + Math.Pow(Y1 - 0, 2));
 
-            if (dArc.X1 < 0) // P1 is in Q2 or Q3;
+            if (X1 < 0) // P1 is in Q2 or Q3;
             {
                 X1 *= -1; X2 *= -1; // flip X coordinates
+                xFlipped = true;
             }
 
-            if (dArc.Y1 < 0) // P1 is in Q3 or Q4;
+            if (Y1 < 0) // P1 is in Q3 or Q4;
             {
                 Y1 *= -1; Y2 *= -1; // flip Y coordinates
+                yFlipped = true;
             }
 
-            // P1 should now be in Q1. Process according to location of transformed Q2.
+            // P1 should now be in Q1. Process according what quadrant holds transformed P2.
             if (X2 >= centerX && Y2 >= centerY) // P2 is in Q1
             {
                 XMax = X1; XMin = X2; YMax = Y2; YMin = Y1;
@@ -1053,36 +1057,37 @@ namespace DMEEView1
             }
             if (X2 >= 0 && Y2 < 0) // P2 is in Q4
             {
-                XMax = X1; XMin = - radius; YMax = radius; YMin = Y2;
+                XMax = X1; XMin = -radius; YMax = radius; YMin = -radius;
                 if (X2 > X1) XMax = X2;
             }
 
-            // flip coordinates back for result
-            // if Y was flipped it's like a 180 rotation for X & vice versa
-            if (dArc.X1 < 0) // P1 was in Q2 or Q3;
-            {
-                YMax *= -1; YMin *= -1;
-                float temp = YMax;
-                if (temp < XMin)
-                {
-                    YMax = YMin;
-                    YMin = temp;
-                }
-            }
-
-            if (dArc.Y1 < 0) // P1 was in Q3 or Q4;
+            // Having a flipped Y is like a 180 degree rotation of the arc
+            // that flips the X direction of the arc relative to the Y axis.
+            // Thus, the X direction needs to be flipped back.
+            if (yFlipped) 
             {
                 XMax *= -1; XMin *= -1;
+            }
+            if (xFlipped)
+            {
+                YMax *= -1; YMin *= -1;
+            }
+
+            // make sure bounds are in correct order
+            if (XMax < XMin)
+            {
                 float temp = XMax;
-                if (temp < XMin)
-                {
-                    XMax = XMin;
-                    XMin = temp;
-                }
+                XMax = XMin; XMin = temp;
+            }
+            if (YMax < YMin)
+            {
+                float temp = YMax;
+                YMax = YMin; YMin = temp;
             }
 
             // translate points back
             XMax += dArc.centerX; YMax += dArc.centerY; XMin += dArc.centerX; YMin += dArc.centerY;
+            bounds.XMax = XMax; bounds.YMax = YMax; bounds.XMin = XMin; bounds.YMin = YMin;
         }
 
         private void UpdateMinMaxBounds(float X, float Y, ref DcBounds bounds)
