@@ -273,6 +273,7 @@
             this.FitToWindowButton.TabIndex = 6;
             this.FitToWindowButton.Text = "fit to window";
             this.FitToWindowButton.UseVisualStyleBackColor = true;
+            this.FitToWindowButton.Click += new System.EventHandler(this.FitToWindowButton_Click);
             // 
             // MainForm
             // 

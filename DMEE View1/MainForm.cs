@@ -38,6 +38,7 @@ namespace DMEEView1
         float ZoomFactor = 1;
         const string crlf = "\r\n";
         bool drawingLoaded = false;
+        bool fitToWindow = false;
 
         private List<InternalLBREntry> internalLBR = new List<InternalLBREntry>();
         List<DcExternalLBRCatalog> externalLBRCatalogs = new List<DcExternalLBRCatalog>();
@@ -103,13 +104,13 @@ namespace DMEEView1
             // Set the initial height and width of the form's window to a 12 x 18 Height to Width ratio
             // where the window height is 95% of the screen height
             Height = (int)(Screen.FromControl(this).Bounds.Height * 0.95F);
-            Width = (int)(18F / 12F * this.Height);
+            Width = (int)(18F / 12F * Height);
             CenterToScreen();
 
             // Set the initial location and size of DrawPanel relative to form
             DrawPanel.Location = new Point(0, menuStrip1.Height);
-            DrawPanel.Height = this.Height - menuStrip1.Height - 40;
-            DrawPanel.Width = this.Width - 20;
+            DrawPanel.Height = Height - menuStrip1.Height - 40;
+            DrawPanel.Width = Width - 20;
 
             // Set location of DrawPictureBox.
             // (Height and Width are set later based on drawing's bounds)
@@ -223,7 +224,7 @@ namespace DMEEView1
             gr.RotateTransform(moduleCommand.rotation);
 
             Pen pen = new Pen(Color.Black);
-            pen.Width = 0.75F;
+            pen.Width = 1F;
             var drawList = internalLBR[moduleCommand.internalLBRIndex].drawList;
             gr.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
             if (ZoomFactor > 0.5) gr.SmoothingMode = SmoothingMode.AntiAlias;
@@ -731,7 +732,7 @@ namespace DMEEView1
                 else break;
             }
 
-            this.Invalidate();
+            Invalidate();
             file.Close();
 
             if (internalLBREntry.drawList.Count == 0)
@@ -1235,7 +1236,7 @@ namespace DMEEView1
 
         private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.Close();
+            Close();
         }
 
         private void FoldersToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1248,31 +1249,36 @@ namespace DMEEView1
         private void ToolStripMenuZoom25_Click(object sender, EventArgs e)
         {
             ZoomFactor = 0.25F;
-            this.Invalidate();
+            fitToWindow = false;
+            Invalidate();
         }
 
         private void ToolStripMenuZoom50_Click(object sender, EventArgs e)
         {
             ZoomFactor = 0.5F;
-            this.Invalidate();
+            fitToWindow = false;
+            Invalidate();
         }
 
         private void ToolStripMenuZoom100_Click(object sender, EventArgs e)
         {
             ZoomFactor = 1.0F;
-            this.Invalidate();
+            fitToWindow = false;
+            Invalidate();
         }
 
         private void ToolStripMenuZoom150_Click(object sender, EventArgs e)
         {
             ZoomFactor = 1.5F;
-            this.Invalidate();
+            fitToWindow = false;
+            Invalidate();
         }
 
         private void ToolStripMenuZoom200_Click(object sender, EventArgs e)
         {
             ZoomFactor = 2.0F;
-            this.Refresh();
+            fitToWindow = false;
+            Refresh();
         }
                
         // =======================================================
@@ -1657,25 +1663,46 @@ namespace DMEEView1
         private void DrawPictureBox_Paint(object sender, PaintEventArgs e)
         {
             Graphics gr = e.Graphics;
-            int windowWidth = this.Width;
-            int windowHeight = this.Height;
+            int windowWidth = Width;
+            int windowHeight = Height;
 
             //Create pen objects
             Pen pen = new Pen(Color.Black);
 
             if (drawingLoaded)
             {
-                // Set origin for display based on drawing bounds
-                gr.TranslateTransform(-topModuleCommand.bounds.XMin * ZoomFactor + 15,
-                                       topModuleCommand.bounds.YMax * ZoomFactor + 15);
+                float dHeight = topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin;
+                float dWidth = topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin;
+                float vDiff = (float)Math.Round((DrawPanel.Height - dHeight)/2.0, 1);
+                float hDiff = (float)Math.Round((DrawPanel.Width - dWidth)/2.0, 1);
+                float centerShiftX = 0;
+                float centerShiftY = 0;
 
+                // calculate zoom factor for fitting drawing to window
+                float fitScaleFactor = (DrawPanel.Width - 30) / dWidth;
+                if (fitScaleFactor > (DrawPanel.Height - 30) / dHeight) fitScaleFactor = (DrawPanel.Height - 30) / dHeight;
+
+                if (fitToWindow)
+                {
+                    centerShiftX = (DrawPanel.Width - 30 - dWidth * fitScaleFactor) / 2.0F  ;
+                    centerShiftY = (DrawPanel.Height - 30 - dHeight * fitScaleFactor) / 2.0F;
+                    ZoomFactor = fitScaleFactor;
+                    DrawPictureBox.Height = DrawPanel.Height;
+                    DrawPictureBox.Width = DrawPanel.Width;
+                }
+
+                // Set origin for display based on drawing bounds
+                gr.TranslateTransform(-topModuleCommand.bounds.XMin * ZoomFactor + 15 + centerShiftX,
+                                       topModuleCommand.bounds.YMax * ZoomFactor + 15 + centerShiftY);
+                
                 gr.ScaleTransform(1, -1);  // Set Y direction to be from bottom to top rather than Windows top to bottom
                 gr.ScaleTransform(ZoomFactor, ZoomFactor);
-                pen.Width = 1;
 
                 // draw crossed lines at origin
                 DrawCropMark(gr, new Pen(Color.Red), new PointF(0F, 0F));
                 DrawCropMark(gr, new Pen(Color.Green), new PointF(topModuleCommand.bounds.XMin, - topModuleCommand.bounds.YMin));
+
+                gr.DrawRectangle(new Pen(Color.LightGray), topModuleCommand.bounds.XMin, topModuleCommand.bounds.YMin, dWidth, dHeight);
 
                 PaintDcModule(gr, topModuleCommand);
             }
@@ -1685,8 +1712,9 @@ namespace DMEEView1
         private void MainForm_Resize(object sender, EventArgs e)
         {
             DrawPanel.Location = new Point(0, menuStrip1.Height);
-            DrawPanel.Height = this.Height - menuStrip1.Height - 40;
-            DrawPanel.Width = this.Width - 20;
+            DrawPanel.Height = Height - menuStrip1.Height - 40;
+            DrawPanel.Width = Width - 20;
+            Invalidate();
         }
 
         private void colorPaletteToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1697,13 +1725,19 @@ namespace DMEEView1
             {
                 dcColorSettings = colorConfigForm.settings;
             }
-            this.Invalidate();
+            Invalidate();
             Properties.Settings.Default.pinsColor = dcColorSettings.pinsColor;
             Properties.Settings.Default.textColor = dcColorSettings.textColor;
             Properties.Settings.Default.wiresColor = dcColorSettings.wiresColor;
             Properties.Settings.Default.linesColor = dcColorSettings.linesColor;
             Properties.Settings.Default.showPins = dcColorSettings.showPins;
             Properties.Settings.Default.blackAndWhite = dcColorSettings.blackAndWhite;
+        }
+
+        private void FitToWindowButton_Click(object sender, EventArgs e)
+        {
+            fitToWindow = true;
+            Invalidate();
         }
     }
 }
