@@ -44,6 +44,7 @@ namespace DMEEView1
         List<DcExternalLBRCatalog> externalLBRCatalogs = new List<DcExternalLBRCatalog>();
         private DcModule topModuleCommand = new DcModule();
         private PrinterSettings printerSettings = new PrinterSettings();
+        private PrintSetupForm printSetupForm = new PrintSetupForm();
         public FolderConfigForm folderConfigForm = new FolderConfigForm();
         public ColorConfigForm colorConfigForm = new ColorConfigForm();
         public ColorConfigForm.DcColorConfig dcColorSettings = new ColorConfigForm.DcColorConfig();
@@ -68,7 +69,7 @@ namespace DMEEView1
             public List<Single> textScalingList = new List<Single>();
         }
 
-        private class DcBounds
+        public class DcBounds
         {
             public bool boundsProcessed = false; // flag indicating bounds processing is done for this module instance
             public float XMax = -32000;
@@ -210,7 +211,7 @@ namespace DMEEView1
         // =======================================================
         //           PAINT DC MODULE
         // =======================================================
-        private void PaintDcModule(Graphics gr, DcModule moduleCommand)
+        public void PaintDcModule(Graphics gr, DcModule moduleCommand)
         {
             PointF ptf1 = new Point();
             PointF ptf2 = new Point();
@@ -431,7 +432,7 @@ namespace DMEEView1
         // ==================================================================
         // ================= DC COMMAND CLASS DEFINITIONS ===================
         // ==================================================================
-        private class DcCommand  // base class for the draw command classes
+        public class DcCommand  // base class for the draw command classes
         {
             public enum CommandType
             {
@@ -606,7 +607,7 @@ namespace DMEEView1
         //         m  15 1070 670  1    90  0   r     0  0  0  1  1  // 90 rotated
         //         m  15 175  585 0.75 270  0 ls04a   1  0  0  1  0  // 270 rotated and scaled
         //         0   1  2    3   4    5   6   7     8  9 10 11 12
-        private class DcModule : DcCommand
+        public class DcModule : DcCommand
         {
             public DcModule()
             {
@@ -1738,6 +1739,12 @@ namespace DMEEView1
         {
             fitToWindow = true;
             Invalidate();
+        }
+
+        private void PrintSetupMenuItem_Click(object sender, EventArgs e)
+        {
+            PrintSetupForm psf = new PrintSetupForm(printDocument, this);
+            DialogResult result = psf.ShowDialog();
         }
     }
 }
