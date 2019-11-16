@@ -7,6 +7,7 @@ using System.IO;
 using System.Drawing.Text;
 using System.Windows.Forms;
 using System.Text;
+using DcClasses;
 
 // TMS - started September 17, 2019
 
@@ -48,53 +49,6 @@ namespace DMEEView1
         public FolderConfigForm folderConfigForm = new FolderConfigForm();
         public ColorConfigForm colorConfigForm = new ColorConfigForm();
         public ColorConfigForm.DcColorConfig dcColorSettings = new ColorConfigForm.DcColorConfig();
-
-        private class InternalLBREntry
-        {
-            public bool fromLibrary = false;
-            public string name = "";
-            public string fileName = "";
-            public List<DcCommand> drawList = new List<DcCommand>();
-            public DrawListStats stats = new DrawListStats();
-            public DcBounds bounds = new DcBounds();
-        }
-        
-        private class DrawListStats
-        {
-            public int textItemCount = 0;
-            public int strItemCount = 0;
-            public int pinItemCount = 0;
-            public int moduleItemCount = 0;
-            public int drawingItemCount = 0;
-            public List<Single> textScalingList = new List<Single>();
-        }
-
-        public class DcBounds
-        {
-            public bool boundsProcessed = false; // flag indicating bounds processing is done for this module instance
-            public float XMax = -32000;
-            public float YMax = -32000;
-            public float XMin = 32000;
-            public float YMin = 32000;
-        }
-
-        private class ExtLBRCatEntry
-        {
-            public String name = "";
-            public String extension = "";
-            public long filePos = 0;
-            public int recordOffset = 0;
-            public int recordSize = 0;
-        }
-
-        private class DcExternalLBRCatalog
-        {
-            public enum MatchType { partial, full };
-            public String fileName = ""; // full path to the library file from which the catalog was read.
-            public int entryCount = 0;
-            public int size = 0;
-            public List<ExtLBRCatEntry> entries = new List<ExtLBRCatEntry>();
-        }
 
         public MainForm()
         {
@@ -429,233 +383,9 @@ namespace DMEEView1
             return radius;
         }
 
-        // ==================================================================
-        // ================= DC COMMAND CLASS DEFINITIONS ===================
-        // ==================================================================
-        public class DcCommand  // base class for the draw command classes
-        {
-            public enum CommandType
-            {
-                arc, bus, circle, drawing, fill, line,
-                module, net, pin, route, str, text, wire,
-                undefined
-            };
-            protected CommandType _cmdType = CommandType.undefined;
-            public CommandType CmdType
-            {
-                get => _cmdType;
-            }
-        }
-
-        //Arc (a) - e.g. "a  6 -38.641014 10 -4 -10 -4 30"
-        // Command to draw an arc using coordinates of the center of a circle and two points on the circle to define the arc.
-        //      Aside: Calculating the coordinates of the center given two arbitrary points and a radius is an interesting problem
-        //      for the software that generates the file. Fortunately, it's fairly straightforward to draw the arc once 
-        //      the points have been calculated.
-        private class DcArc : DcCommand
-        {
-            public DcArc()
-            {
-                _cmdType = CommandType.arc;
-            }
-            public int layer = 0;      // [1]
-            public float centerX = 0;  // [2]
-            public float centerY = 0;  // [3]
-            public float X1 = 0;       // [4]
-            public float Y1 = 0;       // [5]
-            public float X2 = 0;       // [6]
-            public float Y2 = 0;       // [7]
-        }
-
-        //Bus (b) - e.g. "b  10 1810 1115 1810 400 0 2"
-        private class DcBus : DcCommand
-        {
-            public DcBus()
-            {
-                _cmdType = CommandType.bus;
-            }
-
-            public int layer = 0;       // [1]
-            public float X1 = 0;        // [2]
-            public float Y1 = 0;        // [3]
-            public float X2 = 0;        // [4]
-            public float Y2 = 0;        // [5]
-            public int unk1 = 0;        // [6] MIRROR?
-            public float width = 0;     // [7] line weight??
-        }
-
-        //Pin (p) - e.g. "p  15 60 10 60 10 1"
-        // a pin may have an associated s record. The record defines the pin number, e.g. s 1 0 #2
-        private class DcPin : DcCommand
-        {
-            public DcPin()
-            {
-                _cmdType = CommandType.pin;
-            }
-            public int layer = 0;       // [1]
-            public float X1 = 0;        // [2]
-            public float Y1 = 0;        // [3]
-            public float unk1 = 0;      // [4]
-            public float unk2 = 0;      // [5]
-            public float unk3 = 0;      // [6] MIRROR?
-            public string Text = "";
-        }
-
-        //Line (l)        
-        private class DcLine : DcCommand
-        {
-            public DcLine()
-            {
-                _cmdType = CommandType.line;
-            }
-
-            public int layer = 0;       // [1]
-            public float X1 = 0;        // [2]
-            public float Y1 = 0;        // [3]
-            public float X2 = 0;        // [4]
-            public float Y2 = 0;        // [5]
-            public float unk6 = 0;      // [6] found some 2.10 library modules that have only 6 fields for a line instead of seven
-            public float unk7 = 0;      // [7] found this is a float, perhaps line weight/width ??
-        }
-
-        //Wire (w)        
-        private class DcWire : DcCommand
-        {
-            public DcWire()
-            {
-                _cmdType = CommandType.wire;
-            }
-
-            public int layer = 0;       // [1]
-            public float X1 = 0;        // [2]
-            public float Y1 = 0;        // [3]
-            public float X2 = 0;        // [4]
-            public float Y2 = 0;        // [5]
-            public int unk1 = 0;        // [6]
-            public int unk2 = 0;        // [7]
-            public int net = 0;         // [8]
-            public int unk3 = 0;        // [9]
-            public DcString dcStr = new DcString();
-        }
-
-        //Text (t)
-        private class DcText : DcCommand
-        {
-            public DcText()
-            {
-                _cmdType = CommandType.text;
-            }
-            public DcBounds textBounds = new DcBounds();
-            public int layer = 0;           // [1]
-            public float X1 = 0;            // [2]
-            public float Y1 = 0;            // [3]
-            public float scaleFactor = 0;   // [4] scaling factor for the font
-            public float rotation = 0;      // [5]
-            public int mirror = 0;          // [6] MIRROR = 1?
-            public int upright = 0;         // [7] KEEP UPRIGHT = 1?
-            public DcString dcStr = new DcString();
-        }
-
-        //String/symbol name (s)
-        // String text fields in file begin with "#" immediately followed by the text
-        // Strings are allowed to have spaces in them. Thus, encountering a # 'turns off'
-        // use of <space> as a field delimiter for the remainder of the line.
-        // # serves double-duty as start of a comment or comment line
-        private class DcString : DcCommand
-        {
-            public DcString()
-            {
-                _cmdType = CommandType.str;
-            }
-            public int unk1 = 0;
-            public int unk2 = 0;
-            public int unk3 = 0;
-            public string strText = "";
-        }
-
-        //Circle (c)
-        // e.g. c  15 35 0 30 0 = Circle with radius 5 (diameter = 10) centered at 35,0
-        private class DcCircle : DcCommand
-        {
-            public DcCircle()
-            {
-                _cmdType = CommandType.circle;
-            }
-
-            public int layer = 0;           // [1] color or layer
-            public float X1 = 0;            // [2]
-            public float Y1 = 0;            // [3]
-            public float X2 = 0;            // [4]
-            public float Y2 = 0;            // [5]
-            public float unk6 = 0;          // [6]
-        }
-
-        private class DcNet : DcCommand
-        {
-            public DcNet()
-            {
-                _cmdType = CommandType.net;
-            }
-            public string name = "-unassigned-";
-            public int number = 0;
-        }
-
-        // Module (m)
-        // -- e.g. m  15  0    0  1.25   0  0 bsize   0  0  0  0  0  // just scaled
-        //         m  15 1900 725  1   180  1 iowire  0  0  0  1  1  // horizontally flipped
-        //         m  15 1675 765  1   180  1 ls125   0  0  0  1  1  // horizontally flipped
-        //         m  15 1070 670  1    90  0   r     0  0  0  1  1  // 90 rotated
-        //         m  15 175  585 0.75 270  0 ls04a   1  0  0  1  0  // 270 rotated and scaled
-        //         0   1  2    3   4    5   6   7     8  9 10 11 12
-        public class DcModule : DcCommand
-        {
-            public DcModule()
-            {
-                _cmdType = CommandType.module;
-            }
-            public int internalLBRIndex = -1; // index to entry for module in internal library
-            public DcBounds bounds = new DcBounds(); //
-            public int layer = 0;           // [1]
-            public float X1 = 0;            // [2] X coordinate (offset) to place module's origin
-            public float Y1 = 0;            // [3] Y coordinate (offset) to place module's origin
-            public float scaleFactor = 1;   // [4]
-            public float rotation = 0;      // [5] Rotation in degrees
-            public int mirror = 0;          // [6] 0 = no mirror, 1 = mirror (horizontal mirror) ??????
-            public string name = "";        // [7]
-            public int unk8 = 0;            // [8]
-            public int unk9 = 0;            // [9]
-            public int unk10 = 0;           // [10]
-            public int unk11 = 0;           // [11]
-            public int unk12 = 0;           // [12]
-        }
-
-        private class DcDrawing : DcCommand    // (d) drawing / display -- e.g.
-                                               //  D2BLKDIA:   d  4.09 1  1751  588  1        0 0 0 0 0   5 0
-        {
-            public DcDrawing()
-            {
-                _cmdType = CommandType.drawing;
-            }
-            public float version = 0;       // [1]
-            public int unk2 = 0;            // [2]
-            public float X1 = 0;            // [3]
-            public float Y1 = 0;            // [4]
-            public float scaleFactor = 0;   // [5]
-            public int unk6 = 0;            // [6]
-            public int unk7 = 0;            // [7]
-            public int unk8 = 0;            // [8]
-            public int unk9 = 0;            // [9]
-            public int unk10 = 0;           // [10]
-            public int grid = 0;            // [11] units per grid / snap
-            public int units = 0;           // [12] 0 = 1 mil per unit, 1 = 5 mils per unit
-            public DcString dcStr = new DcString();
-        }
-
-        private class DcLibEntry
-        {
-            public string moduleName = "";
-        }
-
+        // =======================================================
+        //           DC READ ASCII LINE
+        // =======================================================
         private String DcReadASCIILine(FileStream file, ref long filePos)
         {
             file.Position = filePos;
@@ -1018,6 +748,9 @@ namespace DMEEView1
             return commandType;
         }
 
+        // =======================================================
+        //           CALCULATE ARC BOUNDS
+        // =======================================================
         private static void ArcBounds(DcArc dArc, DcBounds bounds)
         {
             float X1 = dArc.X1, Y1 = dArc.Y1, X2 = dArc.X2, Y2 = dArc.Y2;
@@ -1105,6 +838,9 @@ namespace DMEEView1
             bounds.XMax = XMax; bounds.YMax = YMax; bounds.XMin = XMin; bounds.YMin = YMin;
         }
 
+        // =======================================================
+        //           UPDATE MIN AND MAX FOR BOUNDS
+        // =======================================================
         private void UpdateMinMaxBounds(float X, float Y, ref DcBounds bounds)
         {
             if (X > bounds.XMax) bounds.XMax = X;
@@ -1114,9 +850,9 @@ namespace DMEEView1
         }
 
         // =======================================================
-        //           GET CATALOG FROM FILE
+        //           DC Load CATALOG FROM FILE
         // =======================================================
-        private int GetCatalog(FileStream inFile, DcExternalLBRCatalog catalog)
+        private int DcLoadCatalog(FileStream inFile, DcExternalLBRCatalog catalog)
         {
             Byte[] buffer = new Byte[100];
             String str = "";
@@ -1164,10 +900,10 @@ namespace DMEEView1
         // =======================================================
         //           FIND MODULE IN CATALOG
         // =======================================================
-        // search catalog's entries for name (case insensitive) starting from startIndex in catalog and returning
-        // index of entry if match found. Return -1 if match not found.
-        // Setting startIndex to 0 will return index of first match.
-        private int FindModuleInCatalog(DcExternalLBRCatalog catalog, String moduleName, int startIndex,
+        // search loaded catalog's entries for name (case insensitive) starting from startIndex
+        // in catalog and returning index of entry if match found.
+        // Return -1 if match not found. Setting startIndex to 0 will return index of first match.
+        private int DcFindModuleInCatalog(DcExternalLBRCatalog catalog, String moduleName, int startIndex,
                                         DcExternalLBRCatalog.MatchType matchType)
         {
             int index;
@@ -1249,39 +985,36 @@ namespace DMEEView1
 
         private void ToolStripMenuZoom25_Click(object sender, EventArgs e)
         {
-            ZoomFactor = 0.25F;
-            fitToWindow = false;
-            Invalidate();
+            ZoomIt(0.25F);
         }
 
         private void ToolStripMenuZoom50_Click(object sender, EventArgs e)
         {
-            ZoomFactor = 0.5F;
-            fitToWindow = false;
-            Invalidate();
+            ZoomIt(0.50F);
         }
 
         private void ToolStripMenuZoom100_Click(object sender, EventArgs e)
         {
-            ZoomFactor = 1.0F;
-            fitToWindow = false;
-            Invalidate();
+            ZoomIt(1.0F);
         }
 
         private void ToolStripMenuZoom150_Click(object sender, EventArgs e)
         {
-            ZoomFactor = 1.5F;
-            fitToWindow = false;
-            Invalidate();
+            ZoomIt(1.5F);
         }
 
         private void ToolStripMenuZoom200_Click(object sender, EventArgs e)
         {
-            ZoomFactor = 2.0F;
-            fitToWindow = false;
-            Refresh();
+            ZoomIt(2.0F);
         }
-               
+
+        private void ZoomIt(float factor)
+        {
+            ZoomFactor = factor;
+            fitToWindow = false;
+            Invalidate();
+        }
+
         // =======================================================
         //           DRAW FILE BUTTON CLICK
         // =======================================================
@@ -1290,11 +1023,60 @@ namespace DMEEView1
             drawingLoaded = false;
             DcLoadDrawing();
 
-            // Set size of Picture Box for screen painting. Dimensions need to cover a non-zero area for paint event to occur.
+            // Set a default size of Picture Box for screen painting.
+            // (Dimensions need to cover a non-zero area for paint event to occur).
             DrawPictureBox.Height = (int)((topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin) * ZoomFactor + 30);
             DrawPictureBox.Width = (int)((topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin) * ZoomFactor + 30);
-            DrawPictureBox.Invalidate();
+            DrawPictureBox.Invalidate();  // Paint event for picture box handles actual drawing
         }
+
+
+        // =======================================================
+        //           DC LOAD DRAWING
+        // Load the top drawing file and create internal library
+        // entries for all referenced modules and sub-modules in
+        // the drawing.
+        // =======================================================
+        private void DcLoadDrawing()
+        {
+            InitializeForLoad();
+
+            InternalLBREntry internalLBREntry = internalLBR[0];
+
+            // At first the top module is the only entry in the internal library. However, as
+            // the drawlist for the module is processed, more modules are added.
+            DrawListStatus status = DcMakeDrawListFromFile(ref internalLBREntry, 0, 0);  // load drawlist for top module
+            if (status == DrawListStatus.FileNotFound)
+            {
+                topFileName = "";
+                TopFileNameTextBox.Text = "";
+                TopFileNameTextBox.Update();
+                Properties.Settings.Default.fileName = "";
+                MessageBox.Show("Please select another file using Open under File menu", "File not found");
+                return;
+            }
+
+            // Load the internal library (internalLBR) list with all modules used in the drawing along with their drawlists.
+            // This also creates a list (moduleList) of all the instances of module commands used in the drawing.
+            LoadInternalLibrary();
+
+            // --------------------- BOUNDS PROCESSING -----------------------------------
+            // Process bounds for modules in the internal library and topModuleCommand
+            // ---------------------------------------------------------------------------
+            BoundsProcessInternalLibraryEntries();
+
+            ModuleInfoTextBox(internalLBR[0]);
+            WriteDebugDataToConsole();
+
+            if (status == DrawListStatus.Empty)
+            {
+                MessageBox.Show("File does not contain any drawing commands", "Empty File");
+                return;
+            }
+
+            drawingLoaded = true;
+        }
+
 
         // =======================================================
         //          BOUNDS PROCESS INTERNAL LIBRARY COMPOUND MODULES
@@ -1364,53 +1146,41 @@ namespace DMEEView1
             topModuleCommand.bounds = internalLBR[0].bounds;
         }
 
- 
-        // =======================================================
-        //           DC LOAD DRAWING
-        // Load the top drawing file and create internal library
-        // entries for all referenced modules and sub-modules in
-        // the drawing.
-        // =======================================================
-        private void DcLoadDrawing()
+
+        // ==================================================================
+        //           TRANSFORM BOUNDS
+        // Update destination bounds by transforming source bounds
+        // using destination location, rotation, and scale values
+        // ==================================================================
+        private static void TransformBounds(DcBounds srcBounds, DcBounds dstBounds,
+                                               float dstX, float dstY, float dstRot, float dstScale)
         {
-            InitializeForLoad();
-
-            InternalLBREntry internalLBREntry = internalLBR[0];
-
-            // At first the top module is the only entry in the internal library. However, as
-            // the drawlist for the module is processed, more modules are added.
-            DrawListStatus status = DcMakeDrawListFromFile(ref internalLBREntry, 0, 0);  // load drawlist for top module
-            if (status == DrawListStatus.FileNotFound)
+            PointF[] pts = new PointF[]
             {
-                topFileName = "";
-                TopFileNameTextBox.Text = "";
-                TopFileNameTextBox.Update();
-                Properties.Settings.Default.fileName = "";
-                MessageBox.Show("Please select another file using Open under File menu", "File not found");
-                return;
-            }
+                        new PointF(srcBounds.XMax, srcBounds.YMax),
+                        new PointF(srcBounds.XMin, srcBounds.YMin)
+            };
+            Matrix matrix = new Matrix();
 
-            // Load the internal library (internalLBR) list with all modules used in the drawing along with their drawlists.
-            // This also creates a list (moduleList) of all the instances of module commands used in the drawing.
-            LoadInternalLibrary();  
-
-            // --------------------- BOUNDS PROCESSING -----------------------------------
-            // Process bounds for modules in the internal library and topModuleCommand
-            // ---------------------------------------------------------------------------
-            BoundsProcessInternalLibraryEntries();
-
-            ModuleInfoTextBox(internalLBR[0]);
-            WriteDebugDataToConsole();
-
-            if (status == DrawListStatus.Empty)
+            // Create destination bounds by transforming source bounds using location, rotation, and scale values
+            matrix.Translate(dstX, dstY);
+            matrix.Rotate(dstRot);
+            matrix.Scale(dstScale, dstScale);
+            matrix.TransformPoints(pts);
+            for (int i = 0; i < pts.Length; i++)  // Round results
             {
-                MessageBox.Show("File does not contain any drawing commands", "Empty File");
-                return;
+                pts[i].X = (float)Math.Round(pts[i].X, 5);
+                pts[i].Y = (float)Math.Round(pts[i].Y, 5);
             }
-
-            drawingLoaded = true;
+            dstBounds.XMax = pts[0].X;
+            dstBounds.YMax = pts[0].Y;
+            dstBounds.XMin = pts[1].X;
+            dstBounds.YMin = pts[1].Y;
         }
 
+        // =======================================================
+        //          LOAD INTERNAL LIBRARY FROM EXTERNAL FILES
+        // =======================================================
         private void LoadInternalLibrary()
         {
             // Only one pass is needed since unprocessed modules are added to the end of the list
@@ -1436,7 +1206,7 @@ namespace DMEEView1
                     int index = -1;
                     foreach (DcExternalLBRCatalog cat in externalLBRCatalogs)
                     {
-                        index = FindModuleInCatalog(cat, name, 0, DcExternalLBRCatalog.MatchType.full);
+                        index = DcFindModuleInCatalog(cat, name, 0, DcExternalLBRCatalog.MatchType.full);
                         if (index >= 0) // load draw commands from file if module found
                         {
                             internalLBREntry.fromLibrary = true;
@@ -1520,43 +1290,13 @@ namespace DMEEView1
                 {
                     FileStream libFile = new FileStream(fName, FileMode.Open, FileAccess.Read);
                     DcExternalLBRCatalog catalog = new DcExternalLBRCatalog();
-                    entryCount = GetCatalog(libFile, catalog);
+                    entryCount = DcLoadCatalog(libFile, catalog);
                     externalLBRCatalogs.Add(catalog);
                     libFile.Close();
                 }
             }
         }
 
-        // ==================================================================
-        //           TRANSFORM BOUNDS
-        // Update destination bounds by transforming source bounds
-        // using destination location, rotation, and scale values
-        // ==================================================================
-        private static void TransformBounds(DcBounds srcBounds, DcBounds dstBounds,
-                                               float dstX, float dstY, float dstRot, float dstScale)
-        {
-            PointF[] pts = new PointF[]
-            {
-                        new PointF(srcBounds.XMax, srcBounds.YMax),
-                        new PointF(srcBounds.XMin, srcBounds.YMin)
-            };
-            Matrix matrix = new Matrix();
-
-            // Create destination bounds by transforming source bounds using location, rotation, and scale values
-            matrix.Translate(dstX, dstY);
-            matrix.Rotate(dstRot);
-            matrix.Scale(dstScale, dstScale);
-            matrix.TransformPoints(pts);
-            for (int i = 0; i < pts.Length; i++)  // Round results
-            {
-                pts[i].X = (float)Math.Round(pts[i].X, 5);
-                pts[i].Y = (float)Math.Round(pts[i].Y, 5);
-            }
-            dstBounds.XMax = pts[0].X;
-            dstBounds.YMax = pts[0].Y;
-            dstBounds.XMin = pts[1].X;
-            dstBounds.YMin = pts[1].Y;
-        }
 
         // ==================================================================
         //           PRINT PAGE EVENT HANDLER

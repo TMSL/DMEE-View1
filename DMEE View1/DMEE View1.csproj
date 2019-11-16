@@ -52,6 +52,7 @@
     <Compile Include="ColorConfigForm.Designer.cs">
       <DependentUpon>ColorConfigForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="DcClasses.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
