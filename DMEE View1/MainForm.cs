@@ -1,13 +1,13 @@
-﻿using System;
+﻿using DcClasses;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Printing;
 using System.Drawing.Drawing2D;
-using System.IO;
+using System.Drawing.Printing;
 using System.Drawing.Text;
-using System.Windows.Forms;
+using System.IO;
 using System.Text;
-using DcClasses;
+using System.Windows.Forms;
 
 // TMS - started September 17, 2019
 
@@ -38,23 +38,24 @@ namespace DMEEView1
         bool showInfo = false;
         float ZoomFactor = 1;
         const string crlf = "\r\n";
-        bool drawingLoaded = false;
+        public bool drawingLoaded = false;
         bool fitToWindow = false;
 
         private List<InternalLBREntry> internalLBR = new List<InternalLBREntry>();
         List<DcExternalLBRCatalog> externalLBRCatalogs = new List<DcExternalLBRCatalog>();
-        private DcModule topModuleCommand = new DcModule();
+        public DcModule topModuleCommand = new DcModule();
         private PrinterSettings printerSettings = new PrinterSettings();
-        private PrintSetupForm printSetupForm = new PrintSetupForm();
         public FolderConfigForm folderConfigForm = new FolderConfigForm();
         public ColorConfigForm colorConfigForm = new ColorConfigForm();
         public ColorConfigForm.DcColorConfig dcColorSettings = new ColorConfigForm.DcColorConfig();
+        public PrintSetupForm psf;
 
         public MainForm()
         {
             InitializeComponent();
             menuStrip1.Select();
             RestoreAppSettings();  // Restore saved settings
+            psf = new PrintSetupForm(printDocument, this);
 
             // Set the initial height and width of the form's window to a 12 x 18 Height to Width ratio
             // where the window height is 95% of the screen height
@@ -130,6 +131,17 @@ namespace DMEEView1
             printDocument.DefaultPageSettings.PaperSize = Properties.Settings.Default.PSize;
             printDocument.DefaultPageSettings.Margins = Properties.Settings.Default.margins;
             printDocument.DefaultPageSettings.Landscape = Properties.Settings.Default.landscape;
+            // Verify printer name from properties exists. If not the present default will be used.
+            string pName = Properties.Settings.Default.PrinterName;
+            foreach (string s in PrinterSettings.InstalledPrinters)
+            {
+                if (s == pName)
+                {
+                    printDocument.DefaultPageSettings.PrinterSettings.PrinterName = Properties.Settings.Default.PrinterName;
+                    break;
+                }
+            }
+            Properties.Settings.Default.PrinterName = printDocument.DefaultPageSettings.PrinterSettings.PrinterName;
 
             // restore color settings
             dcColorSettings.pinsColor = Properties.Settings.Default.pinsColor;
@@ -1393,7 +1405,6 @@ namespace DMEEView1
                 HideNShowInfoButton.Text = "hide info";
                 Properties.Settings.Default.ShowInfo = true;
             }
-            Properties.Settings.Default.Save();
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -1483,7 +1494,6 @@ namespace DMEEView1
 
         private void PrintSetupMenuItem_Click(object sender, EventArgs e)
         {
-            PrintSetupForm psf = new PrintSetupForm(printDocument, this);
             DialogResult result = psf.ShowDialog();
         }
     }

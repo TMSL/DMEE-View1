@@ -28,7 +28,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.AlignTLButton = new System.Windows.Forms.Button();
             this.AlignTMButton = new System.Windows.Forms.Button();
             this.AlignCenterButton = new System.Windows.Forms.Button();
@@ -46,19 +45,10 @@
             this.SaveButton = new System.Windows.Forms.Button();
             this.FitToPageButton = new System.Windows.Forms.Button();
             this.colorCheckBox = new System.Windows.Forms.CheckBox();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
-            // 
-            // pictureBox1
-            // 
-            this.pictureBox1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pictureBox1.Location = new System.Drawing.Point(18, 19);
-            this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(240, 240);
-            this.pictureBox1.TabIndex = 0;
-            this.pictureBox1.TabStop = false;
-            this.pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureBox1_Paint);
             // 
             // AlignTLButton
             // 
@@ -68,6 +58,7 @@
             this.AlignTLButton.TabIndex = 1;
             this.AlignTLButton.Text = "top left";
             this.AlignTLButton.UseVisualStyleBackColor = true;
+            this.AlignTLButton.Click += new System.EventHandler(this.AlignTLButton_Click);
             // 
             // AlignTMButton
             // 
@@ -77,6 +68,7 @@
             this.AlignTMButton.TabIndex = 1;
             this.AlignTMButton.Text = "top middle";
             this.AlignTMButton.UseVisualStyleBackColor = true;
+            this.AlignTMButton.Click += new System.EventHandler(this.AlignTMButton_Click);
             // 
             // AlignCenterButton
             // 
@@ -86,6 +78,7 @@
             this.AlignCenterButton.TabIndex = 1;
             this.AlignCenterButton.Text = "center";
             this.AlignCenterButton.UseVisualStyleBackColor = true;
+            this.AlignCenterButton.Click += new System.EventHandler(this.AlignCenterButton_Click);
             // 
             // AlignMLButton
             // 
@@ -95,6 +88,7 @@
             this.AlignMLButton.TabIndex = 1;
             this.AlignMLButton.Text = "middle left";
             this.AlignMLButton.UseVisualStyleBackColor = true;
+            this.AlignMLButton.Click += new System.EventHandler(this.AlignMLButton_Click);
             // 
             // AlignTRButton
             // 
@@ -104,6 +98,7 @@
             this.AlignTRButton.TabIndex = 1;
             this.AlignTRButton.Text = "top right";
             this.AlignTRButton.UseVisualStyleBackColor = true;
+            this.AlignTRButton.Click += new System.EventHandler(this.AlignTRButton_Click);
             // 
             // AlignMRButton
             // 
@@ -113,6 +108,7 @@
             this.AlignMRButton.TabIndex = 1;
             this.AlignMRButton.Text = "middle right";
             this.AlignMRButton.UseVisualStyleBackColor = true;
+            this.AlignMRButton.Click += new System.EventHandler(this.AlignMRButton_Click);
             // 
             // AlignBLButton
             // 
@@ -122,6 +118,7 @@
             this.AlignBLButton.TabIndex = 1;
             this.AlignBLButton.Text = "bottom left";
             this.AlignBLButton.UseVisualStyleBackColor = true;
+            this.AlignBLButton.Click += new System.EventHandler(this.AlignBLButton_Click);
             // 
             // buttonBMButton
             // 
@@ -131,6 +128,7 @@
             this.buttonBMButton.TabIndex = 1;
             this.buttonBMButton.Text = "bottom middle";
             this.buttonBMButton.UseVisualStyleBackColor = true;
+            this.buttonBMButton.Click += new System.EventHandler(this.buttonBMButton_Click);
             // 
             // AlignBRButton
             // 
@@ -140,6 +138,7 @@
             this.AlignBRButton.TabIndex = 1;
             this.AlignBRButton.Text = "bottom right";
             this.AlignBRButton.UseVisualStyleBackColor = true;
+            this.AlignBRButton.Click += new System.EventHandler(this.AlignBRButton_Click);
             // 
             // alignLabel
             // 
@@ -158,6 +157,7 @@
             this.PageSetupButton.TabIndex = 3;
             this.PageSetupButton.Text = "page size and margins";
             this.PageSetupButton.UseVisualStyleBackColor = true;
+            this.PageSetupButton.Click += new System.EventHandler(this.PageSetupButton_Click);
             // 
             // trackBar1
             // 
@@ -208,12 +208,23 @@
             this.colorCheckBox.Text = "color";
             this.colorCheckBox.UseVisualStyleBackColor = true;
             // 
+            // pictureBox1
+            // 
+            this.pictureBox1.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.pictureBox1.Location = new System.Drawing.Point(19, 19);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(240, 240);
+            this.pictureBox1.TabIndex = 0;
+            this.pictureBox1.TabStop = false;
+            this.pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureBox1_Paint);
+            // 
             // PrintSetupForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.cancelButton;
             this.ClientSize = new System.Drawing.Size(469, 356);
+            this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.colorCheckBox);
             this.Controls.Add(this.FitToPageButton);
             this.Controls.Add(this.SaveButton);
@@ -230,7 +241,6 @@
             this.Controls.Add(this.AlignCenterButton);
             this.Controls.Add(this.AlignTMButton);
             this.Controls.Add(this.AlignTLButton);
-            this.Controls.Add(this.pictureBox1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -238,17 +248,14 @@
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "PrintSetup";
-            this.Shown += new System.EventHandler(this.PrintSetupForm_Shown);
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
         }
 
         #endregion
-
-        private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.Button AlignTLButton;
         private System.Windows.Forms.Button AlignTMButton;
         private System.Windows.Forms.Button AlignCenterButton;
@@ -266,5 +273,6 @@
         private System.Windows.Forms.Button SaveButton;
         private System.Windows.Forms.Button FitToPageButton;
         private System.Windows.Forms.CheckBox colorCheckBox;
+        private System.Windows.Forms.PictureBox pictureBox1;
     }
 }
