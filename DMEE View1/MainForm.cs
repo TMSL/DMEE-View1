@@ -67,6 +67,9 @@ namespace DMEEView1
             DrawPanel.Location = new Point(0, menuStrip1.Height);
             DrawPanel.Height = Height - menuStrip1.Height - 40;
             DrawPanel.Width = Width - 20;
+            //DrawPanel.Height = Height - menuStrip1.Height - SystemInformation.HorizontalScrollBarHeight - 1;
+            //int vScrollWidth = SystemInformation.VerticalScrollBarWidth;
+            //DrawPanel.Width = Width - vScrollWidth;
 
             // Set location of DrawPictureBox.
             // (Height and Width are set later based on drawing's bounds)
@@ -1439,8 +1442,8 @@ namespace DMEEView1
                     centerShiftX = (DrawPanel.Width - 30 - dWidth * fitScaleFactor) / 2.0F  ;
                     centerShiftY = (DrawPanel.Height - 30 - dHeight * fitScaleFactor) / 2.0F;
                     ZoomFactor = fitScaleFactor;
-                    DrawPictureBox.Height = DrawPanel.Height;
-                    DrawPictureBox.Width = DrawPanel.Width;
+                    DrawPictureBox.Height = DrawPanel.Height - 30;
+                    DrawPictureBox.Width = DrawPanel.Width - 30;
                 }
                 else
                 {
