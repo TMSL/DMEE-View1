@@ -39,15 +39,16 @@
             this.AlignBRButton = new System.Windows.Forms.Button();
             this.alignLabel = new System.Windows.Forms.Label();
             this.PageSetupButton = new System.Windows.Forms.Button();
-            this.trackBar1 = new System.Windows.Forms.TrackBar();
             this.pageSetupDialog = new System.Windows.Forms.PageSetupDialog();
             this.cancelButton = new System.Windows.Forms.Button();
             this.SaveButton = new System.Windows.Forms.Button();
-            this.FitToPageButton = new System.Windows.Forms.Button();
             this.colorCheckBox = new System.Windows.Forms.CheckBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
-            ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).BeginInit();
+            this.FitToPageCheckBox = new System.Windows.Forms.CheckBox();
+            this.ZoomUpDown = new DMEEView1.MyNumericUpDown();
+            this.ZoomLabel = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.ZoomUpDown)).BeginInit();
             this.SuspendLayout();
             // 
             // AlignTLButton
@@ -159,17 +160,6 @@
             this.PageSetupButton.UseVisualStyleBackColor = true;
             this.PageSetupButton.Click += new System.EventHandler(this.PageSetupButton_Click);
             // 
-            // trackBar1
-            // 
-            this.trackBar1.Location = new System.Drawing.Point(19, 275);
-            this.trackBar1.Maximum = 30;
-            this.trackBar1.Minimum = 10;
-            this.trackBar1.Name = "trackBar1";
-            this.trackBar1.Size = new System.Drawing.Size(239, 45);
-            this.trackBar1.TabIndex = 4;
-            this.trackBar1.TickStyle = System.Windows.Forms.TickStyle.TopLeft;
-            this.trackBar1.Value = 10;
-            // 
             // cancelButton
             // 
             this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
@@ -188,15 +178,7 @@
             this.SaveButton.TabIndex = 6;
             this.SaveButton.Text = "save";
             this.SaveButton.UseVisualStyleBackColor = true;
-            // 
-            // FitToPageButton
-            // 
-            this.FitToPageButton.Location = new System.Drawing.Point(101, 321);
-            this.FitToPageButton.Name = "FitToPageButton";
-            this.FitToPageButton.Size = new System.Drawing.Size(75, 23);
-            this.FitToPageButton.TabIndex = 7;
-            this.FitToPageButton.Text = "fit to page";
-            this.FitToPageButton.UseVisualStyleBackColor = true;
+            this.SaveButton.Click += new System.EventHandler(this.SaveButton_Click);
             // 
             // colorCheckBox
             // 
@@ -218,18 +200,72 @@
             this.pictureBox1.TabStop = false;
             this.pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureBox1_Paint);
             // 
+            // FitToPageCheckBox
+            // 
+            this.FitToPageCheckBox.AutoSize = true;
+            this.FitToPageCheckBox.Checked = true;
+            this.FitToPageCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.FitToPageCheckBox.Location = new System.Drawing.Point(107, 324);
+            this.FitToPageCheckBox.Name = "FitToPageCheckBox";
+            this.FitToPageCheckBox.Size = new System.Drawing.Size(73, 17);
+            this.FitToPageCheckBox.TabIndex = 9;
+            this.FitToPageCheckBox.Text = "fit to page";
+            this.FitToPageCheckBox.UseVisualStyleBackColor = true;
+            this.FitToPageCheckBox.CheckedChanged += new System.EventHandler(this.FitToPageCheckBox_CheckedChanged);
+            // 
+            // ZoomUpDown
+            // 
+            this.ZoomUpDown.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.ZoomUpDown.Increment = new decimal(new int[] {
+            10,
+            0,
+            0,
+            0});
+            this.ZoomUpDown.Location = new System.Drawing.Point(120, 275);
+            this.ZoomUpDown.Maximum = new decimal(new int[] {
+            500,
+            0,
+            0,
+            0});
+            this.ZoomUpDown.Minimum = new decimal(new int[] {
+            10,
+            0,
+            0,
+            0});
+            this.ZoomUpDown.Name = "ZoomUpDown";
+            this.ZoomUpDown.Size = new System.Drawing.Size(48, 22);
+            this.ZoomUpDown.TabIndex = 10;
+            this.ZoomUpDown.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.ZoomUpDown.Value = new decimal(new int[] {
+            100,
+            0,
+            0,
+            0});
+            this.ZoomUpDown.ValueChanged += new System.EventHandler(this.customNumericUpDown1_ValueChanged);
+            // 
+            // ZoomLabel
+            // 
+            this.ZoomLabel.AutoSize = true;
+            this.ZoomLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.ZoomLabel.Location = new System.Drawing.Point(70, 277);
+            this.ZoomLabel.Name = "ZoomLabel";
+            this.ZoomLabel.Size = new System.Drawing.Size(44, 16);
+            this.ZoomLabel.TabIndex = 11;
+            this.ZoomLabel.Text = "zoom:";
+            // 
             // PrintSetupForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.cancelButton;
             this.ClientSize = new System.Drawing.Size(469, 356);
+            this.Controls.Add(this.ZoomLabel);
+            this.Controls.Add(this.ZoomUpDown);
+            this.Controls.Add(this.FitToPageCheckBox);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.colorCheckBox);
-            this.Controls.Add(this.FitToPageButton);
             this.Controls.Add(this.SaveButton);
             this.Controls.Add(this.cancelButton);
-            this.Controls.Add(this.trackBar1);
             this.Controls.Add(this.PageSetupButton);
             this.Controls.Add(this.alignLabel);
             this.Controls.Add(this.AlignBRButton);
@@ -248,8 +284,8 @@
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "PrintSetup";
-            ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.ZoomUpDown)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -267,12 +303,13 @@
         private System.Windows.Forms.Button AlignBRButton;
         private System.Windows.Forms.Label alignLabel;
         private System.Windows.Forms.Button PageSetupButton;
-        private System.Windows.Forms.TrackBar trackBar1;
         private System.Windows.Forms.PageSetupDialog pageSetupDialog;
         private System.Windows.Forms.Button cancelButton;
         private System.Windows.Forms.Button SaveButton;
-        private System.Windows.Forms.Button FitToPageButton;
         private System.Windows.Forms.CheckBox colorCheckBox;
         private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.CheckBox FitToPageCheckBox;
+        private MyNumericUpDown ZoomUpDown;
+        private System.Windows.Forms.Label ZoomLabel;
     }
 }

@@ -16,9 +16,11 @@ namespace DMEEView1
     {
         private PrintDocument pdoc = new PrintDocument();
         private MainForm parentForm;
-        private float scaledW, scaledH, offsetW, offsetH;
+        private float previewAreaW, previewAreaH, offsetW, offsetH;
         private float scaleFactor;
+        private float ZoomFactor = 1.0F;
         private PageSettings pgs;
+        private bool fitToPage = true;
 
         private enum DrawingAlignment
         { topLeft, topMiddle, topRight, middleLeft, center, middleRight, bottomLeft, bottomMiddle, bottomRight };
@@ -36,7 +38,7 @@ namespace DMEEView1
             parentForm = parent;
             pdoc = pd;
             pageSetupDialog.PageSettings = pdoc.DefaultPageSettings;
-            CalcBlankPage(out scaledW, out scaledH, out offsetW, out offsetH);
+            CalcBlankPage(out previewAreaW, out previewAreaH, out offsetW, out offsetH);
             pictureBox1.BackColor = Color.Transparent;
             colorCheckBox.Checked = pdoc.DefaultPageSettings.Color;
         }
@@ -96,43 +98,58 @@ namespace DMEEView1
             Invalidate();
         }
 
-        private void CalcBlankPage(out float scaledW, out float scaledH, out float offsetW, out float offsetH)
+        private void FitToPageCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            fitToPage = FitToPageCheckBox.Checked;
+        }
+
+        private void SaveButton_Click(object sender, EventArgs e)
+        {
+            Hide();
+        }
+
+        private void customNumericUpDown1_ValueChanged(object sender, EventArgs e)
+        {
+        }
+
+        private void CalcBlankPage(out float blankPgW, out float blankPgH, out float blankPgX, out float blankPgY)
         {
             pgs = pageSetupDialog.PageSettings;
 
-            int height = pictureBox1.Height;
-            int width = pictureBox1.Width;
+            int pBoxHeight = pictureBox1.Height;
+            int pBoxWidth = pictureBox1.Width;
 
             const int pictureBoxMargin = 2;
 
             // get page dimensions in 1/100 inch
-            int pgHeight = pgs.PaperSize.Height;
-            int pgWidth = pgs.PaperSize.Width;
+            int paperHeight = pgs.PaperSize.Height;
+            int paperWidth = pgs.PaperSize.Width;
             if (pgs.Landscape)
             {
-                pgHeight = pgs.PaperSize.Width;
-                pgWidth = pgs.PaperSize.Height;
+                paperHeight = pgs.PaperSize.Width;
+                paperWidth = pgs.PaperSize.Height;
             }
 
             // scale blank page to fit the Picture box
-            scaleFactor = (width - pictureBoxMargin) / (float)(pgWidth);
-            float sf2 = (height - pictureBoxMargin) / (float)(pgHeight);
+            scaleFactor = (pBoxWidth - pictureBoxMargin) / (float)(paperWidth);
+            float sf2 = (pBoxHeight - pictureBoxMargin) / (float)(paperHeight);
             if (sf2 < scaleFactor) scaleFactor = sf2;
 
-            scaledW = scaleFactor * pgWidth;
-            scaledH = scaleFactor * pgHeight;
+            blankPgW = scaleFactor * paperWidth;
+            blankPgH = scaleFactor * paperHeight;
 
             // center in Picture box
-            offsetW = (width - scaledW) / 2.0F;
-            offsetH = (height - scaledH) / 2.0F;
+            blankPgX = (pBoxWidth - blankPgW) / 2.0F;
+            blankPgY = (pBoxHeight - blankPgH) / 2.0F;
         }
 
         private void pictureBox1_Paint(object sender, PaintEventArgs e)
         {
             Graphics gr = e.Graphics;
-            gr.FillRectangle(new Pen(Color.White).Brush, offsetW - 1, offsetH - 1, scaledW, scaledH);
+            gr.FillRectangle(new Pen(Color.White).Brush, offsetW - 1, offsetH - 1, previewAreaW, previewAreaH);
             // check that topModule exists and is loaded
             DcModule topModule = parentForm.topModuleCommand;
+            DcBounds dBounds = parentForm.topModuleCommand.bounds;
 
             // first give a little margin for page margins
             float LMargin = pgs.Margins.Left * scaleFactor;
@@ -141,8 +158,8 @@ namespace DMEEView1
             float BMargin = pgs.Margins.Bottom * scaleFactor;
             float frameX = offsetW-1 + LMargin;
             float frameY = offsetH-1 + TMargin;
-            float frameW = scaledW - (RMargin + LMargin);
-            float frameH = scaledH - (TMargin + BMargin);
+            float frameW = previewAreaW - (RMargin + LMargin);
+            float frameH = previewAreaH - (TMargin + BMargin);
 
             Pen pen = new Pen(Color.LightGray);
             float[] dashValues = { 3, 5, 3, 5};
@@ -166,11 +183,33 @@ namespace DMEEView1
                 float dHeight = drawingHeight * scaleDrawing;
 
                 // Position according to drawing alignment
-                switch (dAlign)
+                switch (dAlign)  // handle horizontal
                 {
+                    case DrawingAlignment.topMiddle:
                     case DrawingAlignment.center:
+                    case DrawingAlignment.bottomMiddle:
                         if (dWidth < frameW) dOffsetX = (frameW - dWidth)/ 2.0F;
+                        break;
+                    case DrawingAlignment.topRight:
+                    case DrawingAlignment.middleRight:
+                    case DrawingAlignment.bottomRight:
+                        if (dWidth < frameW) dOffsetX = (frameW - dWidth);
+                        break;
+                    default:
+                        break;
+                }
+
+                switch (dAlign)  // handle vertical
+                {
+                    case DrawingAlignment.middleLeft:
+                    case DrawingAlignment.center:
+                    case DrawingAlignment.middleRight:
                         if (dHeight < frameH) dOffsetY = (frameH - dHeight) / 2.0F;
+                        break;
+                    case DrawingAlignment.bottomLeft:
+                    case DrawingAlignment.bottomMiddle:
+                    case DrawingAlignment.bottomRight:
+                        if (dHeight < frameH) dOffsetY = (frameH - dHeight);
                         break;
                     default:
                         break;
@@ -180,7 +219,17 @@ namespace DMEEView1
                 pen.Color = Color.LightGreen;
                 gr.DrawRectangle(pen, frameX+dOffsetX, frameY+dOffsetY, dWidth, dHeight);
 
-                //parentForm.PaintDcModule(e.Graphics, )
+                // set clip rectangle
+                gr.SetClip(new RectangleF(frameX + dOffsetX, frameY + dOffsetY, dWidth, dHeight));
+
+                gr.TranslateTransform(frameX + dOffsetX, frameY + dOffsetY);
+
+                gr.ScaleTransform(scaleFactor * ZoomFactor, scaleFactor * ZoomFactor);
+                gr.TranslateTransform(-dBounds.XMin, dBounds.YMax);
+                // FLIP Y COORDINATES
+                gr.ScaleTransform(1, -1);
+
+                parentForm.PaintDcModule(e.Graphics, topModule);
             }
         }
 
@@ -190,7 +239,7 @@ namespace DMEEView1
             var result = pageSetupDialog.ShowDialog();
             if (result == DialogResult.OK)
             {
-                CalcBlankPage(out scaledW, out scaledH, out offsetW, out offsetH);
+                CalcBlankPage(out previewAreaW, out previewAreaH, out offsetW, out offsetH);
             }
             Invalidate();
         }

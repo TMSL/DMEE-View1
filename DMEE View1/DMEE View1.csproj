@@ -52,6 +52,12 @@
     <Compile Include="ColorConfigForm.Designer.cs">
       <DependentUpon>ColorConfigForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="MyNumericUpDown.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="MyNumericUpDown.Designer.cs">
+      <DependentUpon>MyNumericUpDown.cs</DependentUpon>
+    </Compile>
     <Compile Include="DcClasses.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
@@ -76,6 +82,9 @@
     <Compile Include="Settings.cs" />
     <EmbeddedResource Include="ColorConfigForm.resx">
       <DependentUpon>ColorConfigForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MyNumericUpDown.resx">
+      <DependentUpon>MyNumericUpDown.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
