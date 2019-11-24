@@ -1442,6 +1442,11 @@ namespace DMEEView1
                     DrawPictureBox.Height = DrawPanel.Height;
                     DrawPictureBox.Width = DrawPanel.Width;
                 }
+                else
+                {
+                    DrawPictureBox.Height = (int)(dHeight * ZoomFactor + 30);
+                    DrawPictureBox.Width = (int)(dWidth * ZoomFactor + 30);
+                }
 
                 // Set origin for display based on drawing bounds
                 gr.TranslateTransform(-topModuleCommand.bounds.XMin * ZoomFactor + 15 + centerShiftX,
@@ -1454,7 +1459,8 @@ namespace DMEEView1
                 DrawCropMark(gr, new Pen(Color.Red), new PointF(0F, 0F));
                 DrawCropMark(gr, new Pen(Color.Green), new PointF(topModuleCommand.bounds.XMin, - topModuleCommand.bounds.YMin));
 
-                gr.DrawRectangle(new Pen(Color.LightGray), topModuleCommand.bounds.XMin, topModuleCommand.bounds.YMin, dWidth, dHeight);
+                gr.DrawRectangle(new Pen(Color.LightGray), topModuleCommand.bounds.XMin, topModuleCommand.bounds.YMin,
+                                                           dWidth, dHeight);
 
                 PaintDcModule(gr, topModuleCommand);
             }

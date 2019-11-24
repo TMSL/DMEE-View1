@@ -108,10 +108,6 @@ namespace DMEEView1
             Hide();
         }
 
-        private void customNumericUpDown1_ValueChanged(object sender, EventArgs e)
-        {
-        }
-
         private void CalcBlankPage(out float blankPgW, out float blankPgH, out float blankPgX, out float blankPgY)
         {
             pgs = pageSetupDialog.PageSettings;
@@ -224,7 +220,7 @@ namespace DMEEView1
 
                 gr.TranslateTransform(frameX + dOffsetX, frameY + dOffsetY);
 
-                gr.ScaleTransform(scaleFactor * ZoomFactor, scaleFactor * ZoomFactor);
+                gr.ScaleTransform(scaleDrawing * ZoomFactor, scaleDrawing * ZoomFactor);
                 gr.TranslateTransform(-dBounds.XMin, dBounds.YMax);
                 // FLIP Y COORDINATES
                 gr.ScaleTransform(1, -1);

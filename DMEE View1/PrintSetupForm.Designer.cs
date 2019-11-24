@@ -241,7 +241,6 @@
             0,
             0,
             0});
-            this.ZoomUpDown.ValueChanged += new System.EventHandler(this.customNumericUpDown1_ValueChanged);
             // 
             // ZoomLabel
             // 

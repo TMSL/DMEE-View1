@@ -26,7 +26,6 @@ namespace DMEEView1
         {
             base.UpButton();
             Value = (int)(Value / Increment) * Increment;
-            Select(0, 0);
         }
 
         public override void DownButton()
@@ -34,7 +33,6 @@ namespace DMEEView1
             decimal savedValue = Value;
             base.DownButton();
             if (savedValue % Increment != 0) Value = savedValue - Value % Increment;
-            Select(0, 0);
         }
     }
 }
