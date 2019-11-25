@@ -9,8 +9,7 @@ using System.IO;
 using System.Text;
 using System.Windows.Forms;
 
-// TMS - started September 17, 2019
-
+// TMS - started September 17, 2
 // Module loading and bounds processing:
 // BUILD INTERNAL LIBRARY
 //  CREATE LIST CONTAINING LIBRARY CATALOGS FROM LIBRARY FOLDER AND A LIST OF FILES IN WORKING DIRECTORY
@@ -50,13 +49,17 @@ namespace DMEEView1
         public ColorConfigForm colorConfigForm = new ColorConfigForm();
         public ColorConfigForm.DcColorConfig dcColorSettings = new ColorConfigForm.DcColorConfig();
         public PrintSetupForm psf;
+        public bool Print_fitToPage = false;
+        public PageSettings scratchPageSettings;
 
         public MainForm()
         {
             InitializeComponent();
             menuStrip1.Select();
             RestoreAppSettings();  // Restore saved settings
-            psf = new PrintSetupForm(printDocument, this);
+
+            scratchPageSettings = (PageSettings)printDocument.DefaultPageSettings.Clone();
+            psf = new PrintSetupForm(ref scratchPageSettings, this);
 
             // Set the initial height and width of the form's window to a 12 x 18 Height to Width ratio
             // where the window height is 95% of the screen height
@@ -130,30 +133,31 @@ namespace DMEEView1
             ///when accessing the setting even though the correct values get loaded.
             // Trying to "catch" the exception doesn't catch anything! Changing the property
             // name to something else, e.g. PSize, makes the error go away. Hmmmm....
-            printDocument.DefaultPageSettings.PaperSize = Properties.Settings.Default.PSize;
-            printDocument.DefaultPageSettings.Margins = Properties.Settings.Default.margins;
+            printDocument.DefaultPageSettings.PaperSize = Properties.Settings.Default.Paper_Size;
+            printDocument.DefaultPageSettings.Margins = Properties.Settings.Default.Print_Margins;
             printDocument.DefaultPageSettings.Landscape = Properties.Settings.Default.landscape;
+            printDocument.DefaultPageSettings.Color = Properties.Settings.Default.Print_in_color;
 
             // Verify printer name from properties exists. If not the present default will be used.
-            string pName = Properties.Settings.Default.PrinterName;
+            string pName = Properties.Settings.Default.Printer_Name;
             foreach (string s in PrinterSettings.InstalledPrinters)
             {
                 if (s == pName)
                 {
                     // printer name still exists so update the default with the saved name
-                    printDocument.DefaultPageSettings.PrinterSettings.PrinterName = Properties.Settings.Default.PrinterName;
+                    printDocument.DefaultPageSettings.PrinterSettings.PrinterName = Properties.Settings.Default.Printer_Name;
                     break;
                 }
             }
-            Properties.Settings.Default.PrinterName = printDocument.DefaultPageSettings.PrinterSettings.PrinterName;
+            Properties.Settings.Default.Printer_Name = printDocument.DefaultPageSettings.PrinterSettings.PrinterName;
 
-            // restore color settings
+            // restore color settings for drawing
             dcColorSettings.pinsColor = Properties.Settings.Default.pinsColor;
             dcColorSettings.textColor = Properties.Settings.Default.textColor;
             dcColorSettings.wiresColor = Properties.Settings.Default.wiresColor;
             dcColorSettings.linesColor = Properties.Settings.Default.linesColor;
             dcColorSettings.showPins = Properties.Settings.Default.showPins;
-            dcColorSettings.blackAndWhite = Properties.Settings.Default.blackAndWhite;
+            dcColorSettings.blackAndWhite = Properties.Settings.Default.Draw_in_color;
         }
 
         private void ModuleInfoTextBox(InternalLBREntry entry)
@@ -1383,7 +1387,7 @@ namespace DMEEView1
             }
             // "Apply" button may have changed the printer name in the print document
             // even if cancel was later selected so be sure to update saved setting.
-            Properties.Settings.Default.PrinterName = printDocument.PrinterSettings.PrinterName;
+            Properties.Settings.Default.Printer_Name = printDocument.PrinterSettings.PrinterName;
         }
 
         private void ToolStripMenuPageSetup_Click(object sender, EventArgs e)
@@ -1392,8 +1396,8 @@ namespace DMEEView1
             var result = pageSetupDialog1.ShowDialog();
             if (result == DialogResult.OK)  // set properties for later restoration
             {
-                Properties.Settings.Default.margins = printDocument.DefaultPageSettings.Margins;
-                Properties.Settings.Default.PSize = printDocument.DefaultPageSettings.PaperSize;
+                Properties.Settings.Default.Print_Margins = printDocument.DefaultPageSettings.Margins;
+                Properties.Settings.Default.Paper_Size = printDocument.DefaultPageSettings.PaperSize;
                 Properties.Settings.Default.landscape = printDocument.DefaultPageSettings.Landscape;
             }
         }
@@ -1499,7 +1503,7 @@ namespace DMEEView1
             Properties.Settings.Default.wiresColor = dcColorSettings.wiresColor;
             Properties.Settings.Default.linesColor = dcColorSettings.linesColor;
             Properties.Settings.Default.showPins = dcColorSettings.showPins;
-            Properties.Settings.Default.blackAndWhite = dcColorSettings.blackAndWhite;
+            Properties.Settings.Default.Draw_in_color = dcColorSettings.blackAndWhite;
         }
 
         private void FitToWindowButton_Click(object sender, EventArgs e)
@@ -1510,7 +1514,23 @@ namespace DMEEView1
 
         private void PrintSetupMenuItem_Click(object sender, EventArgs e)
         {
+            psf.fitToPage = Print_fitToPage;
             DialogResult result = psf.ShowDialog();
+            psf.Hide();
+
+            if (result == DialogResult.OK)
+            {
+                printDocument.DefaultPageSettings = (PageSettings)scratchPageSettings.Clone();
+                Properties.Settings.Default.Printer_Name = scratchPageSettings.PrinterSettings.PrinterName;
+                Properties.Settings.Default.Print_Margins = scratchPageSettings.Margins;
+                Properties.Settings.Default.Paper_Size = scratchPageSettings.PaperSize;
+                Properties.Settings.Default.Print_in_color = scratchPageSettings.Color;
+                Print_fitToPage = psf.fitToPage;
+            }
+            if (result == DialogResult.Cancel)
+            {
+                scratchPageSettings = (PageSettings) printDocument.DefaultPageSettings.Clone();
+            }
         }
     }
 }

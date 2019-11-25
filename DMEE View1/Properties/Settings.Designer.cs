@@ -86,12 +86,12 @@ namespace DMEEView1.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("25, 25, 25, 25")]
-        public global::System.Drawing.Printing.Margins margins {
+        public global::System.Drawing.Printing.Margins Print_Margins {
             get {
-                return ((global::System.Drawing.Printing.Margins)(this["margins"]));
+                return ((global::System.Drawing.Printing.Margins)(this["Print_Margins"]));
             }
             set {
-                this["margins"] = value;
+                this["Print_Margins"] = value;
             }
         }
         
@@ -109,12 +109,12 @@ namespace DMEEView1.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        public global::System.Drawing.Printing.PaperSize PSize {
+        public global::System.Drawing.Printing.PaperSize Paper_Size {
             get {
-                return ((global::System.Drawing.Printing.PaperSize)(this["PSize"]));
+                return ((global::System.Drawing.Printing.PaperSize)(this["Paper_Size"]));
             }
             set {
-                this["PSize"] = value;
+                this["Paper_Size"] = value;
             }
         }
         
@@ -181,24 +181,36 @@ namespace DMEEView1.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool blackAndWhite {
+        public bool Print_in_color {
             get {
-                return ((bool)(this["blackAndWhite"]));
+                return ((bool)(this["Print_in_color"]));
             }
             set {
-                this["blackAndWhite"] = value;
+                this["Print_in_color"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string PrinterName {
+        public string Printer_Name {
             get {
-                return ((string)(this["PrinterName"]));
+                return ((string)(this["Printer_Name"]));
             }
             set {
-                this["PrinterName"] = value;
+                this["Printer_Name"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Draw_in_color {
+            get {
+                return ((bool)(this["Draw_in_color"]));
+            }
+            set {
+                this["Draw_in_color"] = value;
             }
         }
     }

@@ -173,6 +173,7 @@
             // 
             // SaveButton
             // 
+            this.SaveButton.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.SaveButton.Location = new System.Drawing.Point(284, 321);
             this.SaveButton.Name = "SaveButton";
             this.SaveButton.Size = new System.Drawing.Size(75, 23);
@@ -190,6 +191,7 @@
             this.colorCheckBox.TabIndex = 8;
             this.colorCheckBox.Text = "color";
             this.colorCheckBox.UseVisualStyleBackColor = true;
+            this.colorCheckBox.CheckedChanged += new System.EventHandler(this.colorCheckBox_CheckedChanged);
             // 
             // pictureBox1
             // 
@@ -204,8 +206,6 @@
             // FitToPageCheckBox
             // 
             this.FitToPageCheckBox.AutoSize = true;
-            this.FitToPageCheckBox.Checked = true;
-            this.FitToPageCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
             this.FitToPageCheckBox.Location = new System.Drawing.Point(107, 324);
             this.FitToPageCheckBox.Name = "FitToPageCheckBox";
             this.FitToPageCheckBox.Size = new System.Drawing.Size(73, 17);

@@ -17,13 +17,13 @@
     <Setting Name="fileFolder" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="margins" Type="System.Drawing.Printing.Margins" Scope="User">
+    <Setting Name="Print_Margins" Type="System.Drawing.Printing.Margins" Scope="User">
       <Value Profile="(Default)">25, 25, 25, 25</Value>
     </Setting>
     <Setting Name="landscape" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
-    <Setting Name="PSize" Type="System.Drawing.Printing.PaperSize" Scope="User">
+    <Setting Name="Paper_Size" Type="System.Drawing.Printing.PaperSize" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="pinsColor" Type="System.Drawing.Color" Scope="User">
@@ -41,11 +41,14 @@
     <Setting Name="showPins" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
-    <Setting Name="blackAndWhite" Type="System.Boolean" Scope="User">
+    <Setting Name="Print_in_color" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="PrinterName" Type="System.String" Scope="User">
+    <Setting Name="Printer_Name" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="Draw_in_color" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>

@@ -18,10 +18,9 @@ namespace DMEEView1
         private MainForm parentForm;
         private float previewAreaW, previewAreaH, offsetW, offsetH;
         private float scaleFactor;
-        private float ZoomFactor = 1.0F;
-        private PageSettings pgs;
-        private bool fitToPage = true;
-        private string printerNameTemp = "";
+        public float ZoomFactor = 1.0F;
+        public PageSettings pgs;
+        public bool fitToPage = true;
 
         private enum DrawingAlignment
         { topLeft, topMiddle, topRight, middleLeft, center, middleRight, bottomLeft, bottomMiddle, bottomRight };
@@ -34,21 +33,19 @@ namespace DMEEView1
             cancelButton.Select();
         }
 
-        public PrintSetupForm(PrintDocument pd, MainForm parent) : this()
+        public PrintSetupForm(ref PageSettings pgs, MainForm parent) : this()
         {
             parentForm = parent;
-            pdoc = pd;
-            pageSetupDialog.PageSettings = pdoc.DefaultPageSettings;
+            pageSetupDialog.PageSettings = pgs;
             CalcBlankPage(out previewAreaW, out previewAreaH, out offsetW, out offsetH);
             pictureBox1.BackColor = Color.Transparent;
-            colorCheckBox.Checked = pdoc.DefaultPageSettings.Color;
+            colorCheckBox.Checked = pgs.Color;
 
             foreach (string s in PrinterSettings.InstalledPrinters)
             {
                 comboBox1.Items.Add(s);
             }
-            comboBox1.SelectedIndex = comboBox1.Items.IndexOf(pd.PrinterSettings.PrinterName);
-            comboBox1.Invalidate();
+            comboBox1.SelectedIndex = comboBox1.Items.IndexOf(pgs.PrinterSettings.PrinterName);
         }
 
 
@@ -113,17 +110,18 @@ namespace DMEEView1
 
         private void SaveButton_Click(object sender, EventArgs e)
         {
-            if (printerNameTemp != "")
-            {
-                pdoc.PrinterSettings.PrinterName = printerNameTemp;
-                Properties.Settings.Default.PrinterName = printerNameTemp;
-            }
+            pgs.PrinterSettings.PrinterName = (string)comboBox1.SelectedItem;
             Hide();
         }
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            printerNameTemp = (string)comboBox1.SelectedItem;
+            pgs.PrinterSettings.PrinterName = (string)comboBox1.SelectedItem;
+        }
+
+        private void colorCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            pgs.Color = colorCheckBox.Checked;
         }
 
         private void CalcBlankPage(out float blankPgW, out float blankPgH, out float blankPgX, out float blankPgY)
@@ -249,7 +247,7 @@ namespace DMEEView1
 
         private void PageSetupButton_Click(object sender, EventArgs e)
         {
-            pageSetupDialog.PageSettings = pdoc.DefaultPageSettings;
+            pageSetupDialog.PageSettings = pgs;
             var result = pageSetupDialog.ShowDialog();
             if (result == DialogResult.OK)
             {
