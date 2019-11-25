@@ -40,6 +40,7 @@ namespace DMEEView1
         const string crlf = "\r\n";
         public bool drawingLoaded = false;
         bool fitToWindow = false;
+        int DRAWPANEL_MARGIN = 5; // add some extra white space around the drawing
 
         private List<InternalLBREntry> internalLBR = new List<InternalLBREntry>();
         List<DcExternalLBRCatalog> externalLBRCatalogs = new List<DcExternalLBRCatalog>();
@@ -64,12 +65,10 @@ namespace DMEEView1
             CenterToScreen();
 
             // Set the initial location and size of DrawPanel relative to form
-            DrawPanel.Location = new Point(0, menuStrip1.Height);
-            DrawPanel.Height = Height - menuStrip1.Height - 40;
-            DrawPanel.Width = Width - 20;
-            //DrawPanel.Height = Height - menuStrip1.Height - SystemInformation.HorizontalScrollBarHeight - 1;
-            //int vScrollWidth = SystemInformation.VerticalScrollBarWidth;
-            //DrawPanel.Width = Width - vScrollWidth;
+            Rectangle clientRect = this.ClientRectangle;
+            DrawPanel.Location = new Point(DRAWPANEL_MARGIN, menuStrip1.Height+DRAWPANEL_MARGIN);
+            DrawPanel.Height = clientRect.Height - menuStrip1.Height - DRAWPANEL_MARGIN*2;
+            DrawPanel.Width = clientRect.Width - DRAWPANEL_MARGIN*2;
 
             // Set location of DrawPictureBox.
             // (Height and Width are set later based on drawing's bounds)
@@ -134,12 +133,14 @@ namespace DMEEView1
             printDocument.DefaultPageSettings.PaperSize = Properties.Settings.Default.PSize;
             printDocument.DefaultPageSettings.Margins = Properties.Settings.Default.margins;
             printDocument.DefaultPageSettings.Landscape = Properties.Settings.Default.landscape;
+
             // Verify printer name from properties exists. If not the present default will be used.
             string pName = Properties.Settings.Default.PrinterName;
             foreach (string s in PrinterSettings.InstalledPrinters)
             {
                 if (s == pName)
                 {
+                    // printer name still exists so update the default with the saved name
                     printDocument.DefaultPageSettings.PrinterSettings.PrinterName = Properties.Settings.Default.PrinterName;
                     break;
                 }
@@ -731,7 +732,6 @@ namespace DMEEView1
                     };
                     // Set initial text bounds. Drawing bounds will be updated if a string gets attached to the module.
                     UpdateMinMaxBounds(dcText.X1, dcText.Y1, ref drawListBounds);
-                    internalLBREntry.stats.textItemCount++;
                     drawList.Add(dcText);
                     if (!internalLBREntry.stats.textScalingList.Contains(dcText.scaleFactor))
                     {
@@ -1381,6 +1381,9 @@ namespace DMEEView1
             {
                 printDocument.Print();
             }
+            // "Apply" button may have changed the printer name in the print document
+            // even if cancel was later selected so be sure to update saved setting.
+            Properties.Settings.Default.PrinterName = printDocument.PrinterSettings.PrinterName;
         }
 
         private void ToolStripMenuPageSetup_Click(object sender, EventArgs e)
@@ -1434,26 +1437,28 @@ namespace DMEEView1
                 float centerShiftY = 0;
 
                 // calculate zoom factor for fitting drawing to window
-                float fitScaleFactor = (DrawPanel.Width - 30) / dWidth;
-                if (fitScaleFactor > (DrawPanel.Height - 30) / dHeight) fitScaleFactor = (DrawPanel.Height - 30) / dHeight;
+                float fitScaleFactor = (DrawPanel.Width) / (dWidth+1);
+                if (fitScaleFactor > (DrawPanel.Height) / (dHeight)) fitScaleFactor = (DrawPanel.Height) / (dHeight+2);
 
                 if (fitToWindow)
                 {
-                    centerShiftX = (DrawPanel.Width - 30 - dWidth * fitScaleFactor) / 2.0F  ;
-                    centerShiftY = (DrawPanel.Height - 30 - dHeight * fitScaleFactor) / 2.0F;
+                    DrawPanel.AutoScroll = false; // no need for scroll bars when drawing has been fit to the window size
+                    centerShiftX = (DrawPanel.Width - dWidth * fitScaleFactor)/ 2.0F  ;
+                    centerShiftY = (DrawPanel.Height - dHeight * fitScaleFactor) / 2.0F;
                     ZoomFactor = fitScaleFactor;
-                    DrawPictureBox.Height = DrawPanel.Height - 30;
-                    DrawPictureBox.Width = DrawPanel.Width - 30;
+                    DrawPictureBox.Height = DrawPanel.Height;
+                    DrawPictureBox.Width = DrawPanel.Width;
                 }
                 else
                 {
-                    DrawPictureBox.Height = (int)(dHeight * ZoomFactor + 30);
-                    DrawPictureBox.Width = (int)(dWidth * ZoomFactor + 30);
+                    DrawPanel.AutoScroll = true;  // enable automatics scroll bars when picture box size exceeds windows size
+                    DrawPictureBox.Height = (int)(dHeight * ZoomFactor) + 2;
+                    DrawPictureBox.Width = (int)(dWidth * ZoomFactor) + 1;
                 }
 
                 // Set origin for display based on drawing bounds
-                gr.TranslateTransform(-topModuleCommand.bounds.XMin * ZoomFactor + 15 + centerShiftX,
-                                       topModuleCommand.bounds.YMax * ZoomFactor + 15 + centerShiftY);
+                gr.TranslateTransform(-topModuleCommand.bounds.XMin * ZoomFactor + centerShiftX,
+                                       topModuleCommand.bounds.YMax * ZoomFactor + centerShiftY);
                 
                 gr.ScaleTransform(1, -1);  // Set Y direction to be from bottom to top rather than Windows top to bottom
                 gr.ScaleTransform(ZoomFactor, ZoomFactor);
@@ -1462,7 +1467,8 @@ namespace DMEEView1
                 DrawCropMark(gr, new Pen(Color.Red), new PointF(0F, 0F));
                 DrawCropMark(gr, new Pen(Color.Green), new PointF(topModuleCommand.bounds.XMin, - topModuleCommand.bounds.YMin));
 
-                gr.DrawRectangle(new Pen(Color.LightGray), topModuleCommand.bounds.XMin, topModuleCommand.bounds.YMin,
+                Pen boundsPen = new Pen(Color.LightGray);
+                gr.DrawRectangle(boundsPen, topModuleCommand.bounds.XMin, topModuleCommand.bounds.YMin,
                                                            dWidth, dHeight);
 
                 PaintDcModule(gr, topModuleCommand);
@@ -1472,9 +1478,10 @@ namespace DMEEView1
 
         private void MainForm_Resize(object sender, EventArgs e)
         {
-            DrawPanel.Location = new Point(0, menuStrip1.Height);
-            DrawPanel.Height = Height - menuStrip1.Height - 40;
-            DrawPanel.Width = Width - 20;
+            Rectangle clientRect = ClientRectangle;
+            DrawPanel.Location = new Point(DRAWPANEL_MARGIN, menuStrip1.Height + DRAWPANEL_MARGIN);
+            DrawPanel.Height = clientRect.Height - menuStrip1.Height - DRAWPANEL_MARGIN * 2;
+            DrawPanel.Width = clientRect.Width - DRAWPANEL_MARGIN * 2;
             Invalidate();
         }
 

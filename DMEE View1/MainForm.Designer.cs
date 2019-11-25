@@ -259,7 +259,6 @@
             // 
             this.DrawPanel.AutoScroll = true;
             this.DrawPanel.BackColor = System.Drawing.Color.Transparent;
-            this.DrawPanel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.DrawPanel.Controls.Add(this.DrawPictureBox);
             this.DrawPanel.Location = new System.Drawing.Point(0, 28);
             this.DrawPanel.Name = "DrawPanel";

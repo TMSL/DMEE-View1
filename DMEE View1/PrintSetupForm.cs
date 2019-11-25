@@ -21,6 +21,7 @@ namespace DMEEView1
         private float ZoomFactor = 1.0F;
         private PageSettings pgs;
         private bool fitToPage = true;
+        private string printerNameTemp = "";
 
         private enum DrawingAlignment
         { topLeft, topMiddle, topRight, middleLeft, center, middleRight, bottomLeft, bottomMiddle, bottomRight };
@@ -41,6 +42,13 @@ namespace DMEEView1
             CalcBlankPage(out previewAreaW, out previewAreaH, out offsetW, out offsetH);
             pictureBox1.BackColor = Color.Transparent;
             colorCheckBox.Checked = pdoc.DefaultPageSettings.Color;
+
+            foreach (string s in PrinterSettings.InstalledPrinters)
+            {
+                comboBox1.Items.Add(s);
+            }
+            comboBox1.SelectedIndex = comboBox1.Items.IndexOf(pd.PrinterSettings.PrinterName);
+            comboBox1.Invalidate();
         }
 
 
@@ -105,7 +113,17 @@ namespace DMEEView1
 
         private void SaveButton_Click(object sender, EventArgs e)
         {
+            if (printerNameTemp != "")
+            {
+                pdoc.PrinterSettings.PrinterName = printerNameTemp;
+                Properties.Settings.Default.PrinterName = printerNameTemp;
+            }
             Hide();
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            printerNameTemp = (string)comboBox1.SelectedItem;
         }
 
         private void CalcBlankPage(out float blankPgW, out float blankPgH, out float blankPgX, out float blankPgY)

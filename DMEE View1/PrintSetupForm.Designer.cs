@@ -45,8 +45,9 @@
             this.colorCheckBox = new System.Windows.Forms.CheckBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.FitToPageCheckBox = new System.Windows.Forms.CheckBox();
-            this.ZoomUpDown = new DMEEView1.MyNumericUpDown();
             this.ZoomLabel = new System.Windows.Forms.Label();
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
+            this.ZoomUpDown = new DMEEView1.MyNumericUpDown();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.ZoomUpDown)).BeginInit();
             this.SuspendLayout();
@@ -152,7 +153,7 @@
             // 
             // PageSetupButton
             // 
-            this.PageSetupButton.Location = new System.Drawing.Point(284, 236);
+            this.PageSetupButton.Location = new System.Drawing.Point(284, 255);
             this.PageSetupButton.Name = "PageSetupButton";
             this.PageSetupButton.Size = new System.Drawing.Size(162, 23);
             this.PageSetupButton.TabIndex = 3;
@@ -183,7 +184,7 @@
             // colorCheckBox
             // 
             this.colorCheckBox.AutoSize = true;
-            this.colorCheckBox.Location = new System.Drawing.Point(284, 275);
+            this.colorCheckBox.Location = new System.Drawing.Point(284, 294);
             this.colorCheckBox.Name = "colorCheckBox";
             this.colorCheckBox.Size = new System.Drawing.Size(49, 17);
             this.colorCheckBox.TabIndex = 8;
@@ -212,6 +213,25 @@
             this.FitToPageCheckBox.Text = "fit to page";
             this.FitToPageCheckBox.UseVisualStyleBackColor = true;
             this.FitToPageCheckBox.CheckedChanged += new System.EventHandler(this.FitToPageCheckBox_CheckedChanged);
+            // 
+            // ZoomLabel
+            // 
+            this.ZoomLabel.AutoSize = true;
+            this.ZoomLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.ZoomLabel.Location = new System.Drawing.Point(70, 277);
+            this.ZoomLabel.Name = "ZoomLabel";
+            this.ZoomLabel.Size = new System.Drawing.Size(44, 16);
+            this.ZoomLabel.TabIndex = 11;
+            this.ZoomLabel.Text = "zoom:";
+            // 
+            // comboBox1
+            // 
+            this.comboBox1.FormattingEnabled = true;
+            this.comboBox1.Location = new System.Drawing.Point(284, 219);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(162, 21);
+            this.comboBox1.TabIndex = 12;
+            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
             // 
             // ZoomUpDown
             // 
@@ -242,22 +262,13 @@
             0,
             0});
             // 
-            // ZoomLabel
-            // 
-            this.ZoomLabel.AutoSize = true;
-            this.ZoomLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.ZoomLabel.Location = new System.Drawing.Point(70, 277);
-            this.ZoomLabel.Name = "ZoomLabel";
-            this.ZoomLabel.Size = new System.Drawing.Size(44, 16);
-            this.ZoomLabel.TabIndex = 11;
-            this.ZoomLabel.Text = "zoom:";
-            // 
             // PrintSetupForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.cancelButton;
             this.ClientSize = new System.Drawing.Size(469, 356);
+            this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.ZoomLabel);
             this.Controls.Add(this.ZoomUpDown);
             this.Controls.Add(this.FitToPageCheckBox);
@@ -310,5 +321,6 @@
         private System.Windows.Forms.CheckBox FitToPageCheckBox;
         private MyNumericUpDown ZoomUpDown;
         private System.Windows.Forms.Label ZoomLabel;
+        private System.Windows.Forms.ComboBox comboBox1;
     }
 }
