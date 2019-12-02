@@ -54,7 +54,7 @@
             // 
             // AlignTLButton
             // 
-            this.AlignTLButton.Location = new System.Drawing.Point(284, 41);
+            this.AlignTLButton.Location = new System.Drawing.Point(314, 39);
             this.AlignTLButton.Name = "AlignTLButton";
             this.AlignTLButton.Size = new System.Drawing.Size(50, 50);
             this.AlignTLButton.TabIndex = 1;
@@ -64,7 +64,7 @@
             // 
             // AlignTMButton
             // 
-            this.AlignTMButton.Location = new System.Drawing.Point(340, 40);
+            this.AlignTMButton.Location = new System.Drawing.Point(370, 38);
             this.AlignTMButton.Name = "AlignTMButton";
             this.AlignTMButton.Size = new System.Drawing.Size(50, 50);
             this.AlignTMButton.TabIndex = 1;
@@ -74,7 +74,7 @@
             // 
             // AlignCenterButton
             // 
-            this.AlignCenterButton.Location = new System.Drawing.Point(340, 97);
+            this.AlignCenterButton.Location = new System.Drawing.Point(370, 95);
             this.AlignCenterButton.Name = "AlignCenterButton";
             this.AlignCenterButton.Size = new System.Drawing.Size(50, 50);
             this.AlignCenterButton.TabIndex = 1;
@@ -84,7 +84,7 @@
             // 
             // AlignMLButton
             // 
-            this.AlignMLButton.Location = new System.Drawing.Point(284, 97);
+            this.AlignMLButton.Location = new System.Drawing.Point(314, 95);
             this.AlignMLButton.Name = "AlignMLButton";
             this.AlignMLButton.Size = new System.Drawing.Size(50, 50);
             this.AlignMLButton.TabIndex = 1;
@@ -94,7 +94,7 @@
             // 
             // AlignTRButton
             // 
-            this.AlignTRButton.Location = new System.Drawing.Point(396, 40);
+            this.AlignTRButton.Location = new System.Drawing.Point(426, 38);
             this.AlignTRButton.Name = "AlignTRButton";
             this.AlignTRButton.Size = new System.Drawing.Size(50, 50);
             this.AlignTRButton.TabIndex = 1;
@@ -104,7 +104,7 @@
             // 
             // AlignMRButton
             // 
-            this.AlignMRButton.Location = new System.Drawing.Point(396, 96);
+            this.AlignMRButton.Location = new System.Drawing.Point(426, 94);
             this.AlignMRButton.Name = "AlignMRButton";
             this.AlignMRButton.Size = new System.Drawing.Size(50, 50);
             this.AlignMRButton.TabIndex = 1;
@@ -114,7 +114,7 @@
             // 
             // AlignBLButton
             // 
-            this.AlignBLButton.Location = new System.Drawing.Point(284, 153);
+            this.AlignBLButton.Location = new System.Drawing.Point(314, 151);
             this.AlignBLButton.Name = "AlignBLButton";
             this.AlignBLButton.Size = new System.Drawing.Size(50, 50);
             this.AlignBLButton.TabIndex = 1;
@@ -124,7 +124,7 @@
             // 
             // buttonBMButton
             // 
-            this.buttonBMButton.Location = new System.Drawing.Point(340, 153);
+            this.buttonBMButton.Location = new System.Drawing.Point(370, 151);
             this.buttonBMButton.Name = "buttonBMButton";
             this.buttonBMButton.Size = new System.Drawing.Size(50, 50);
             this.buttonBMButton.TabIndex = 1;
@@ -134,7 +134,7 @@
             // 
             // AlignBRButton
             // 
-            this.AlignBRButton.Location = new System.Drawing.Point(396, 152);
+            this.AlignBRButton.Location = new System.Drawing.Point(426, 150);
             this.AlignBRButton.Name = "AlignBRButton";
             this.AlignBRButton.Size = new System.Drawing.Size(50, 50);
             this.AlignBRButton.TabIndex = 1;
@@ -145,7 +145,7 @@
             // alignLabel
             // 
             this.alignLabel.AutoSize = true;
-            this.alignLabel.Location = new System.Drawing.Point(284, 22);
+            this.alignLabel.Location = new System.Drawing.Point(314, 20);
             this.alignLabel.Name = "alignLabel";
             this.alignLabel.Size = new System.Drawing.Size(52, 13);
             this.alignLabel.TabIndex = 2;
@@ -153,7 +153,7 @@
             // 
             // PageSetupButton
             // 
-            this.PageSetupButton.Location = new System.Drawing.Point(284, 255);
+            this.PageSetupButton.Location = new System.Drawing.Point(314, 253);
             this.PageSetupButton.Name = "PageSetupButton";
             this.PageSetupButton.Size = new System.Drawing.Size(162, 23);
             this.PageSetupButton.TabIndex = 3;
@@ -164,7 +164,7 @@
             // cancelButton
             // 
             this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cancelButton.Location = new System.Drawing.Point(371, 321);
+            this.cancelButton.Location = new System.Drawing.Point(401, 319);
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(75, 23);
             this.cancelButton.TabIndex = 5;
@@ -174,7 +174,7 @@
             // SaveButton
             // 
             this.SaveButton.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.SaveButton.Location = new System.Drawing.Point(284, 321);
+            this.SaveButton.Location = new System.Drawing.Point(314, 319);
             this.SaveButton.Name = "SaveButton";
             this.SaveButton.Size = new System.Drawing.Size(75, 23);
             this.SaveButton.TabIndex = 6;
@@ -185,7 +185,7 @@
             // colorCheckBox
             // 
             this.colorCheckBox.AutoSize = true;
-            this.colorCheckBox.Location = new System.Drawing.Point(284, 294);
+            this.colorCheckBox.Location = new System.Drawing.Point(314, 292);
             this.colorCheckBox.Name = "colorCheckBox";
             this.colorCheckBox.Size = new System.Drawing.Size(49, 17);
             this.colorCheckBox.TabIndex = 8;
@@ -195,18 +195,24 @@
             // 
             // pictureBox1
             // 
-            this.pictureBox1.BackColor = System.Drawing.Color.WhiteSmoke;
-            this.pictureBox1.Location = new System.Drawing.Point(19, 19);
+            this.pictureBox1.BackColor = System.Drawing.SystemColors.Control;
+            this.pictureBox1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pictureBox1.Location = new System.Drawing.Point(21, 22);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(240, 240);
+            this.pictureBox1.Size = new System.Drawing.Size(270, 270);
             this.pictureBox1.TabIndex = 0;
             this.pictureBox1.TabStop = false;
             this.pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureBox1_Paint);
+            this.pictureBox1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pictureBox1_MouseDown);
+            this.pictureBox1.MouseEnter += new System.EventHandler(this.pictureBox1_MouseEnter);
+            this.pictureBox1.MouseLeave += new System.EventHandler(this.pictureBox1_MouseLeave);
+            this.pictureBox1.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pictureBox1_MouseMove);
+            this.pictureBox1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.pictureBox1_MouseUp);
             // 
             // FitToPageCheckBox
             // 
             this.FitToPageCheckBox.AutoSize = true;
-            this.FitToPageCheckBox.Location = new System.Drawing.Point(107, 324);
+            this.FitToPageCheckBox.Location = new System.Drawing.Point(134, 347);
             this.FitToPageCheckBox.Name = "FitToPageCheckBox";
             this.FitToPageCheckBox.Size = new System.Drawing.Size(73, 17);
             this.FitToPageCheckBox.TabIndex = 9;
@@ -218,7 +224,7 @@
             // 
             this.ZoomLabel.AutoSize = true;
             this.ZoomLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.ZoomLabel.Location = new System.Drawing.Point(70, 277);
+            this.ZoomLabel.Location = new System.Drawing.Point(104, 317);
             this.ZoomLabel.Name = "ZoomLabel";
             this.ZoomLabel.Size = new System.Drawing.Size(44, 16);
             this.ZoomLabel.TabIndex = 11;
@@ -227,7 +233,7 @@
             // comboBox1
             // 
             this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Location = new System.Drawing.Point(284, 219);
+            this.comboBox1.Location = new System.Drawing.Point(314, 217);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(162, 21);
             this.comboBox1.TabIndex = 12;
@@ -241,7 +247,7 @@
             0,
             0,
             0});
-            this.ZoomUpDown.Location = new System.Drawing.Point(120, 275);
+            this.ZoomUpDown.Location = new System.Drawing.Point(154, 315);
             this.ZoomUpDown.Maximum = new decimal(new int[] {
             500,
             0,
@@ -261,13 +267,15 @@
             0,
             0,
             0});
+            this.ZoomUpDown.ValueChanged += new System.EventHandler(this.ZoomUpDown_ValueChanged);
             // 
             // PrintSetupForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.SystemColors.Control;
             this.CancelButton = this.cancelButton;
-            this.ClientSize = new System.Drawing.Size(469, 356);
+            this.ClientSize = new System.Drawing.Size(495, 380);
             this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.ZoomLabel);
             this.Controls.Add(this.ZoomUpDown);

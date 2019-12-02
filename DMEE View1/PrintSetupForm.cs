@@ -1,11 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Drawing.Printing;
 using System.Windows.Forms;
 using DcClasses;
@@ -21,6 +15,9 @@ namespace DMEEView1
         public float ZoomFactor = 1.0F;
         public PageSettings pgs;
         public bool fitToPage = true;
+        private int fOffsetX, fOffsetY;
+        private Point initialMouseLoc;
+        private bool mouseIsDown = false;
 
         private enum DrawingAlignment
         { topLeft, topMiddle, topRight, middleLeft, center, middleRight, bottomLeft, bottomMiddle, bottomRight };
@@ -106,6 +103,7 @@ namespace DMEEView1
         private void FitToPageCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             fitToPage = FitToPageCheckBox.Checked;
+            Invalidate();
         }
 
         private void SaveButton_Click(object sender, EventArgs e)
@@ -122,6 +120,83 @@ namespace DMEEView1
         private void colorCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             pgs.Color = colorCheckBox.Checked;
+        }
+
+        private void ZoomUpDown_ValueChanged(object sender, EventArgs e)
+        {
+            fitToPage = false;
+            FitToPageCheckBox.Checked = false;
+            Invalidate();
+        }
+
+        private void pictureBox1_MouseEnter(object sender, EventArgs e)
+        {
+            Cursor = Cursors.SizeAll;
+        }
+
+        private void pictureBox1_MouseDown(object sender, MouseEventArgs e)
+        {
+            initialMouseLoc = PointToClient(MousePosition);
+            mouseIsDown = true;
+        }
+
+        private void pictureBox1_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (mouseIsDown)
+            {
+                Point MousePos = PointToClient(MousePosition);
+                MousePos.X -= pictureBox1.Location.X;
+                MousePos.Y -= pictureBox1.Location.Y;
+
+                if (MousePos.X > initialMouseLoc.X + 10)
+                {
+                    initialMouseLoc.X += 10;
+                    if (initialMouseLoc.X > pictureBox1.Width - 1)
+                    {
+                        initialMouseLoc.X = pictureBox1.Width - 1;
+                    }
+                }
+
+                if (MousePos.X < initialMouseLoc.X - 10)
+                {
+                    initialMouseLoc.X -= 10;
+                    if (initialMouseLoc.X < 0)
+                    {
+                        initialMouseLoc.X = 0;
+                    }
+                }
+
+                if (MousePos.Y > initialMouseLoc.Y + 10)
+                {
+                    initialMouseLoc.Y += 10;
+                    if (initialMouseLoc.Y > pictureBox1.Location.Y + pictureBox1.Height - 1)
+                    {
+                        initialMouseLoc.Y = pictureBox1.Location.Y + pictureBox1.Height - 1;
+                    }
+                }
+
+                if (MousePos.Y < initialMouseLoc.Y - 10)
+                {
+                    initialMouseLoc.Y -= 10;
+                    if (initialMouseLoc.Y < 0)
+                    {
+                        initialMouseLoc.Y = 0;
+                    }
+                }
+            }
+        }
+
+        private void pictureBox1_MouseUp(object sender, MouseEventArgs e)
+        {
+            mouseIsDown = false;
+        }
+
+        private void pictureBox1_MouseLeave(object sender, EventArgs e)
+        {
+            Cursor = Cursors.Default;
+            mouseIsDown = false;
+            fOffsetX = 0;
+            fOffsetY = 0;
         }
 
         private void CalcBlankPage(out float blankPgW, out float blankPgH, out float blankPgX, out float blankPgY)
@@ -173,6 +248,9 @@ namespace DMEEView1
             float frameW = previewAreaW - (RMargin + LMargin);
             float frameH = previewAreaH - (TMargin + BMargin);
 
+            // calculate 1:1 scale factor (based on page width from print settings)
+            float Zoom100Factor = frameW / pgs.Bounds.Width;
+
             Pen pen = new Pen(Color.LightGray);
             float[] dashValues = { 3, 5, 3, 5};
             pen.DashPattern = dashValues;
@@ -180,15 +258,18 @@ namespace DMEEView1
             gr.DrawRectangle(pen, frameX, frameY, frameW, frameH);
             if (parentForm.drawingLoaded)
             {
-                // determine scale factor for drawing based on bounds
+                float scaleDrawing = Zoom100Factor * (float)ZoomUpDown.Value / 100F;
                 float drawingHeight = topModule.bounds.YMax - topModule.bounds.YMin;
                 float drawingWidth = topModule.bounds.XMax - topModule.bounds.XMin;
 
-                float scaleDrawing = frameH / drawingHeight;
-                float scaleW = frameW / drawingWidth;
+                if (fitToPage)
+                {
+                    // determine scale factor for drawing based on bounds
+                    scaleDrawing = frameH / drawingHeight;
+                    float scaleW = frameW / drawingWidth;
 
-                if (scaleW < scaleDrawing) scaleDrawing = scaleW;
-
+                    if (scaleW < scaleDrawing) scaleDrawing = scaleW;
+                }
                 float dOffsetX = 0;
                 float dOffsetY = 0;
                 float dWidth = drawingWidth * scaleDrawing;
@@ -227,12 +308,12 @@ namespace DMEEView1
                         break;
                 }
 
+                // set clip rectangle
+                gr.SetClip(new RectangleF(frameX + dOffsetX, frameY + dOffsetY, frameW, frameH));
+
                 pen.DashStyle = System.Drawing.Drawing2D.DashStyle.Solid;
                 pen.Color = Color.LightGreen;
-                gr.DrawRectangle(pen, frameX+dOffsetX, frameY+dOffsetY, dWidth, dHeight);
-
-                // set clip rectangle
-                gr.SetClip(new RectangleF(frameX + dOffsetX, frameY + dOffsetY, dWidth, dHeight));
+                gr.DrawRectangle(pen, frameX + dOffsetX, frameY + dOffsetY, dWidth, dHeight);
 
                 gr.TranslateTransform(frameX + dOffsetX, frameY + dOffsetY);
 
