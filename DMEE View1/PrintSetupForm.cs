@@ -281,12 +281,14 @@ namespace DMEEView1
                     case DrawingAlignment.topMiddle:
                     case DrawingAlignment.center:
                     case DrawingAlignment.bottomMiddle:
-                        if (dWidth < frameW) dOffsetX = (frameW - dWidth)/ 2.0F;
+                        if (dWidth < frameW) dOffsetX = (frameW - dWidth) / 2.0F;
+                        if (dWidth > frameW) dOffsetX = -(dWidth - frameW) / 2.0F;
                         break;
                     case DrawingAlignment.topRight:
                     case DrawingAlignment.middleRight:
                     case DrawingAlignment.bottomRight:
                         if (dWidth < frameW) dOffsetX = (frameW - dWidth);
+                        if (dWidth > frameW) dOffsetX= -(dWidth - frameW);
                         break;
                     default:
                         break;
@@ -298,18 +300,20 @@ namespace DMEEView1
                     case DrawingAlignment.center:
                     case DrawingAlignment.middleRight:
                         if (dHeight < frameH) dOffsetY = (frameH - dHeight) / 2.0F;
+                        if (dHeight > frameH) dOffsetY = -(dHeight - frameH) / 2.0F;
                         break;
                     case DrawingAlignment.bottomLeft:
                     case DrawingAlignment.bottomMiddle:
                     case DrawingAlignment.bottomRight:
                         if (dHeight < frameH) dOffsetY = (frameH - dHeight);
+                        if (dHeight > frameH) dOffsetY = -(dHeight - frameH);
                         break;
                     default:
                         break;
                 }
 
                 // set clip rectangle
-                gr.SetClip(new RectangleF(frameX + dOffsetX, frameY + dOffsetY, frameW, frameH));
+                gr.SetClip(new RectangleF(frameX, frameY, frameW, frameH));
 
                 pen.DashStyle = System.Drawing.Drawing2D.DashStyle.Solid;
                 pen.Color = Color.LightGreen;
