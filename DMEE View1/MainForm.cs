@@ -65,7 +65,14 @@ namespace DMEEView1
             // where the window height is 95% of the screen height
             Height = (int)(Screen.FromControl(this).Bounds.Height * 0.95F);
             Width = (int)(18F / 12F * Height);
-            CenterToScreen();
+            CenterToScreen(); // start the app in the center of the screen
+
+            // Set the location of the splash box relative to form
+            if (SplashBox.Width < Width && SplashBox.Height < Height)
+            {
+                SplashBox.Location = new Point(Width / 2 - SplashBox.Width / 2, 100);
+            }
+            else SplashBox.Location = new Point(100, 100);
 
             // Set the initial location and size of DrawPanel relative to form
             Rectangle clientRect = this.ClientRectangle;
@@ -103,13 +110,6 @@ namespace DMEEView1
                 topFileName = "";
                 Properties.Settings.Default.fileName = topFileName;
             };
-
-            // restore setting of showInfo
-            if (Properties.Settings.Default.ShowInfo == true)
-            {
-                showInfo = true;
-            }
-            else showInfo = false;
 
             // restore previous working folder if still valid
             workingFolder = Properties.Settings.Default.WorkFolder;
@@ -983,10 +983,14 @@ namespace DMEEView1
                 Properties.Settings.Default.fileName = topFileName;
                 DcLoadDrawing();
 
-                // Set size of Picture Box for screen painting. Dimensions need to cover a non-zero area for paint event to occur.
-                DrawPictureBox.Height = (int)((topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin) * ZoomFactor + 30);
-                DrawPictureBox.Width = (int)((topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin) * ZoomFactor + 30);
-                DrawPictureBox.Invalidate();
+                if (drawingLoaded)
+                {
+                    SplashBox.Visible = false;
+                    // Set size of Picture Box for screen painting. Dimensions need to cover a non-zero area for paint event to occur.
+                    DrawPictureBox.Height = (int)((topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin) * ZoomFactor + 30);
+                    DrawPictureBox.Width = (int)((topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin) * ZoomFactor + 30);
+                    DrawPictureBox.Invalidate();
+                }
             }
             menuStrip1.Select();
         }
@@ -1028,6 +1032,12 @@ namespace DMEEView1
             ZoomIt(2.0F);
         }
 
+        private void ToolStripMenuFitToWindow_Click(object sender, EventArgs e)
+        {
+            fitToWindow = true;
+            Invalidate();
+        }
+
         private void ZoomIt(float factor)
         {
             ZoomFactor = factor;
@@ -1042,12 +1052,15 @@ namespace DMEEView1
         {
             drawingLoaded = false;
             DcLoadDrawing();
-
-            // Set a default size of Picture Box for screen painting.
-            // (Dimensions need to cover a non-zero area for paint event to occur).
-            DrawPictureBox.Height = (int)((topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin) * ZoomFactor + 30);
-            DrawPictureBox.Width = (int)((topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin) * ZoomFactor + 30);
-            DrawPictureBox.Invalidate();  // Paint event for picture box handles actual drawing
+            if (drawingLoaded)
+            {
+                SplashBox.Visible = false;
+                // Set a default size of Picture Box for screen painting.
+                // (Dimensions need to cover a non-zero area for paint event to occur).
+                DrawPictureBox.Height = (int)((topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin) * ZoomFactor + 30);
+                DrawPictureBox.Width = (int)((topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin) * ZoomFactor + 30);
+                DrawPictureBox.Invalidate();  // Paint event for picture box handles actual drawing
+            }
         }
 
 
@@ -1393,30 +1406,16 @@ namespace DMEEView1
             Properties.Settings.Default.Printer_Name = printDocument.PrinterSettings.PrinterName;
         }
 
-        private void ToolStripMenuPageSetup_Click(object sender, EventArgs e)
-        {
-            pageSetupDialog1.PageSettings = printDocument.DefaultPageSettings;
-            var result = pageSetupDialog1.ShowDialog();
-            if (result == DialogResult.OK)  // set properties for later restoration
-            {
-                Properties.Settings.Default.Print_Margins = printDocument.DefaultPageSettings.Margins;
-                Properties.Settings.Default.Paper_Size = printDocument.DefaultPageSettings.PaperSize;
-                Properties.Settings.Default.landscape = printDocument.DefaultPageSettings.Landscape;
-            }
-        }
-
         private void HideNShowInfoButton_Click(object sender, EventArgs e)
         {
             if (InfoTextBox.Visible == true)
             {
                 InfoTextBox.Hide();
                 HideNShowInfoButton.Text = "show info";
-                Properties.Settings.Default.ShowInfo = false;
             } else
             {
                 InfoTextBox.Show();
                 HideNShowInfoButton.Text = "hide info";
-                Properties.Settings.Default.ShowInfo = true;
             }
         }
 
@@ -1492,7 +1491,7 @@ namespace DMEEView1
             Invalidate();
         }
 
-        private void colorPaletteToolStripMenuItem_Click(object sender, EventArgs e)
+        private void ColorPaletteToolStripMenuItem_Click(object sender, EventArgs e)
         {
             colorConfigForm.SetColorConfig(dcColorSettings);
             var result = colorConfigForm.ShowDialog();

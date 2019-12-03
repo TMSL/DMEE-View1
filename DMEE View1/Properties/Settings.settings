@@ -5,9 +5,6 @@
     <Setting Name="fileName" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="ShowInfo" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
     <Setting Name="LibFolder" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
