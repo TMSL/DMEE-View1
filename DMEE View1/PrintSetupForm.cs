@@ -30,9 +30,11 @@ namespace DMEEView1
         {
             parentForm = parent;
             pageSetupDialog.PageSettings = pgs;
-            CalcBlankPage(out blankPageW, out blankPageH, out blankPageX, out blankPageY);
+            CalcBlankPage(out blankPageW, out blankPageH, out blankPageX, out blankPageY, out scaleFactor);
             pictureBox1.BackColor = Color.Transparent;
             colorCheckBox.Checked = pgs.Color;
+            FitToPageCheckBox.Checked = fitToPage;
+            if (fitToPage) dAlign = Alignment.center;
 
             foreach (string s in PrinterSettings.InstalledPrinters)
             {
@@ -84,7 +86,7 @@ namespace DMEEView1
             Invalidate();
         }
 
-        private void buttonBMButton_Click(object sender, EventArgs e)
+        private void AlignBMButton_Click(object sender, EventArgs e)
         {
             dAlign = Alignment.bottomMiddle;
             Invalidate();
@@ -109,12 +111,12 @@ namespace DMEEView1
             Hide();
         }
 
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        private void ComboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             pgs.PrinterSettings.PrinterName = (string)comboBox1.SelectedItem;
         }
 
-        private void colorCheckBox_CheckedChanged(object sender, EventArgs e)
+        private void ColorCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             pgs.Color = colorCheckBox.Checked;
         }
@@ -130,7 +132,7 @@ namespace DMEEView1
         // within pictureBox. The routine also creates a scaleFactor that corresponds to the scale for drawing
         // inside the blank page where scalefactor * 100 = 1 inch. This factor is also the factor for drawing
         // at a zoom factor of 1:1.
-        private void CalcBlankPage(out float blankPgW, out float blankPgH, out float blankPgX, out float blankPgY)
+        private void CalcBlankPage(out float blankPgW, out float blankPgH, out float blankPgX, out float blankPgY, out float scaleFactor)
         {
             pgs = pageSetupDialog.PageSettings;
 
@@ -159,6 +161,11 @@ namespace DMEEView1
             // center in Picture box
             blankPgX = (pBoxWidth - blankPgW) / 2.0F;
             blankPgY = (pBoxHeight - blankPgH) / 2.0F;
+        }
+
+        private void PrintSetupForm_Shown(object sender, EventArgs e)
+        {
+            FitToPageCheckBox.Checked = fitToPage;
         }
 
         // Calculate offsets for aligning drawing on page per given alignment choice (e.g. top left, bottom right, etc.)
@@ -277,7 +284,8 @@ namespace DMEEView1
             var result = pageSetupDialog.ShowDialog();
             if (result == DialogResult.OK)
             {
-                CalcBlankPage(out blankPageW, out blankPageH, out blankPageX, out blankPageY);
+                // update blank page per new page settings
+                CalcBlankPage(out blankPageW, out blankPageH, out blankPageX, out blankPageY, out scaleFactor);
             }
             Invalidate();
         }

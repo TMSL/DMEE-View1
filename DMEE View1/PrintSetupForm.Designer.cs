@@ -130,7 +130,7 @@
             this.buttonBMButton.TabIndex = 1;
             this.buttonBMButton.Text = "bottom middle";
             this.buttonBMButton.UseVisualStyleBackColor = true;
-            this.buttonBMButton.Click += new System.EventHandler(this.buttonBMButton_Click);
+            this.buttonBMButton.Click += new System.EventHandler(this.AlignBMButton_Click);
             // 
             // AlignBRButton
             // 
@@ -191,7 +191,7 @@
             this.colorCheckBox.TabIndex = 8;
             this.colorCheckBox.Text = "color";
             this.colorCheckBox.UseVisualStyleBackColor = true;
-            this.colorCheckBox.CheckedChanged += new System.EventHandler(this.colorCheckBox_CheckedChanged);
+            this.colorCheckBox.CheckedChanged += new System.EventHandler(this.ColorCheckBox_CheckedChanged);
             // 
             // pictureBox1
             // 
@@ -232,7 +232,7 @@
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(162, 21);
             this.comboBox1.TabIndex = 12;
-            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
+            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.ComboBox1_SelectedIndexChanged);
             // 
             // ZoomUpDown
             // 
@@ -298,6 +298,7 @@
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "PrintSetup";
+            this.Shown += new System.EventHandler(this.PrintSetupForm_Shown);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.ZoomUpDown)).EndInit();
             this.ResumeLayout(false);
