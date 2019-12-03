@@ -8,14 +8,14 @@ namespace DMEEView1
 {
     public partial class PrintSetupForm : Form
     {
-        private PrintDocument pdoc = new PrintDocument();
+        public bool fitToPage = true;
+        public Alignment dAlign = Alignment.topLeft;
+        public float ZoomFactor = 1.0F;
+
         private MainForm parentForm;
         private float blankPageW, blankPageH, blankPageX, blankPageY;
         private float scaleFactor;
-        public float ZoomFactor = 1.0F;
-        public PageSettings pgs;
-        public bool fitToPage = true;
-        public Alignment dAlign = Alignment.topLeft;
+        private PageSettings pgs;
 
         public enum Alignment
         { topLeft, topMiddle, topRight, middleLeft, center, middleRight, bottomLeft, bottomMiddle, bottomRight };
