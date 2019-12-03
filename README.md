@@ -14,7 +14,7 @@ The present version is still a work-in-progress that does not yet support schema
 Text is presently drawn using Microsoft fonts instead of using Draftsman-EE's vector drawn character library. The progam DOES NOT support drawing PCB routes and patterns at this time, nor does it support multiple layers. Thus, .PCB files will not display much, if anything.
 
 ## Use
-The search folders for drawing and library (.LBR) files are configured under Configuration menu. Select a .SCH or other drawing file using the file menu. The working and library folders will be searched for component modules called for by the drawing and the file will be automatically displayed. If a previous file had already been selected you can also press the Draw button to display it. The hide/show info button provides some additional information about the file. A number of different Zoom settings are available under the File menu. The program can be configured with a working folder and a library folder that will be searched for drawing and library (.LBR) files. A few example files are provided in Sample Drawing Files directory to demonstrate the present level of functionality.
+The search folders for drawing and library (.LBR) files are configured under Configuration menu. Select a .SCH or other drawing file using the file menu. The working and library folders will be searched for component modules called for by the drawing and the file will be automatically displayed. If a previous file had already been selected you can also press the Draw button to display it. The hide/show info button provides some additional information about the file. A number of different Zoom settings are available under the File menu along with the option to fit the drawing to the window.  A few example files are provided in Sample Drawing Files directory to demonstrate the present level of functionality.
 
 ##  Background
 I started developing this project to view, print, and archive as .pdf files some schematics that I created in the early 1990's using
@@ -41,4 +41,4 @@ or library. The viewer program parses these commands and their parameters in ord
 
 ## Development Environment and Executables
 The project is presently being developed and tested as a Windows "Forms" application using C#
-and .NET Framework 4.6.1 and built using Microsoft Visual Studio Community Edition, 2019 on Windows 10 64-bit.
+and .NET Framework 4.6.1 and built using Microsoft Visual Studio Community Edition, 2017/2019 on Windows 10 64-bit.
