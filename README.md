@@ -6,17 +6,19 @@ This C# project is being written as a way to view and print Draftsman-EE "DMEE" 
 a modern PC running Microsft Windows (r). The Draftsman-EE software may also be known as or associated with the names DMEE, DC-CAD, DCCAD, DC Design, DC 810, or DC/CAD IV. As of this writing, the viewer is a work in progress, Refer to following for details.
 
 ## Status
-11/8/2019: Printing is now working. The program also automatically determines the boundaries of the drawing for the display. The present version is still a work-in-progress that does not yet support schematics with multiple pages.
+12/3/2019: The program enables viewing and printing DMEE schematic drawings. The latest version has added a print setup dialog that provides options for selecting the printer, setting margins, scaling (Zoom), and aligning the drawing boundaries to the print page prior to printing.
 
-Text is presently drawn using Microsoft fonts instead of using Draftsman-EE's vector drawn character library. 
-The program only correctly draws schematics (.SCH) files and schematic parts. It DOES NOT support drawing PCB routes and patterns at this time. Thus, .PCB files will not display much, if anything.
+## Limitations
+The present version is still a work-in-progress that does not yet support schematics with multiple pages, solely because I only have single page schematic samples to test with.
+
+Text is presently drawn using Microsoft fonts instead of using Draftsman-EE's vector drawn character library. The progam DOES NOT support drawing PCB routes and patterns at this time, nor does it support multiple layers. Thus, .PCB files will not display much, if anything.
 
 ## Use
-The search folders for drawing and library (.LBR) files are configured under Configuration menu. Select a .SCH or other drawing file using the file menu. The working and library folders will be searched for component modules called for by the drawing and the file will be automatically displayed. If a previous file had already been selected you can also press the Draw button to display it. The hide/show info button provides some additional information about the file. A number of different Zoom settings are available under the File menu. A few example files are provided in Sample Drawing Files directory to demonstrate the present level of development.
+The search folders for drawing and library (.LBR) files are configured under Configuration menu. Select a .SCH or other drawing file using the file menu. The working and library folders will be searched for component modules called for by the drawing and the file will be automatically displayed. If a previous file had already been selected you can also press the Draw button to display it. The hide/show info button provides some additional information about the file. A number of different Zoom settings are available under the File menu. The program can be configured with a working folder and a library folder that will be searched for drawing and library (.LBR) files. A few example files are provided in Sample Drawing Files directory to demonstrate the present level of functionality.
 
 ##  Background
 I started developing this project to view, print, and archive as .pdf files some schematics that I created in the early 1990's using
-Draftsman-EE version 4.09 running on MS-DOS. After looking at the schematic and library data files it looked like it would be feasible (and potentially less frustrating) to reverse engineer the format enough to create a Windows 10 program for viewing and printing them rather than trying to get the software and its outdated video and printer drivers running under something like DOSBox or VirtualBox.
+Draftsman-EE version 4.09 running on MS-DOS. After looking at the schematic and library data files it looked like it would be feasible, interesting, and potentially less frustrating to reverse engineer the format enough to create a Windows 10 program for viewing and printing them rather than trying to get the software and its outdated video and printer drivers running under something like DOSBox or VirtualBox.
 
 Draftsman-EE was a PC-based schematic editor and PCB layout software package by
 Design Computation, Inc. It was offered from the late 1980's to early 1990's.
@@ -31,7 +33,7 @@ According to _Choosing A PCB Layout System_, MICRO CORNUCOPIA, #45, Jan-Feb 1989
 - DC 810 $1995.00 - autoroute boards up to 8" x 10"
 - DC CAD $3495.00 - autoroute with rip-up, boards up to 32" x 32"
 
-##  Overview of the software
+##  Overview of the software's operation
 The Draftsman-EE schematic files, and much of the associated library files, consist of
 lines of printable ASCII text. The text present a series of "command lines" that indicate how lines and text should be drawn, including
 parameters such as coordinates, color, and scaling factors, along with whether additional 'modules' should be included from another file
@@ -39,4 +41,4 @@ or library. The viewer program parses these commands and their parameters in ord
 
 ## Development Environment and Executables
 The project is presently being developed and tested as a Windows "Forms" application using C#
-and .NET Framework 4.6.1 and built using Microsoft Visual Studio Community Edition, 2017 on Windows 10 64-bit.
+and .NET Framework 4.6.1 and built using Microsoft Visual Studio Community Edition, 2019 on Windows 10 64-bit.
