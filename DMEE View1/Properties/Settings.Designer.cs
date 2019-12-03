@@ -213,5 +213,17 @@ namespace DMEEView1.Properties {
                 this["Draw_in_color"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool PrintFitToPage {
+            get {
+                return ((bool)(this["PrintFitToPage"]));
+            }
+            set {
+                this["PrintFitToPage"] = value;
+            }
+        }
     }
 }

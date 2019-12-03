@@ -49,7 +49,7 @@ namespace DMEEView1
         public ColorConfigForm colorConfigForm = new ColorConfigForm();
         public ColorConfigForm.DcColorConfig dcColorSettings = new ColorConfigForm.DcColorConfig();
         public PrintSetupForm psf;
-        public bool Print_fitToPage = false;
+        public bool Print_FitToPage = false;
         public PageSettings scratchPageSettings;
 
         public MainForm()
@@ -137,6 +137,7 @@ namespace DMEEView1
             printDocument.DefaultPageSettings.Margins = Properties.Settings.Default.Print_Margins;
             printDocument.DefaultPageSettings.Landscape = Properties.Settings.Default.landscape;
             printDocument.DefaultPageSettings.Color = Properties.Settings.Default.Print_in_color;
+            Print_FitToPage = Properties.Settings.Default.PrintFitToPage;
 
             // Verify printer name from properties exists. If not the present default will be used.
             string pName = Properties.Settings.Default.Printer_Name;
@@ -1324,9 +1325,6 @@ namespace DMEEView1
         private void PrintDocument_PrintPage(object sender, System.Drawing.Printing.PrintPageEventArgs e)
         {
             Console.WriteLine("Print Page");
-            Graphics gr = e.Graphics;
-            // set clip for printing to the margin bounds that were set up for the page
-            gr.Clip = new Region(e.MarginBounds);
             
             if (!drawingLoaded)
             {
@@ -1334,39 +1332,44 @@ namespace DMEEView1
                 return;
             }
 
+            Graphics gr = e.Graphics;
+
+            // set clip for printing to the margin bounds that were set up for the page
+            gr.Clip = new Region(e.MarginBounds);
+
             DcBounds dBounds = topModuleCommand.bounds;
-            bool centerPrint = true;  // TBD: center document horizontally & vertically within margins
             Matrix matrix = new Matrix();
 
-            // Figure out a scale factor to fit drawing within the page margins
-            float dWidth = (topModuleCommand.bounds.XMax - topModuleCommand.bounds.XMin);
-            float dHeight = (topModuleCommand.bounds.YMax - topModuleCommand.bounds.YMin);
-            float scale = e.MarginBounds.Width / dWidth;
-            if (scale > e.MarginBounds.Height / dHeight)  // choose smallest scale factor
-            {
-                scale = e.MarginBounds.Height/ dHeight ;
-            }
+            float scale = psf.ZoomFactor;
+            float dWidth = dBounds.XMax - dBounds.XMin;
+            float dHeight = dBounds.YMax - dBounds.YMin;
 
+            if (Print_FitToPage)
+            {
+                // calculate a scale factor to fit drawing within the page margins
+                scale = e.MarginBounds.Width / dWidth;
+                if (scale > e.MarginBounds.Height / dHeight)  // choose smallest scale factor
+                {
+                    scale = e.MarginBounds.Height / dHeight;
+                }
+            };
+        
             // shift print origin based on page margin
             // FYI: Theres also a printdocument property for "OriginAtMargins" but I'm doing it manually here
             gr.TranslateTransform(e.MarginBounds.Left, e.MarginBounds.Top);
+
+            // shift drawing on page per selected alignment
+            psf.CalcAlignmentOffsets(psf.dAlign, e.MarginBounds.Width, e.MarginBounds.Height,
+                                     dWidth * scale, dHeight * scale, out float dOffsetX, out float dOffsetY);
+            gr.TranslateTransform(dOffsetX, dOffsetY);
+
             // scale the graphics to the printer by scale factor
             gr.ScaleTransform(scale, scale);
             // shift location of print origin based on drawing bounds
-            gr.TranslateTransform(-dBounds.XMin, dBounds.YMin+dHeight);
+            gr.TranslateTransform(-dBounds.XMin, dBounds.YMin + dHeight);
             // FLIP Y COORDINATES
             gr.ScaleTransform(1, -1);
 
-            // center drawing on page
-            if (centerPrint)
-            {
-                float vDiff = (float)Math.Round((e.MarginBounds.Height / scale - dHeight) / 2.0F, 1);
-                float hDiff = (float)Math.Round((e.MarginBounds.Width / scale - dWidth) / 2.0F, 1);
-                gr.TranslateTransform(0F, -vDiff);
-                gr.TranslateTransform(hDiff, 0);
-            }
-
-            //gr.DrawRectangle(new Pen(Color.LightGray), dBounds.XMin, dBounds.YMin, dWidth, dHeight);
             PaintDcModule(gr, topModuleCommand);
 
             // If more pages exist, print another page.
@@ -1514,7 +1517,7 @@ namespace DMEEView1
 
         private void PrintSetupMenuItem_Click(object sender, EventArgs e)
         {
-            psf.fitToPage = Print_fitToPage;
+            psf.fitToPage = Print_FitToPage;
             DialogResult result = psf.ShowDialog();
             psf.Hide();
 
@@ -1525,7 +1528,8 @@ namespace DMEEView1
                 Properties.Settings.Default.Print_Margins = scratchPageSettings.Margins;
                 Properties.Settings.Default.Paper_Size = scratchPageSettings.PaperSize;
                 Properties.Settings.Default.Print_in_color = scratchPageSettings.Color;
-                Print_fitToPage = psf.fitToPage;
+                Properties.Settings.Default.PrintFitToPage = psf.fitToPage;
+                Print_FitToPage = psf.fitToPage;
             }
             if (result == DialogResult.Cancel)
             {

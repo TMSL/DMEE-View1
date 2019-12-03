@@ -10,20 +10,16 @@ namespace DMEEView1
     {
         private PrintDocument pdoc = new PrintDocument();
         private MainForm parentForm;
-        private float previewAreaW, previewAreaH, offsetW, offsetH;
+        private float blankPageW, blankPageH, blankPageX, blankPageY;
         private float scaleFactor;
         public float ZoomFactor = 1.0F;
         public PageSettings pgs;
         public bool fitToPage = true;
-        private int fOffsetX, fOffsetY;
-        private Point initialMouseLoc;
-        private bool mouseIsDown = false;
+        public Alignment dAlign = Alignment.topLeft;
 
-        private enum DrawingAlignment
+        public enum Alignment
         { topLeft, topMiddle, topRight, middleLeft, center, middleRight, bottomLeft, bottomMiddle, bottomRight };
-
-        DrawingAlignment dAlign = DrawingAlignment.topLeft;
-        
+                
         public PrintSetupForm()
         {
             InitializeComponent();
@@ -34,7 +30,7 @@ namespace DMEEView1
         {
             parentForm = parent;
             pageSetupDialog.PageSettings = pgs;
-            CalcBlankPage(out previewAreaW, out previewAreaH, out offsetW, out offsetH);
+            CalcBlankPage(out blankPageW, out blankPageH, out blankPageX, out blankPageY);
             pictureBox1.BackColor = Color.Transparent;
             colorCheckBox.Checked = pgs.Color;
 
@@ -48,61 +44,62 @@ namespace DMEEView1
 
         private void AlignTLButton_Click(object sender, EventArgs e)
         {
-            dAlign = DrawingAlignment.topLeft;
+            dAlign = Alignment.topLeft;
             Invalidate();
         }
 
         private void AlignTMButton_Click(object sender, EventArgs e)
         {
-            dAlign = DrawingAlignment.topMiddle;
+            dAlign = Alignment.topMiddle;
             Invalidate();
         }
 
         private void AlignTRButton_Click(object sender, EventArgs e)
         {
-            dAlign = DrawingAlignment.topRight;
+            dAlign = Alignment.topRight;
             Invalidate();
         }
 
         private void AlignMLButton_Click(object sender, EventArgs e)
         {
-            dAlign = DrawingAlignment.middleLeft;
+            dAlign = Alignment.middleLeft;
             Invalidate();
         }
 
         private void AlignCenterButton_Click(object sender, EventArgs e)
         {
-            dAlign = DrawingAlignment.center;
+            dAlign = Alignment.center;
             Invalidate();
         }
 
         private void AlignMRButton_Click(object sender, EventArgs e)
         {
-            dAlign = DrawingAlignment.middleRight;
+            dAlign = Alignment.middleRight;
             Invalidate();
         }
 
         private void AlignBLButton_Click(object sender, EventArgs e)
         {
-            dAlign = DrawingAlignment.bottomLeft;
+            dAlign = Alignment.bottomLeft;
             Invalidate();
         }
 
         private void buttonBMButton_Click(object sender, EventArgs e)
         {
-            dAlign = DrawingAlignment.bottomMiddle;
+            dAlign = Alignment.bottomMiddle;
             Invalidate();
         }
 
         private void AlignBRButton_Click(object sender, EventArgs e)
         {
-            dAlign = DrawingAlignment.bottomRight;
+            dAlign = Alignment.bottomRight;
             Invalidate();
         }
 
         private void FitToPageCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             fitToPage = FitToPageCheckBox.Checked;
+            dAlign = Alignment.center;
             Invalidate();
         }
 
@@ -129,76 +126,10 @@ namespace DMEEView1
             Invalidate();
         }
 
-        private void pictureBox1_MouseEnter(object sender, EventArgs e)
-        {
-            Cursor = Cursors.SizeAll;
-        }
-
-        private void pictureBox1_MouseDown(object sender, MouseEventArgs e)
-        {
-            initialMouseLoc = PointToClient(MousePosition);
-            mouseIsDown = true;
-        }
-
-        private void pictureBox1_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (mouseIsDown)
-            {
-                Point MousePos = PointToClient(MousePosition);
-                MousePos.X -= pictureBox1.Location.X;
-                MousePos.Y -= pictureBox1.Location.Y;
-
-                if (MousePos.X > initialMouseLoc.X + 10)
-                {
-                    initialMouseLoc.X += 10;
-                    if (initialMouseLoc.X > pictureBox1.Width - 1)
-                    {
-                        initialMouseLoc.X = pictureBox1.Width - 1;
-                    }
-                }
-
-                if (MousePos.X < initialMouseLoc.X - 10)
-                {
-                    initialMouseLoc.X -= 10;
-                    if (initialMouseLoc.X < 0)
-                    {
-                        initialMouseLoc.X = 0;
-                    }
-                }
-
-                if (MousePos.Y > initialMouseLoc.Y + 10)
-                {
-                    initialMouseLoc.Y += 10;
-                    if (initialMouseLoc.Y > pictureBox1.Location.Y + pictureBox1.Height - 1)
-                    {
-                        initialMouseLoc.Y = pictureBox1.Location.Y + pictureBox1.Height - 1;
-                    }
-                }
-
-                if (MousePos.Y < initialMouseLoc.Y - 10)
-                {
-                    initialMouseLoc.Y -= 10;
-                    if (initialMouseLoc.Y < 0)
-                    {
-                        initialMouseLoc.Y = 0;
-                    }
-                }
-            }
-        }
-
-        private void pictureBox1_MouseUp(object sender, MouseEventArgs e)
-        {
-            mouseIsDown = false;
-        }
-
-        private void pictureBox1_MouseLeave(object sender, EventArgs e)
-        {
-            Cursor = Cursors.Default;
-            mouseIsDown = false;
-            fOffsetX = 0;
-            fOffsetY = 0;
-        }
-
+        // Take the page size from the page settings and scales it down to create a "blank page" area that fits
+        // within pictureBox. The routine also creates a scaleFactor that corresponds to the scale for drawing
+        // inside the blank page where scalefactor * 100 = 1 inch. This factor is also the factor for drawing
+        // at a zoom factor of 1:1.
         private void CalcBlankPage(out float blankPgW, out float blankPgH, out float blankPgX, out float blankPgY)
         {
             pgs = pageSetupDialog.PageSettings;
@@ -230,10 +161,57 @@ namespace DMEEView1
             blankPgY = (pBoxHeight - blankPgH) / 2.0F;
         }
 
+        // Calculate offsets for aligning drawing on page per given alignment choice (e.g. top left, bottom right, etc.)
+        // This routine doesn't care about what units are used for the print area and the drawing size as long as the
+        // units between the two are the same.
+        public void CalcAlignmentOffsets(Alignment dAlign, float printAreaW, float printAreaH,
+                                          float dWidth, float dHeight,
+                                          out float dOffsetX, out float dOffsetY)
+        {
+            // Position according to drawing alignment
+            dOffsetX = 0;
+            dOffsetY = 0;
+            switch (dAlign)  // handle horizontal
+            {
+                case Alignment.topMiddle:
+                case Alignment.center:
+                case Alignment.bottomMiddle:
+                    if (dWidth < printAreaW) dOffsetX = (printAreaW - dWidth) / 2.0F;
+                    if (dWidth > printAreaW) dOffsetX = -(dWidth - printAreaW) / 2.0F;
+                    break;
+                case Alignment.topRight:
+                case Alignment.middleRight:
+                case Alignment.bottomRight:
+                    if (dWidth < printAreaW) dOffsetX = (printAreaW - dWidth);
+                    if (dWidth > printAreaW) dOffsetX = -(dWidth - printAreaW);
+                    break;
+                default:
+                    break;
+            }
+
+            switch (dAlign)  // handle vertical
+            {
+                case Alignment.middleLeft:
+                case Alignment.center:
+                case Alignment.middleRight:
+                    if (dHeight < printAreaH) dOffsetY = (printAreaH - dHeight) / 2.0F;
+                    if (dHeight > printAreaH) dOffsetY = -(dHeight - printAreaH) / 2.0F;
+                    break;
+                case Alignment.bottomLeft:
+                case Alignment.bottomMiddle:
+                case Alignment.bottomRight:
+                    if (dHeight < printAreaH) dOffsetY = (printAreaH - dHeight);
+                    if (dHeight > printAreaH) dOffsetY = -(dHeight - printAreaH);
+                    break;
+                default:
+                    break;
+            }
+        }
+
         private void pictureBox1_Paint(object sender, PaintEventArgs e)
         {
             Graphics gr = e.Graphics;
-            gr.FillRectangle(new Pen(Color.White).Brush, offsetW - 1, offsetH - 1, previewAreaW, previewAreaH);
+            gr.FillRectangle(new Pen(Color.White).Brush, blankPageX - 1, blankPageY - 1, blankPageW, blankPageH);
             // check that topModule exists and is loaded
             DcModule topModule = parentForm.topModuleCommand;
             DcBounds dBounds = parentForm.topModuleCommand.bounds;
@@ -243,85 +221,48 @@ namespace DMEEView1
             float RMargin = pgs.Margins.Right * scaleFactor;
             float TMargin = pgs.Margins.Top * scaleFactor;
             float BMargin = pgs.Margins.Bottom * scaleFactor;
-            float frameX = offsetW-1 + LMargin;
-            float frameY = offsetH-1 + TMargin;
-            float frameW = previewAreaW - (RMargin + LMargin);
-            float frameH = previewAreaH - (TMargin + BMargin);
 
-            // calculate 1:1 scale factor (based on page width from print settings)
-            float Zoom100Factor = frameW / pgs.Bounds.Width;
+            // printArea is the area between the current margins on the blank page
+            float printAreaX = blankPageX-1 + LMargin;
+            float printAreaY = blankPageY-1 + TMargin;
+            float printAreaW = blankPageW - (RMargin + LMargin);
+            float printAreaH = blankPageH - (TMargin + BMargin);
 
             Pen pen = new Pen(Color.LightGray);
             float[] dashValues = { 3, 5, 3, 5};
             pen.DashPattern = dashValues;
 
-            gr.DrawRectangle(pen, frameX, frameY, frameW, frameH);
+            gr.DrawRectangle(pen, printAreaX, printAreaY, printAreaW, printAreaH);
             if (parentForm.drawingLoaded)
             {
-                float scaleDrawing = Zoom100Factor * (float)ZoomUpDown.Value / 100F;
+                ZoomFactor = (float)ZoomUpDown.Value / 100F;
+                float scaleDrawing = scaleFactor * ZoomFactor;  // represent 1:1 scale when drawing onto blankPage
                 float drawingHeight = topModule.bounds.YMax - topModule.bounds.YMin;
                 float drawingWidth = topModule.bounds.XMax - topModule.bounds.XMin;
 
                 if (fitToPage)
                 {
-                    // determine scale factor for drawing based on bounds
-                    scaleDrawing = frameH / drawingHeight;
-                    float scaleW = frameW / drawingWidth;
-
+                    // determine scale factor to fit the drawing within the page margins
+                    scaleDrawing = printAreaH / drawingHeight;
+                    float scaleW = printAreaW / drawingWidth;
                     if (scaleW < scaleDrawing) scaleDrawing = scaleW;
                 }
-                float dOffsetX = 0;
-                float dOffsetY = 0;
+
                 float dWidth = drawingWidth * scaleDrawing;
                 float dHeight = drawingHeight * scaleDrawing;
 
-                // Position according to drawing alignment
-                switch (dAlign)  // handle horizontal
-                {
-                    case DrawingAlignment.topMiddle:
-                    case DrawingAlignment.center:
-                    case DrawingAlignment.bottomMiddle:
-                        if (dWidth < frameW) dOffsetX = (frameW - dWidth) / 2.0F;
-                        if (dWidth > frameW) dOffsetX = -(dWidth - frameW) / 2.0F;
-                        break;
-                    case DrawingAlignment.topRight:
-                    case DrawingAlignment.middleRight:
-                    case DrawingAlignment.bottomRight:
-                        if (dWidth < frameW) dOffsetX = (frameW - dWidth);
-                        if (dWidth > frameW) dOffsetX= -(dWidth - frameW);
-                        break;
-                    default:
-                        break;
-                }
-
-                switch (dAlign)  // handle vertical
-                {
-                    case DrawingAlignment.middleLeft:
-                    case DrawingAlignment.center:
-                    case DrawingAlignment.middleRight:
-                        if (dHeight < frameH) dOffsetY = (frameH - dHeight) / 2.0F;
-                        if (dHeight > frameH) dOffsetY = -(dHeight - frameH) / 2.0F;
-                        break;
-                    case DrawingAlignment.bottomLeft:
-                    case DrawingAlignment.bottomMiddle:
-                    case DrawingAlignment.bottomRight:
-                        if (dHeight < frameH) dOffsetY = (frameH - dHeight);
-                        if (dHeight > frameH) dOffsetY = -(dHeight - frameH);
-                        break;
-                    default:
-                        break;
-                }
+                CalcAlignmentOffsets(dAlign, printAreaW, printAreaH, dWidth, dHeight, out float dOffsetX, out float dOffsetY);
 
                 // set clip rectangle
-                gr.SetClip(new RectangleF(frameX, frameY, frameW, frameH));
+                gr.SetClip(new RectangleF(printAreaX, printAreaY, printAreaW, printAreaH));
 
                 pen.DashStyle = System.Drawing.Drawing2D.DashStyle.Solid;
                 pen.Color = Color.LightGreen;
-                gr.DrawRectangle(pen, frameX + dOffsetX, frameY + dOffsetY, dWidth, dHeight);
+                gr.DrawRectangle(pen, printAreaX + dOffsetX, printAreaY + dOffsetY, dWidth, dHeight);
 
-                gr.TranslateTransform(frameX + dOffsetX, frameY + dOffsetY);
+                gr.TranslateTransform(printAreaX + dOffsetX, printAreaY + dOffsetY);
 
-                gr.ScaleTransform(scaleDrawing * ZoomFactor, scaleDrawing * ZoomFactor);
+                gr.ScaleTransform(scaleDrawing, scaleDrawing);
                 gr.TranslateTransform(-dBounds.XMin, dBounds.YMax);
                 // FLIP Y COORDINATES
                 gr.ScaleTransform(1, -1);
@@ -336,7 +277,7 @@ namespace DMEEView1
             var result = pageSetupDialog.ShowDialog();
             if (result == DialogResult.OK)
             {
-                CalcBlankPage(out previewAreaW, out previewAreaH, out offsetW, out offsetH);
+                CalcBlankPage(out blankPageW, out blankPageH, out blankPageX, out blankPageY);
             }
             Invalidate();
         }
