@@ -1459,7 +1459,7 @@ namespace DMEEView1
                 {
                     DrawPanel.AutoScroll = true;  // enable automatics scroll bars when picture box size exceeds windows size
                     DrawPictureBox.Height = (int)(dHeight * ZoomFactor) + 2;
-                    DrawPictureBox.Width = (int)(dWidth * ZoomFactor) + 1;
+                    DrawPictureBox.Width = (int)(dWidth * ZoomFactor) + 3;
                 }
 
                 // Set origin for display based on drawing bounds
@@ -1475,7 +1475,7 @@ namespace DMEEView1
 
                 Pen boundsPen = new Pen(Color.LightGray);
                 gr.DrawRectangle(boundsPen, topModuleCommand.bounds.XMin, topModuleCommand.bounds.YMin,
-                                                           dWidth, dHeight);
+                                                           dWidth+1, dHeight);
 
                 PaintDcModule(gr, topModuleCommand);
             }

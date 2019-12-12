@@ -239,7 +239,7 @@ namespace DMEEView1
             float[] dashValues = { 3, 5, 3, 5};
             pen.DashPattern = dashValues;
 
-            gr.DrawRectangle(pen, printAreaX, printAreaY, printAreaW, printAreaH);
+            //gr.DrawRectangle(pen, printAreaX, printAreaY, printAreaW, printAreaH);
             if (parentForm.drawingLoaded)
             {
                 ZoomFactor = (float)ZoomUpDown.Value / 100F;
