@@ -9,7 +9,7 @@ using System.IO;
 using System.Text;
 using System.Windows.Forms;
 
-// TMS - started September 17, 2
+// TMS - started September 17, 2019
 // Module loading and bounds processing:
 // BUILD INTERNAL LIBRARY
 //  CREATE LIST CONTAINING LIBRARY CATALOGS FROM LIBRARY FOLDER AND A LIST OF FILES IN WORKING DIRECTORY
@@ -26,6 +26,10 @@ using System.Windows.Forms;
 // 5.2      Set module command in drawlist to point to internal library entry.
 // 6. Mark internal library entry as processed indicating all module commands in drawlist for present entry were scanned
 // 7. Back to (1)
+
+// TBD: LOAD ALL MODULES (drawlists for individual characters) FROM TEXT.LBR AND CREATE AN ARRAY OF POINTERS TO THOSE ITEMS
+// That array will be in the same order as the corresponding ASCIIs value for the characters so that it can be efficiently used
+// for looking up the display lists for individual characters when drawing text.
 
 namespace DMEEView1
 {
@@ -262,7 +266,7 @@ namespace DMEEView1
                     case DcCommand.CommandType.module:
                         DcModule dModule = (DcModule)drawList[i];
                         int mIndex = dModule.internalLBRIndex;
-                        // get drawlist for module from moduleList
+                        // get drawlist for module
                         List<DcCommand> mDrawList;
                         mDrawList = internalLBR[mIndex].drawList;
                         // draw the module at specified location with given scalefactor
@@ -1074,6 +1078,38 @@ namespace DMEEView1
         {
             InitializeForLoad();
 
+            // TBD / WIP : 
+            // Find catalog for text.lbr and extract all drawlists for the characters into an internal character library.
+            // Add these entries to the end of the internal library??
+            // Maintain this seperately in order to create a text character lookup table. 
+            //
+            // Since text is drawn as a series of line and arc commands, can just add those commands to the drawlist for the module.
+            // Could do this when the module is loaded ??
+            
+            foreach (DcExternalLBRCatalog extCat in externalLBRCatalogs)
+            {               
+                if (extCat.fileName.ToLower().Contains("text.lbr"))
+                {
+                    List<InternalLBREntry> dcCharLBR = new List<InternalLBREntry>();
+
+                    foreach (ExtLBRCatEntry extCatEntry in extCat.entries)
+                    {
+                        InternalLBREntry textCharEntry = new InternalLBREntry();
+                        textCharEntry.fileName = extCat.fileName;
+                        DrawListStatus stat = DcMakeDrawListFromFile(ref textCharEntry, extCatEntry.recordOffset, extCatEntry.recordSize);
+
+                        // add it to the library
+                        dcCharLBR.Add(textCharEntry);
+
+                        // Within the .LBR file, each character set consists of 95 characters where the character set name is in
+                        // the form "C00sNNN.DAT" where s = set number and NNN = the OCTAL value for the ASCII character. E.g. C001040 is
+                        // the <space> character for character set 1. The last three entries are "grid" modules, CGRID01, CGRID02, and CGRID03
+                        // that are not used in the sample .SCH files I have. Oddly, CGRID02 and CGRID03 are identical.
+                    }
+                    break;
+                }
+            }
+
             InternalLBREntry internalLBREntry = internalLBR[0];
 
             // At first the top module is the only entry in the internal library. However, as
@@ -1090,7 +1126,6 @@ namespace DMEEView1
             }
 
             // Load the internal library (internalLBR) list with all modules used in the drawing along with their drawlists.
-            // This also creates a list (moduleList) of all the instances of module commands used in the drawing.
             LoadInternalLibrary();
 
             // --------------------- BOUNDS PROCESSING -----------------------------------
@@ -1119,7 +1154,7 @@ namespace DMEEView1
         // bounds for each child module that is already marked as bounds processed.Mark the parent module
         // as boundsProcessed if no unprocessed child modules are detected. Since child modules may themselves be
         // compound modules this may not happen on the first pass through the list. 
-        // Thus, repeat scanning and processing the moduleList until no unprocessed modules found or scanDepth limit reached.
+        // Thus, repeat scanning and processing the library entry drawlists until no unprocessed modules found or scanDepth limit reached.
         private void BoundsProcessInternalLibraryEntries()
         {
             // --------
@@ -1130,7 +1165,7 @@ namespace DMEEView1
             {
                 if (ile.stats.moduleItemCount == 0) ile.bounds.boundsProcessed = true;
             }
-            const int scanDepth = 10;   // Maximum number of passes through moduleList. TBD: Make this a configuration option ???
+            const int scanDepth = 10;   // Maximum number of passes over the internal library. TBD: Make this a configuration option ???
             for (int i = 1; i < scanDepth; i++)
             {
                 bool foundUnprocessedModules = false;
@@ -1266,7 +1301,7 @@ namespace DMEEView1
             Console.WriteLine("Internal Library: =================================");
             foreach (InternalLBREntry ile in internalLBR)
             {
-                Console.Write("moduleList: " + ile.name + " \t");
+                Console.Write("module: " + ile.name + " \t");
                 if (ile.name.Length < 7) Console.Write("\t");
                 if (ile.name.Length < 3) Console.Write("\t");
                 Console.Write("sub module count: " + ile.stats.moduleItemCount + " ");
@@ -1319,8 +1354,11 @@ namespace DMEEView1
                 externalLBRCatalogs.Clear();
                 int entryCount = 0;
                 string[] libFiles = Directory.GetFiles(libraryFolder, "*.lbr");
-                foreach (string fName in libFiles)
+                string fName = "";
+                foreach (string fn in libFiles)
                 {
+                    fName = fn;
+                    fName = fName.ToLower();
                     FileStream libFile = new FileStream(fName, FileMode.Open, FileAccess.Read);
                     DcExternalLBRCatalog catalog = new DcExternalLBRCatalog();
                     entryCount = DcLoadCatalog(libFile, catalog);
