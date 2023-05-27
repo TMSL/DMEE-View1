@@ -962,7 +962,7 @@ namespace DMEEView1
             string fName = "";
             string fDir = "";
 
-            if (fullName != @"\")
+            if (fullName != @"\" && fullName != "")
             {
                 fName = fullName.Substring(fullName.LastIndexOf(@"\") + 1);
                 fDir = fullName.Substring(0, fullName.LastIndexOf(@"\"));
