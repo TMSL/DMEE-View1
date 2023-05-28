@@ -25,8 +25,8 @@ namespace DMEEView1
             }
             else
             {
-                Properties.Settings.Default.LibFolder = "";
-                libraryFolder = "";
+                libraryFolder = Directory.GetCurrentDirectory();
+                Properties.Settings.Default.LibFolder = libraryFolder;
             }
             LibraryFolderTextBox.Text = libraryFolder;
             LibraryFolderTextBox.Select(0, 0);
@@ -38,8 +38,8 @@ namespace DMEEView1
             }
             else
             {
-                Properties.Settings.Default.WorkFolder = "";
-                workingFolder = "";
+                workingFolder = Directory.GetCurrentDirectory();
+                Properties.Settings.Default.WorkFolder = workingFolder;
             }
             WorkingFolderTextBox.Text = workingFolder;
             WorkingFolderTextBox.Select(0, 0);

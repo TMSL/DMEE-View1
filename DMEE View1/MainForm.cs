@@ -43,13 +43,13 @@ namespace DMEEView1
         const string crlf = "\r\n";
         public bool drawingLoaded = false;
         bool fitToWindow = false;
-        int DRAWPANEL_MARGIN = 5; // add some extra white space around the drawing
+        readonly int DRAWPANEL_MARGIN = 5; // add some extra white space around the drawing
 
         private List<InternalLBREntry> internalLBR = new List<InternalLBREntry>();
         List<DcExternalLBRCatalog> externalLBRCatalogs = new List<DcExternalLBRCatalog>();
         public DcModule topModuleCommand = new DcModule();
         private PrinterSettings printerSettings = new PrinterSettings();
-        public FolderConfigForm folderConfigForm = new FolderConfigForm();
+        public FolderConfigForm folderConfigForm;
         public ColorConfigForm colorConfigForm = new ColorConfigForm();
         public ColorConfigForm.DcColorConfig dcColorSettings = new ColorConfigForm.DcColorConfig();
         public PrintSetupForm psf;
@@ -60,7 +60,9 @@ namespace DMEEView1
         {
             InitializeComponent();
             menuStrip1.Select();
-            RestoreAppSettings();  // Restore saved settings
+            RestoreAppSettings();  // load saved settings
+
+            folderConfigForm = new FolderConfigForm(); //instantiate folder config form (uses settings)
 
             scratchPageSettings = (PageSettings)printDocument.DefaultPageSettings.Clone();
             psf = new PrintSetupForm(ref scratchPageSettings, this);
@@ -119,7 +121,7 @@ namespace DMEEView1
             workingFolder = Properties.Settings.Default.WorkFolder;
             if (!Directory.Exists(workingFolder)) // clear if not valid
             {
-                workingFolder = "";
+                workingFolder = Directory.GetCurrentDirectory();
                 Properties.Settings.Default.WorkFolder = workingFolder;
             }
 
@@ -127,7 +129,7 @@ namespace DMEEView1
             libraryFolder = Properties.Settings.Default.LibFolder;
             if (!Directory.Exists(libraryFolder))
             {
-                libraryFolder = "";
+                libraryFolder = Directory.GetCurrentDirectory();
                 Properties.Settings.Default.LibFolder = libraryFolder;
             }
 
@@ -985,6 +987,11 @@ namespace DMEEView1
                 TopFileNameTextBox.Text = topFileName;
                 TopFileNameTextBox.Update();
                 Properties.Settings.Default.fileName = topFileName;
+
+                //set working directory to file location
+                Properties.Settings.Default.WorkFolder = System.IO.Path.GetDirectoryName(openFileDialog1.FileName);
+                workingFolder = Properties.Settings.Default.WorkFolder;
+
                 DcLoadDrawing();
 
                 if (drawingLoaded)
