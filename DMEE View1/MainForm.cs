@@ -46,6 +46,7 @@ namespace DMEEView1
         readonly int DRAWPANEL_MARGIN = 5; // add some extra white space around the drawing
 
         private List<InternalLBREntry> internalLBR = new List<InternalLBREntry>();
+        private List<string> missingModules = new List<string>();
         List<DcExternalLBRCatalog> externalLBRCatalogs = new List<DcExternalLBRCatalog>();
         public DcModule topModuleCommand = new DcModule();
         private PrinterSettings printerSettings = new PrinterSettings();
@@ -180,7 +181,11 @@ namespace DMEEView1
             InfoTextBox.Text += "Drawing/display (d) Entries Count: " + entry.stats.drawingItemCount + crlf;
             InfoTextBox.Text += "Module (m) Entries Count (modules in top drawing): " + entry.stats.moduleItemCount + crlf;
             InfoTextBox.Text += "Internal Library Entries Count (unique modules used in drawing & sub-modules): "
-                                + internalLBR.Count;
+                                + internalLBR.Count + crlf;
+            foreach (string s in missingModules)
+            {
+                InfoTextBox.Text += s + crlf;
+            }
         }
 
         private void DrawCropMark(Graphics gr, Pen pen, PointF center)
@@ -1258,6 +1263,7 @@ namespace DMEEView1
         // =======================================================
         private void LoadInternalLibrary()
         {
+            missingModules.Clear();
             // Only one pass is needed since unprocessed modules are added to the end of the list
             // and will never appear before a processed module
             foreach (InternalLBREntry ile in internalLBR)
@@ -1295,6 +1301,7 @@ namespace DMEEView1
                     if (index < 0) // handle missing module
                     {
                         Console.WriteLine("Module \"" + ile.name + "\" not found in directory or libraries. ");
+                        missingModules.Add("Module \"" + ile.name + "\" not found in directory or libraries. ");
                         // set the bounds to all 0's for empty drawlist
                         ile.bounds.XMax = ile.bounds.YMax = 0;
                         ile.bounds.XMin = ile.bounds.YMin = 0;
