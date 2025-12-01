@@ -43,13 +43,14 @@ namespace DMEEView1
         const string crlf = "\r\n";
         public bool drawingLoaded = false;
         bool fitToWindow = false;
-        int DRAWPANEL_MARGIN = 5; // add some extra white space around the drawing
+        readonly int DRAWPANEL_MARGIN = 5; // add some extra white space around the drawing
 
         private List<InternalLBREntry> internalLBR = new List<InternalLBREntry>();
+        private List<string> missingModules = new List<string>();
         List<DcExternalLBRCatalog> externalLBRCatalogs = new List<DcExternalLBRCatalog>();
         public DcModule topModuleCommand = new DcModule();
         private PrinterSettings printerSettings = new PrinterSettings();
-        public FolderConfigForm folderConfigForm = new FolderConfigForm();
+        public FolderConfigForm folderConfigForm;
         public ColorConfigForm colorConfigForm = new ColorConfigForm();
         public ColorConfigForm.DcColorConfig dcColorSettings = new ColorConfigForm.DcColorConfig();
         public PrintSetupForm psf;
@@ -60,7 +61,9 @@ namespace DMEEView1
         {
             InitializeComponent();
             menuStrip1.Select();
-            RestoreAppSettings();  // Restore saved settings
+            RestoreAppSettings();  // load saved settings
+
+            folderConfigForm = new FolderConfigForm(); //instantiate folder config form (uses settings)
 
             scratchPageSettings = (PageSettings)printDocument.DefaultPageSettings.Clone();
             psf = new PrintSetupForm(ref scratchPageSettings, this);
@@ -119,7 +122,7 @@ namespace DMEEView1
             workingFolder = Properties.Settings.Default.WorkFolder;
             if (!Directory.Exists(workingFolder)) // clear if not valid
             {
-                workingFolder = "";
+                workingFolder = Directory.GetCurrentDirectory();
                 Properties.Settings.Default.WorkFolder = workingFolder;
             }
 
@@ -127,7 +130,7 @@ namespace DMEEView1
             libraryFolder = Properties.Settings.Default.LibFolder;
             if (!Directory.Exists(libraryFolder))
             {
-                libraryFolder = "";
+                libraryFolder = Directory.GetCurrentDirectory();
                 Properties.Settings.Default.LibFolder = libraryFolder;
             }
 
@@ -178,7 +181,11 @@ namespace DMEEView1
             InfoTextBox.Text += "Drawing/display (d) Entries Count: " + entry.stats.drawingItemCount + crlf;
             InfoTextBox.Text += "Module (m) Entries Count (modules in top drawing): " + entry.stats.moduleItemCount + crlf;
             InfoTextBox.Text += "Internal Library Entries Count (unique modules used in drawing & sub-modules): "
-                                + internalLBR.Count;
+                                + internalLBR.Count + crlf;
+            foreach (string s in missingModules)
+            {
+                InfoTextBox.Text += s + crlf;
+            }
         }
 
         private void DrawCropMark(Graphics gr, Pen pen, PointF center)
@@ -985,6 +992,11 @@ namespace DMEEView1
                 TopFileNameTextBox.Text = topFileName;
                 TopFileNameTextBox.Update();
                 Properties.Settings.Default.fileName = topFileName;
+
+                //set working directory to file location
+                Properties.Settings.Default.WorkFolder = System.IO.Path.GetDirectoryName(openFileDialog1.FileName);
+                workingFolder = Properties.Settings.Default.WorkFolder;
+
                 DcLoadDrawing();
 
                 if (drawingLoaded)
@@ -1251,6 +1263,7 @@ namespace DMEEView1
         // =======================================================
         private void LoadInternalLibrary()
         {
+            missingModules.Clear();
             // Only one pass is needed since unprocessed modules are added to the end of the list
             // and will never appear before a processed module
             foreach (InternalLBREntry ile in internalLBR)
@@ -1288,6 +1301,7 @@ namespace DMEEView1
                     if (index < 0) // handle missing module
                     {
                         Console.WriteLine("Module \"" + ile.name + "\" not found in directory or libraries. ");
+                        missingModules.Add("Module \"" + ile.name + "\" not found in directory or libraries. ");
                         // set the bounds to all 0's for empty drawlist
                         ile.bounds.XMax = ile.bounds.YMax = 0;
                         ile.bounds.XMin = ile.bounds.YMin = 0;
