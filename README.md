@@ -6,6 +6,7 @@ This C# project is being written as a way to view and print Draftsman-EE "DMEE" 
 a modern PC running Microsft Windows (r). The Draftsman-EE software may also be known as or associated with the names DMEE, DC-CAD, DCCAD, DC Design, DC 810, or DC/CAD IV. As of this writing, the viewer is a work in progress, Refer to following for details.
 
 ## Status
+11/30/2025: Fixed bug that prevented File->Open from working on fresh install. Created release with binary.
 12/3/2019: The program enables viewing and printing DMEE schematic drawings. The latest version has added a print setup dialog that provides options for selecting the printer, setting margins, scaling (Zoom), and aligning the drawing boundaries to the print page prior to printing.
 
 ## Limitations
