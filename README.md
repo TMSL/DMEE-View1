@@ -7,6 +7,7 @@ a modern PC running Microsft Windows (r). The Draftsman-EE software may also be 
 
 ## Status
 11/30/2025: Fixed bug that prevented File->Open from working on fresh install. Created release with binary.
+
 12/3/2019: The program enables viewing and printing DMEE schematic drawings. The latest version has added a print setup dialog that provides options for selecting the printer, setting margins, scaling (Zoom), and aligning the drawing boundaries to the print page prior to printing.
 
 ## Limitations
